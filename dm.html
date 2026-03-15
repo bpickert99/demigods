@@ -156,6 +156,17 @@ select.inp{cursor:pointer}
 /* Toast */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--surf2);border:1px solid var(--border2);border-radius:6px;padding:10px 20px;font-size:13px;color:var(--text);z-index:400;transition:transform .3s ease;white-space:nowrap}
 .toast.show{transform:translateX(-50%) translateY(0)}
+
+/* Ability notification banner */
+.ability-notif{position:fixed;top:0;left:0;right:0;z-index:500;padding:0;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:8px}
+.ability-notif-card{background:linear-gradient(135deg,#13132a,#07070e);border:1px solid var(--gold);border-radius:8px;padding:12px 20px;box-shadow:0 4px 24px var(--gold2);min-width:280px;max-width:500px;pointer-events:auto;animation:slideDown .3s ease;display:flex;align-items:center;gap:12px}
+@keyframes slideDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-20px)}}
+.ability-notif-card.hiding{animation:slideUp .3s ease forwards}
+.anc-player{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;min-width:50px}
+.anc-ability{font-family:'Cinzel Decorative',serif;font-size:14px;color:var(--text);flex:1}
+.anc-meta{font-size:11px;color:var(--dim);margin-top:2px}
+.anc-cost{font-size:11px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:10px;background:var(--fc)15;border:1px solid var(--fc)40;color:var(--fc);white-space:nowrap}
 footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:4px}
 </style>
 </head>
@@ -370,6 +381,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="ability-notif" id="ability-notif"></div>
 <footer>WEAVER SCREEN · DEMIGODS CAMPAIGN</footer>
 
 <script>
@@ -984,6 +996,10 @@ function subscribeAll(){
   db.channel('dm-cq').on('postgres_changes',{event:'*',schema:'public',table:'combat_queue'},async()=>{const{data}=await db.from('combat_queue').select('*').eq('session_id',combatSess?.id||'').in('status',['waiting','active']).order('created_at');combatQ=data||[];renderCombatQueue();}).subscribe();
   db.channel('dm-ca').on('postgres_changes',{event:'*',schema:'public',table:'combat_actions'},async(pl)=>{if(pl.new&&!pl.new.resolved&&pl.new.actor_type==='pc')showActionCard(pl.new);}).subscribe();
   db.channel('dm-cp').on('postgres_changes',{event:'*',schema:'public',table:'combat_participants'},async()=>{await loadCombatParts();renderCombatants();}).subscribe();
+  // Ability use notifications
+  db.channel('dm-ability-log').on('postgres_changes',{event:'INSERT',schema:'public',table:'ability_log'},payload=>{
+    if(payload.new) showAbilityNotification(payload.new);
+  }).subscribe();
 }
 
 // Utils
@@ -995,6 +1011,16 @@ function startCanvas(){
   function ip(){pts=[];for(let i=0;i<40;i++)pts.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.2+.3,vx:(Math.random()-.5)*.08,vy:(Math.random()-.5)*.08,a:Math.random()*.2+.05});}
   function dr(){ctx.clearRect(0,0,c.width,c.height);const g=ctx.createRadialGradient(c.width/2,0,0,c.width/2,c.height*.5,c.height*.8);g.addColorStop(0,'rgba(212,168,75,.04)');g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.fillRect(0,0,c.width,c.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=c.width;if(p.x>c.width)p.x=0;if(p.y<0)p.y=c.height;if(p.y>c.height)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(212,168,75,${p.a*.4})`;ctx.fill();});requestAnimationFrame(dr);}
   rs();ip();dr();addEventListener('resize',()=>{rs();ip();});
+}
+
+// ── ABILITY NOTIFICATIONS ──
+function showAbilityNotification(entry){
+  const p=PLAYERS.find(pl=>pl.id===entry.character_id)||{name:entry.character_id,acc:'var(--gold)'};
+  const container=document.getElementById('ability-notif');if(!container)return;
+  const card=document.createElement('div');card.className='ability-notif-card';
+  card.innerHTML=`<div class="anc-player" style="color:${p.acc}">${p.name}</div><div style="flex:1"><div class="anc-ability">${entry.ability_name}</div><div class="anc-meta">${entry.ability_meta||''}</div></div><div class="anc-cost">${entry.cost_str||''}</div>`;
+  container.appendChild(card);
+  setTimeout(()=>{card.classList.add('hiding');setTimeout(()=>card.remove(),300);},5000);
 }
 
 init().catch(e=>{console.error(e);setSyncDot(false);});

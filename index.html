@@ -48,7 +48,6 @@ footer{margin-top:24px;font-family:'Cinzel',serif;font-size:9px;font-weight:700;
 <canvas id="bg-canvas"></canvas>
 <div class="wrap">
   <div class="campaign-title">Demigods</div>
-  <div class="campaign-sub">A Forged in the Dark Campaign</div>
   <div class="divider"></div>
 
   <div class="section-label">Player Screens</div>
@@ -84,7 +83,7 @@ footer{margin-top:24px;font-family:'Cinzel',serif;font-size:9px;font-weight:700;
   </div>
 
   <div class="section-label">Weaver</div>
-  <a href="dm.html" class="dm-card">
+  <a href="dm.html" class="dm-card" id="dm-link" style="display:none">
     <div class="dm-icon">📖</div>
     <div class="dm-info">
       <div class="dm-title">Weaver Screen</div>
@@ -92,11 +91,36 @@ footer{margin-top:24px;font-family:'Cinzel',serif;font-size:9px;font-weight:700;
     </div>
     <div class="dm-arrow">→</div>
   </a>
+  <div id="dm-locked" style="display:flex;align-items:center;gap:16px;padding:18px 24px;background:var(--surf);border:1px solid var(--border);border-radius:10px;margin-bottom:40px">
+    <div style="font-size:32px">🔒</div>
+    <div style="flex:1">
+      <div style="font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--dim)">Weaver Screen</div>
+      <div style="font-size:12px;color:var(--dim);margin-top:3px;letter-spacing:1px">Enter password to access</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="dm-password" type="password" placeholder="Password" style="padding:8px 12px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:14px;width:130px" onkeydown="if(event.key==='Enter')checkDMPassword()">
+      <button onclick="checkDMPassword()" style="padding:8px 14px;border-radius:4px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s" onmouseover="this.style.background='rgba(212,168,75,.2)'" onmouseout="this.style.background='transparent'">Enter</button>
+    </div>
+  </div>
 
   <footer>DEMIGODS CAMPAIGN · FORGED IN THE DARK</footer>
 </div>
 
 <script>
+function checkDMPassword(){
+  const input=document.getElementById('dm-password');
+  if(input?.value==='1128'){
+    document.getElementById('dm-locked').style.display='none';
+    document.getElementById('dm-link').style.display='flex';
+    window.location.href='dm.html';
+  } else {
+    input.style.borderColor='#ef4444';
+    input.value='';
+    input.placeholder='Incorrect';
+    setTimeout(()=>{input.style.borderColor='';input.placeholder='Password';},1500);
+  }
+}
+
 // Ambient particle canvas
 const canvas=document.getElementById('bg-canvas');
 const ctx=canvas.getContext('2d');

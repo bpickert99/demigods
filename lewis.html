@@ -46,6 +46,69 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 /* ── PLAYBOOK PANELS ── */
 .pb-panel{display:none}.pb-panel.active{display:block}
 
+/* ── COMBAT OVERLAY ── */
+.combat-overlay{display:none;position:fixed;inset:0;z-index:150;background:#050508;flex-direction:column;overflow-y:auto}
+.combat-overlay.vis{display:flex}
+.co-header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:linear-gradient(135deg,#1a0800,#080400);border-bottom:2px solid var(--gold)}
+.co-title{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);letter-spacing:2px}
+.co-round{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-left:auto}
+.co-body{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:20px;flex:1}
+@media(max-width:600px){.co-body{grid-template-columns:1fr}}
+.co-section{background:#0e0e1c;border:1px solid var(--border);border-radius:8px;padding:14px}
+.co-sec-title{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--dim);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.co-sec-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.co-harm-bar{height:8px;background:var(--border2);border-radius:4px;overflow:hidden;margin:8px 0}
+.co-harm-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444);transition:width .4s}
+.co-stat-nums{font-family:'Cinzel Decorative',serif;font-size:20px;color:var(--harm)}
+.co-actions{display:flex;gap:8px;flex-wrap:wrap}
+.co-apip{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;border:2px solid var(--border2);background:var(--surf2);transition:all .2s}
+.co-apip.avail{background:#22c55e20;border-color:var(--success);color:var(--success)}
+.co-apip.used{background:var(--border);border-color:var(--dim);color:var(--dim)}
+.co-tracks{display:flex;gap:10px}
+.co-track{flex:1;text-align:center}
+.co-track-lbl{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:5px}
+.co-pips{display:flex;gap:4px;justify-content:center}
+.co-pip{width:18px;height:18px;border-radius:50%;border:2px solid var(--border2);background:var(--surf2)}
+.co-pip.on.wisdom{background:#60a5fa;border-color:#93c5fd;box-shadow:0 0 6px #60a5fa66}
+.co-pip.on.grit{background:#f87171;border-color:#fca5a5;box-shadow:0 0 6px #f8717166}
+.co-pip.on.bond{background:#4ade80;border-color:#86efac;box-shadow:0 0 6px #4ade8066}
+.co-queue-list{display:flex;flex-direction:column;gap:6px}
+.co-queue-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surf2);border:1px solid var(--border);border-radius:4px;font-size:13px}
+.co-queue-item.my-turn{border-color:var(--gold);background:var(--gold2)}
+.co-queue-item.active{border-color:var(--success)}
+.co-join-btn{width:100%;padding:12px;border-radius:6px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-family:'Cinzel',serif;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-top:10px}
+.co-join-btn:hover{background:var(--gold2)}
+.co-join-btn:disabled{opacity:.35;cursor:default;pointer-events:none}
+.co-actions-panel{background:#0a0a1a;border:2px solid var(--gold);border-radius:8px;padding:16px;margin-top:12px;animation:fadeUp .25s ease}
+.co-actions-panel h3{font-family:'Cinzel Decorative',serif;font-size:15px;color:var(--gold);margin-bottom:12px;text-align:center}
+.co-action-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.co-action-btn{padding:10px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;text-align:left}
+.co-action-btn:hover{border-color:var(--gold);background:var(--gold2)}
+.co-action-btn .co-action-icon{font-size:18px;display:block;margin-bottom:3px}
+.co-action-btn .co-action-cost{font-size:9px;color:var(--dim);letter-spacing:1px;margin-top:2px}
+.co-weapon-display{padding:8px 12px;background:var(--surf2);border:1px solid var(--border);border-radius:4px;font-size:13px;color:var(--text);margin-bottom:8px}
+.co-weapon-name{font-weight:600}
+.co-weapon-harm{font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--rc);margin-left:8px}
+.co-inv-item{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surf2);border:1px solid var(--border);border-radius:4px;margin-bottom:5px;font-size:12px}
+.co-inv-use{padding:3px 8px;border-radius:4px;border:1px solid var(--gold)60;background:transparent;color:var(--gold);font-size:10px;font-weight:700;cursor:pointer;transition:all .18s}
+.co-inv-use:hover{background:var(--gold2)}
+/* Bond button */
+.bond-btn{padding:6px 14px;border-radius:4px;border:1px solid #4ade8060;background:transparent;color:#4ade80;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s}
+.bond-btn:hover{background:#4ade8015}
+.bond-btn:disabled{opacity:.35;cursor:default}
+/* Wisdom prompt */
+.wisdom-prompt{padding:10px 14px;background:var(--surf2);border:1px solid #60a5fa40;border-radius:6px;margin-bottom:10px;text-align:center}
+.wisdom-prompt p{font-size:13px;color:var(--muted);margin-bottom:8px}
+.wisdom-btns{display:flex;gap:8px;justify-content:center}
+.wisdom-yes{padding:7px 18px;border-radius:4px;border:1px solid #60a5fa;background:transparent;color:#60a5fa;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s}
+.wisdom-yes:hover{background:#60a5fa20}
+.wisdom-no{padding:7px 18px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s}
+.wisdom-no:hover{border-color:var(--text);color:var(--text)}
+/* Undo notification */
+.undo-notif{display:none;padding:12px 16px;background:linear-gradient(135deg,#1a0000,#0a0000);border:1px solid var(--fail);border-radius:6px;margin-bottom:12px;text-align:center;animation:fadeUp .2s ease}
+.undo-notif.vis{display:block}
+.undo-notif p{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--fail);text-transform:uppercase}
+
 /* ── PARCHMENT (Hero tab) ── */
 #pb-hero{
   background:linear-gradient(160deg,#f5ecd7,#ede0c4);
@@ -500,6 +563,67 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
   <div id="jury-submit-list"></div>
 </div>
 
+<!-- UNDO NOTIFICATION -->
+<div class="undo-notif" id="undo-notif">
+  <p>⟲ A change was undone by the Weaver — please re-choose your track gain below</p>
+</div>
+
+<!-- COMBAT OVERLAY -->
+<div class="combat-overlay" id="combat-overlay">
+  <div class="co-header">
+    <div class="co-title">⚔ Combat</div>
+    <div class="co-round" id="co-round-text">Round 1</div>
+    <div style="font-size:11px;color:var(--dim);margin-left:12px" id="co-turn-text"></div>
+  </div>
+  <div class="co-body">
+    <!-- Left col: harm, actions, tracks, weapon -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="co-section">
+        <div class="co-sec-title">Harm & Status</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-size:12px;color:var(--dim)">Harm / Mortality</span>
+          <span class="co-stat-nums" id="co-harm-nums">0 / 0</span>
+        </div>
+        <div class="co-harm-bar"><div class="co-harm-fill" id="co-harm-fill" style="width:0%"></div></div>
+        <div id="co-conditions" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+      <div class="co-section">
+        <div class="co-sec-title">My Actions</div>
+        <div class="co-actions" id="co-action-pips"></div>
+        <button class="co-join-btn" id="co-join-btn" onclick="joinCombatQueue()">⚔ I Want to Act</button>
+      </div>
+      <div class="co-section">
+        <div class="co-sec-title">Momentum</div>
+        <div class="co-tracks">
+          <div class="co-track"><span class="co-track-lbl" style="color:#60a5fa">Wisdom</span><div class="co-pips" id="co-wisdom-pips"></div></div>
+          <div class="co-track"><span class="co-track-lbl" style="color:#f87171">Grit</span><div class="co-pips" id="co-grit-pips"></div></div>
+          <div class="co-track"><span class="co-track-lbl" style="color:#4ade80">Bond</span><div class="co-pips" id="co-bond-pips"></div></div>
+        </div>
+      </div>
+      <div class="co-section">
+        <div class="co-sec-title">Equipped Weapon</div>
+        <div id="co-weapon-display"><div style="color:var(--dim);font-size:12px;font-style:italic">No weapon equipped.</div></div>
+      </div>
+    </div>
+    <!-- Right col: queue, inventory, action panel -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="co-section">
+        <div class="co-sec-title">Queue</div>
+        <div class="co-queue-list" id="co-queue-list"><div style="color:var(--dim);font-size:12px;font-style:italic">No one in queue yet.</div></div>
+      </div>
+      <div class="co-section">
+        <div class="co-sec-title">Inventory</div>
+        <div id="co-inventory"></div>
+      </div>
+      <!-- Action panel — shown when it's your turn -->
+      <div class="co-actions-panel" id="co-action-panel" style="display:none">
+        <h3>Your Turn — Choose an Action</h3>
+        <div class="co-action-grid" id="co-action-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- PLAYBOOK TOGGLE -->
 <div class="pb-toggle">
   <button class="pb-btn active" onclick="switchPlaybook('hero')">⚔ Hero</button>
@@ -942,6 +1066,7 @@ async function init(){
   await loadInventory();
   await checkPendingRoll();
   await loadExtended();
+  await loadCombatState();
   buildSkillsGrid();
   buildStatPips();
   buildFavorTokens();
@@ -949,6 +1074,7 @@ async function init(){
   updateSpread();
   subscribeAll();
   subscribeExtended();
+  subscribeNotifications();
   setSyncDot(true);
   startCanvas();
 }
@@ -1024,7 +1150,7 @@ function buildSkillsGrid(){
     row.className='skill-row';
     row.innerHTML=`<span class="skill-name">${sk}</span>
       <div class="skill-boxes" id="sboxes-${sk}"></div>
-      <span class="skill-dice" id="sdice-${sk}">${dice}d6</span>
+      <span class="skill-dice" id="sdice-${sk}">${dice||'0'}d6</span>
       <button class="skill-roll-btn" title="Roll ${sk}" onclick="initiateRoll('${sk}',event)">🎲</button>`;
     grid.appendChild(row);
     buildSkillBoxes(sk,dice);
@@ -1037,19 +1163,10 @@ function buildSkillBoxes(skill,checked){
   container.innerHTML='';
   for(let i=1;i<=4;i++){
     const box=document.createElement('div');
+    // Read-only — no onclick
     box.className='sbox'+(i<=checked?' checked':'');
-    box.onclick=(e)=>{e.stopPropagation();toggleSkillBox(skill,i);};
     container.appendChild(box);
   }
-}
-async function toggleSkillBox(skill,index){
-  const current=skillData[skill]||0;
-  const newVal=index===current?index-1:index;
-  skillData[skill]=newVal;
-  buildSkillBoxes(skill,newVal);
-  document.getElementById(`sdice-${skill}`).textContent=`${newVal}d6`;
-  updateMortalityDisplay();
-  await db.from('character_skills').update({dice:newVal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('skill',skill);
 }
 function updateMortalityDisplay(){
   const total=getTotalDice();
@@ -1058,13 +1175,11 @@ function updateMortalityDisplay(){
   document.getElementById('header-mortality').textContent=total;
   document.getElementById('mortality-max').textContent=total;
   document.getElementById('fmax-disp').textContent=total;
-  // Update favor max
-  const fc=Math.min(charData.favor_current||0,total);
   buildFavorTokens();
   updateHarmBar();
 }
 
-// ── STAT PIPS ──
+// ── STAT PIPS ── (read-only display — DM controls momentum)
 function buildStatPips(){
   ['wisdom','grit','bond'].forEach(track=>{
     const container=document.getElementById(`${track}-pips`);
@@ -1074,17 +1189,10 @@ function buildStatPips(){
     for(let i=1;i<=4;i++){
       const pip=document.createElement('div');
       pip.className=`stat-pip${i<=val?' on '+track:''}`;
-      pip.onclick=()=>toggleStatPip(track,i);
+      // No onclick — momentum only gained through roll results
       container.appendChild(pip);
     }
   });
-}
-async function toggleStatPip(track,index){
-  const current=charData[track]||0;
-  const newVal=index===current?index-1:index;
-  charData[track]=newVal;
-  buildStatPips();
-  await db.from('characters').update({[track]:newVal,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
 }
 
 // ── CONDITIONS ──
@@ -1189,9 +1297,165 @@ async function setFavor(n){
 function changeFavor(d){setFavor((charData.favor_current||0)+d);}
 function refillFavor(){setFavor(getMortality()||15);}
 async function useFavor(cost,nodeId){
+  // Deduct favor
   await setFavor((charData.favor_current||0)-cost);
-  const btn=document.getElementById(`use-btn-${nodeId}`);
-  if(btn){btn.classList.add('use-btn-used');btn.textContent='✓ Favor Spent';setTimeout(()=>{btn.classList.remove('use-btn-used');btn.innerHTML=`Use Power <span class="ub-cost">−${cost} Favor</span>`;},1800);}
+  // Run the full ability sequence
+  await useAbility(nodeId,cost);
+}
+
+// ── ABILITY USE SYSTEM ──
+async function useAbility(nodeId, favorCost){
+  const data=ND[nodeId];if(!data)return;
+  const powerName=data.name;
+  const content=data.content;
+
+  // Passive abilities just notify
+  if(content.type==='passive'){
+    await notifyDMAbilityUse(powerName, favorCost?`−${favorCost} Favor`:'Passive', nodeId);
+    showToast(`${powerName} — Weaver notified`);
+    return;
+  }
+
+  // Extract skill from roll string e.g. "Roll Wits. Spend 2 Favor."
+  const rollStr=content.roll||'';
+  const skillMatch=rollStr.match(/Roll[:\s]+([A-Za-z]+)/i);
+  const skill=skillMatch?skillMatch[1]:null;
+
+  // Roll dice
+  const baseDice=skill?(skillData[skill]||0):1;
+  const isZero=baseDice===0;
+  const diceCount=isZero?2:baseDice;
+  const results=[];
+  for(let i=0;i<diceCount;i++) results.push(Math.ceil(Math.random()*6));
+  const relevant=isZero?Math.min(...results):Math.max(...results);
+  const ones=results.filter(r=>r===1).length;
+
+  let outcomeIdx=0;
+  let outcomeClass='fail';
+  if(relevant>=6){outcomeIdx=0;outcomeClass='success';}
+  else if(relevant>=4){outcomeIdx=1;outcomeClass='partial';}
+  else{outcomeIdx=2;outcomeClass='fail';}
+
+  const outcome=content.outcomes[outcomeIdx];
+
+  // Check for damage die from levels
+  const el=document.getElementById(nodeId);
+  const levelStr=el?.dataset.levels;
+  const levelArr=levelStr?levelStr.split(','):null;
+  const currentLevel=nodeLevels[nodeId]||0;
+  const damageDie=levelArr?levelArr[currentLevel]:null;
+  let damageRoll=null;
+  if(damageDie&&outcomeClass!=='fail'){
+    damageRoll=rollDieStr(damageDie);
+    // On fail, roll one level down
+    if(outcomeClass==='fail'&&currentLevel>0){
+      damageRoll=rollDieStr(levelArr[currentLevel-1]);
+    }
+  }
+
+  // Show result modal
+  showAbilityResult(nodeId,powerName,skill,results,relevant,outcomeClass,outcome,damageDie,damageRoll,ones,isZero);
+
+  // Log to roll log
+  if(skill){
+    const outcomeKey=outcomeClass==='success'?'success':outcomeClass==='partial'?'mixed':'fail';
+    await db.from('roll_log').insert({character_id:CHAR_ID,skill:`${powerName} (${skill})`,dice_rolled:diceCount,results,highest:relevant,outcome:outcomeKey,ones_count:ones,modifier:0});
+  }
+
+  // Notify DM with result
+  const resultLabel=outcomeClass==='success'?'Full Success':outcomeClass==='partial'?'Mixed':'Failure';
+  const dmDesc=`${skill?`Rolled ${relevant} — ${resultLabel}`:'Used'}${damageDie&&damageRoll?` · ${damageRoll} harm (${damageDie})`:''}`;
+  await notifyDMAbilityUse(powerName, favorCost?`${dmDesc} · −${favorCost} Favor`:dmDesc, nodeId);
+
+  // Auto-handle momentum from ones
+  if(ones>0) pendingOnesCount=ones;
+}
+
+let pendingOnesCount=0;
+
+function showAbilityResult(nodeId,name,skill,results,highest,outcomeClass,outcome,damageDie,damageRoll,ones,isZero){
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  const oc=outcomeClass==='success'?'var(--success)':outcomeClass==='partial'?'var(--partial)':'var(--fail)';
+  const label=outcomeClass==='success'?'Full Success':outcomeClass==='partial'?'Mixed Success':'Failure';
+
+  const diceHtml=results.map((r,i)=>{
+    let cls='roll-die';
+    if(isZero){if(r===Math.min(...results))cls+=' highest';}
+    else{if(r===highest&&results.indexOf(r)===i)cls+=' highest';}
+    if(r===1)cls+=' one';
+    return `<div class="${cls}">${r}</div>`;
+  }).join('');
+
+  let dmgHtml='';
+  if(damageDie&&damageRoll!==null){
+    dmgHtml=`<div style="margin:10px 0;padding:10px 14px;background:var(--surf2);border:1px solid var(--harm)40;border-radius:6px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:12px;color:var(--dim)">Damage (${damageDie})</span>
+      <span style="font-family:'Cinzel Decorative',serif;font-size:22px;color:var(--harm)">${damageRoll}</span>
+      <button onclick="showHarmTargetPicker(${damageRoll})" style="margin-left:auto;padding:5px 12px;border-radius:4px;border:1px solid var(--harm);background:transparent;color:var(--harm);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s" onmouseover="this.style.background='#ef444420'" onmouseout="this.style.background='transparent'">Apply Harm</button>
+    </div>`;
+  }
+
+  let onesHtml='';
+  if(ones>0){
+    onesHtml=`<div class="roll-ones-prompt">
+      <strong>${ones} die${ones>1?'s':''} landed on 1!</strong><br>
+      <span style="font-size:12px;color:var(--muted)">Gain ${ones} Momentum:</span>
+      <div class="track-btns" style="margin-top:8px">
+        <button class="track-btn wisdom" onclick="gainTrack('wisdom',${ones})">Wisdom</button>
+        <button class="track-btn grit" onclick="gainTrack('grit',${ones})">Grit</button>
+        <button class="track-btn bond" onclick="gainTrack('bond',${ones})">Bond</button>
+      </div>
+    </div>`;
+  }
+
+  content.innerHTML=`
+    <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">${name}</div>
+    ${skill?`<div style="font-size:12px;color:var(--dim);margin-bottom:8px">Rolling ${skill} — ${isZero?'2d6 take lowest':results.length+'d6'}</div>`:''}
+    ${skill?`<div class="roll-dice-display">${diceHtml}</div>`:''}
+    <div class="roll-outcome ${outcomeClass}" style="margin:10px 0">${label}</div>
+    <div style="padding:12px 14px;background:var(--surf2);border-left:3px solid ${oc};border-radius:0 6px 6px 0;font-size:14px;color:var(--text);line-height:1.6;margin-bottom:8px">${outcome.text}</div>
+    ${dmgHtml}
+    ${onesHtml}
+    <button class="add-cond-btn" style="margin-top:12px" onclick="closeRollModal()">Done</button>`;
+  modal.classList.add('vis');
+}
+
+function showHarmTargetPicker(harmAmount){
+  const content=document.getElementById('roll-modal-content');
+  // Remove existing picker if any
+  document.getElementById('harm-target-picker')?.remove();
+  const picker=document.createElement('div');
+  picker.id='harm-target-picker';
+  picker.style.cssText='margin-top:10px;padding:12px 14px;background:var(--surf2);border:1px solid var(--border2);border-radius:6px';
+  // Targets: PCs (via condition) or NPCs — for now show a note to DM
+  picker.innerHTML=`
+    <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Apply ${harmAmount} Harm to Target</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">The Weaver will apply this harm. It has been included in the notification.</div>
+    <button onclick="document.getElementById('harm-target-picker').remove()" style="padding:5px 12px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11px;cursor:pointer">Dismiss</button>`;
+  content.appendChild(picker);
+}
+
+async function notifyDMAbilityUse(abilityName, costStr, nodeId){
+  const meta=ND[nodeId]?.meta||'';
+  await db.from('ability_log').insert({
+    character_id: CHAR_ID,
+    ability_name: abilityName,
+    ability_meta: meta,
+    cost_str: costStr,
+    created_at: new Date().toISOString()
+  });
+}
+
+async function notifyDMPassiveUse(abilityName, nodeId){
+  const meta=ND[nodeId]?.meta||'';
+  await db.from('ability_log').insert({
+    character_id: CHAR_ID,
+    ability_name: abilityName,
+    ability_meta: meta,
+    cost_str: 'Passive',
+    created_at: new Date().toISOString()
+  });
 }
 
 // ── INVENTORY ──
@@ -1238,17 +1502,63 @@ async function deleteItem(id){
 }
 
 // ── ROLL SYSTEM ──
+let pendingRollWisdomBoost=false;
+
 async function initiateRoll(skill,event){
   event.stopPropagation();
-  const dice=skillData[skill]||1;
-  showToast(`Rolling ${skill}... awaiting Weaver`);
-  const{data,error}=await db.from('pending_rolls').insert({character_id:CHAR_ID,skill,base_dice:dice,modifier:0,status:'waiting'}).select().single();
+  const wisdom=charData.wisdom||0;
+  if(wisdom>0){
+    // Ask if they want to use Wisdom
+    showWisdomPrompt(skill);
+  } else {
+    await fireRollRequest(skill,false);
+  }
+}
+
+function showWisdomPrompt(skill){
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  content.innerHTML=`
+    <div class="wisdom-prompt">
+      <p>You have <strong style="color:#60a5fa">${charData.wisdom} Wisdom</strong>. Spend 1 for +1d on this roll?</p>
+      <div class="wisdom-btns">
+        <button class="wisdom-yes" onclick="resolveWisdomPrompt('${skill}',true)">✓ Yes — spend 1</button>
+        <button class="wisdom-no" onclick="resolveWisdomPrompt('${skill}',false)">No — roll as-is</button>
+      </div>
+    </div>`;
+  modal.classList.add('vis');
+}
+
+async function resolveWisdomPrompt(skill,useWisdom){
+  document.getElementById('roll-modal').classList.remove('vis');
+  if(useWisdom){
+    // Deduct 1 wisdom immediately
+    const newWisdom=Math.max(0,(charData.wisdom||0)-1);
+    charData.wisdom=newWisdom;
+    buildStatPips();
+    await db.from('characters').update({wisdom:newWisdom,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+  }
+  await fireRollRequest(skill,useWisdom);
+}
+
+async function fireRollRequest(skill,wisdomBoost){
+  const baseDice=skillData[skill]||0;
+  // 0 dice = roll 2d6 take lower — send as special flag
+  const sendDice=baseDice===0?-2:baseDice+(wisdomBoost?1:0);
+  const{data,error}=await db.from('pending_rolls').insert({
+    character_id:CHAR_ID,skill,
+    base_dice:Math.abs(sendDice),
+    modifier:0,status:'waiting',
+    zero_skill:baseDice===0
+  }).select().single();
   if(error){showToast('Error sending roll request');return;}
   pendingRollId=data.id;
   currentRollSkill=skill;
   document.getElementById('pending-banner').classList.add('vis');
-  document.getElementById('pending-banner').querySelector('p').textContent=`⏳ Rolling ${skill} (${dice}d6) — Awaiting Weaver...`;
+  document.getElementById('pending-banner').querySelector('p').textContent=
+    `⏳ Rolling ${skill}${baseDice===0?' (0 skill — take lower)':` (${Math.abs(sendDice)}d6)`} — Awaiting Weaver...`;
 }
+
 async function handleRollUpdate(payload){
   const row=payload.new||payload;
   if(!row||row.character_id!==CHAR_ID) return;
@@ -1261,36 +1571,48 @@ async function handleRollUpdate(payload){
     showToast('Roll cancelled by Weaver');
   }
 }
+
 function fireRoll(rollData){
-  const totalDice=Math.max(1,(rollData.base_dice||1)+(rollData.modifier||0));
+  const isZeroSkill=rollData.zero_skill||rollData.base_dice===0;
+  const diceCount=isZeroSkill?2:Math.max(1,(rollData.base_dice||1)+(rollData.modifier||0));
   const results=[];
-  for(let i=0;i<totalDice;i++) results.push(Math.ceil(Math.random()*6));
-  const highest=Math.max(...results);
+  for(let i=0;i<diceCount;i++) results.push(Math.ceil(Math.random()*6));
+  // 0-skill: take the LOWER of the two dice
+  const relevant=isZeroSkill?Math.min(...results):Math.max(...results);
   const ones=results.filter(r=>r===1).length;
   let outcome,outcomeClass;
-  if(highest>=6){outcome='Full Success';outcomeClass='success';}
-  else if(highest>=4){outcome='Mixed Success';outcomeClass='partial';}
+  if(relevant>=6){outcome='Full Success';outcomeClass='success';}
+  else if(relevant>=4){outcome='Mixed Success';outcomeClass='partial';}
   else{outcome='Failure';outcomeClass='fail';}
-  showRollResult(rollData.skill,results,highest,outcome,outcomeClass,ones,rollData.modifier||0);
-  logRoll(rollData.skill,totalDice,results,highest,outcome,ones,rollData.modifier||0);
+  showRollResult(rollData.skill,results,relevant,outcome,outcomeClass,ones,rollData.modifier||0,isZeroSkill);
+  logRoll(rollData.skill,diceCount,results,relevant,outcome,ones,rollData.modifier||0);
   if(rollData.id) db.from('pending_rolls').update({status:'completed'}).eq('id',rollData.id);
   pendingRollId=null;
 }
-function showRollResult(skill,results,highest,outcome,outcomeClass,ones,modifier){
+
+function showRollResult(skill,results,highest,outcome,outcomeClass,ones,modifier,isZeroSkill){
   const modal=document.getElementById('roll-modal');
   const content=document.getElementById('roll-modal-content');
   let diceHtml=results.map((r,i)=>{
     let cls='roll-die';
-    if(r===highest&&results.indexOf(r)===i) cls+=' highest';
-    if(r===1) cls+=' one';
+    if(isZeroSkill){if(r===Math.min(...results))cls+=' highest';} // highlight the kept die (lowest)
+    else{if(r===highest&&results.indexOf(r)===i)cls+=' highest';}
+    if(r===1)cls+=' one';
     return `<div class="${cls}">${r}</div>`;
   }).join('');
   let modHtml=modifier!==0?`<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Modifier: ${modifier>0?'+':''}${modifier}</div>`:'';
+  let zeroHtml=isZeroSkill?`<div style="font-size:11px;color:var(--dim);margin-bottom:6px;font-style:italic">No skill — rolling 2d6, taking lowest</div>`:'';
+
+  // Bond button — show if bond > 0 and roll is still pending queue
+  const bond=charData.bond||0;
+  let bondHtml=bond>0?`<div style="margin-top:10px"><button class="bond-btn" id="bond-apply-btn" onclick="showBondApplication('${skill}')">🤝 Apply Bond (+1d)</button></div>`:'';
+
   let onesHtml='';
   if(ones>0){
     onesHtml=`<div class="roll-ones-prompt">
-      <strong>${ones} die${ones>1?'s':''} landed on 1!</strong> Choose a track to gain ${ones} point${ones>1?'s':''}:
-      <div class="track-btns">
+      <strong>${ones} die${ones>1?'s':''} landed on 1!</strong><br>
+      <span style="font-size:12px;color:var(--muted)">Gain ${ones} in one Momentum track:</span>
+      <div class="track-btns" style="margin-top:8px">
         <button class="track-btn wisdom" onclick="gainTrack('wisdom',${ones})">Wisdom</button>
         <button class="track-btn grit" onclick="gainTrack('grit',${ones})">Grit</button>
         <button class="track-btn bond" onclick="gainTrack('bond',${ones})">Bond</button>
@@ -1299,24 +1621,80 @@ function showRollResult(skill,results,highest,outcome,outcomeClass,ones,modifier
   }
   content.innerHTML=`
     <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:4px;color:var(--muted);margin-bottom:6px;text-transform:uppercase">${skill}</div>
-    ${modHtml}
+    ${modHtml}${zeroHtml}
     <div class="roll-dice-display">${diceHtml}</div>
     <div class="roll-outcome ${outcomeClass}">${outcome}</div>
+    ${bondHtml}
     ${onesHtml}
     <button class="add-cond-btn" style="margin-top:16px" onclick="closeRollModal()">Done</button>`;
   modal.classList.add('vis');
 }
+
+function showBondApplication(skill){
+  // Show a list of pending rolls in queue to apply bond to
+  const content=document.getElementById('roll-modal-content');
+  const bond=charData.bond||0;
+  if(bond<=0){showToast('No Bond available');return;}
+  // Apply bond to current roll — add +1d modifier to any pending roll for this character
+  if(pendingRollId){
+    applyBond(pendingRollId,skill);
+  } else {
+    // Show confirmation
+    const div=document.createElement('div');
+    div.style.cssText='padding:10px;background:var(--surf2);border:1px solid #4ade8040;border-radius:6px;margin-top:10px';
+    div.innerHTML=`<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Apply 1 Bond (+1d) to this roll?</div>
+      <div style="display:flex;gap:8px">
+        <button class="bond-btn" onclick="applyBond(null,'${skill}')">Apply Bond</button>
+        <button style="padding:6px 14px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:12px;cursor:pointer" onclick="this.parentElement.parentElement.remove()">Cancel</button>
+      </div>`;
+    document.getElementById('roll-modal-content').appendChild(div);
+  }
+}
+
+async function applyBond(rollId,skill){
+  const bond=charData.bond||0;if(bond<=0)return;
+  const newBond=bond-1;
+  const oldBond=bond;
+  charData.bond=newBond;
+  buildStatPips();
+  await db.from('characters').update({bond:newBond,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+  // Log the bond spend
+  await logMomentumChange('bond',oldBond,newBond,'Bond spent for +1d');
+  // If there's an active pending roll, bump its dice
+  if(rollId){
+    await db.from('pending_rolls').update({modifier:1,updated_at:new Date().toISOString()}).eq('id',rollId);
+    showToast('Bond applied — +1d on this roll');
+  } else {
+    showToast('Bond spent — tell the Weaver');
+  }
+  document.getElementById('bond-apply-btn')?.remove();
+}
+
 async function gainTrack(track,amount){
   const current=charData[track]||0;
   const newVal=Math.min(4,current+amount);
+  const oldVal=current;
   charData[track]=newVal;
   buildStatPips();
   await db.from('characters').update({[track]:newVal,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+  // Log to change_log for DM undo
+  await logMomentumChange(track,oldVal,newVal,`Momentum: ${track} gained ${amount} (from roll)`);
   showToast(`${track.charAt(0).toUpperCase()+track.slice(1)} +${amount}`);
   // Remove the ones prompt
-  const prompt=document.querySelector('.roll-ones-prompt');
-  if(prompt) prompt.remove();
+  document.querySelector('.roll-ones-prompt')?.remove();
 }
+
+async function logMomentumChange(track,oldVal,newVal,desc){
+  const typeMap={wisdom:'momentum_wisdom',grit:'momentum_grit',bond:'momentum_bond'};
+  await db.from('change_log').insert({
+    character_id:CHAR_ID,
+    change_type:typeMap[track]||'momentum_wisdom',
+    description:desc,
+    old_value:JSON.stringify({[track]:oldVal}),
+    new_value:JSON.stringify({[track]:newVal})
+  });
+}
+
 function closeRollModal(){document.getElementById('roll-modal').classList.remove('vis');}
 async function logRoll(skill,diceRolled,results,highest,outcome,ones,modifier){
   const outcomeKey=outcome.includes('Full')?'success':outcome.includes('Mixed')?'mixed':'fail';
@@ -1445,7 +1823,12 @@ function showNodeDetail(id,el){
     contentHtml=`<div class="move-block"><div class="move-trigger">When to Use</div><div class="move-roll-line">${c.trigger}<br><br><strong>${c.roll||''}</strong></div><div class="move-outcomes">${outHtml}</div>${qHtml}</div>`;
   }
   let useHtml='';
-  if(isUnlocked&&favor){useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="useFavor(${favor},'${id}')">Use Power <span class="ub-cost">−${favor} Favor</span></button>`;}
+  if(isUnlocked&&favor){
+    useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="useFavor(${favor},'${id}')">Use Power <span class="ub-cost">−${favor} Favor</span></button>`;
+  } else if(isUnlocked&&c.type==='passive'){
+    // Passive abilities — "Trigger" button just notifies DM, no cost
+    useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="triggerPassive('${id}')" style="--dpacc:${accMap[branch]}">✦ Notify Weaver — Using This</button>`;
+  }
   let prereqHtml=data.prereq?`<div class="dp-prereq">Requires: ${data.prereq}</div>`:'';
   panel.innerHTML=`
     <div class="dp-meta">${data.meta}</div>
@@ -1453,6 +1836,21 @@ function showNodeDetail(id,el){
     <div class="dp-rule"></div>
     ${lvlHtml}${contentHtml}${useHtml}${prereqHtml}`;
   panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+async function triggerPassive(nodeId){
+  const powerName=ND[nodeId]?.name||nodeId;
+  const btn=document.getElementById(`use-btn-${nodeId}`);
+  if(btn){
+    btn.classList.add('use-btn-used');
+    btn.textContent='✓ Weaver Notified';
+    setTimeout(()=>{
+      btn.classList.remove('use-btn-used');
+      btn.textContent='✦ Notify Weaver — Using This';
+    },2000);
+  }
+  await notifyDMPassiveUse(powerName, nodeId);
+  showToast(`Weaver notified: ${powerName}`);
 }
 
 function switchBranch(b){
@@ -1954,6 +2352,315 @@ function subscribeExtended(){
       renderJuryActiveItem();
     }
   }).subscribe();
+}
+
+// ── COMBAT OVERLAY ──
+let combatSessionData=null;
+let combatParticipantData=null;
+let myQueueItem=null;
+let combatQueueData=[];
+
+async function loadCombatState(){
+  const{data}=await db.from('dm_settings').select('combat_active,combat_session_id,current_round').eq('id',1).single();
+  if(data?.combat_active&&data?.combat_session_id){
+    const{data:sess}=await db.from('combat_sessions').select('*').eq('id',data.combat_session_id).single();
+    combatSessionData=sess;
+    // Load my participant row
+    const{data:part}=await db.from('combat_participants').select('*').eq('session_id',data.combat_session_id).eq('participant_id',CHAR_ID).single();
+    combatParticipantData=part||null;
+    showCombatOverlay();
+  } else {
+    hideCombatOverlay();
+  }
+}
+function showCombatOverlay(){
+  document.getElementById('combat-overlay').classList.add('vis');
+  document.body.style.overflow='hidden';
+  updateCombatOverlay();
+}
+function hideCombatOverlay(){
+  document.getElementById('combat-overlay').classList.remove('vis');
+  document.body.style.overflow='';
+  combatSessionData=null;combatParticipantData=null;myQueueItem=null;
+}
+function updateCombatOverlay(){
+  if(!combatSessionData) return;
+  // Round
+  document.getElementById('co-round-text').textContent=`Round ${combatSessionData.round||1}`;
+  // Harm
+  const harm=getTotalHarm();const mort=getMortality();
+  document.getElementById('co-harm-nums').textContent=`${harm} / ${mort}`;
+  document.getElementById('co-harm-fill').style.width=`${Math.min(100,harm/(mort||1)*100)}%`;
+  // Conditions
+  const condsEl=document.getElementById('co-conditions');
+  if(condsEl) condsEl.innerHTML=conditions.map(c=>`<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--surf2);border:1px solid var(--border);border-radius:10px;font-size:11px;margin:2px;color:${c.unstable?'var(--unstable)':'var(--text)'}">${c.label} ${c.harm}</span>`).join('');
+  // Action pips
+  const pipsEl=document.getElementById('co-action-pips');
+  if(pipsEl&&combatParticipantData){
+    pipsEl.innerHTML='';
+    for(let i=1;i<=combatParticipantData.actions_max;i++){
+      const used=i<=combatParticipantData.actions_used;
+      const pip=document.createElement('div');
+      pip.className=`co-apip ${used?'used':'avail'}`;
+      pip.textContent=used?'✓':'◆';
+      pipsEl.appendChild(pip);
+    }
+  }
+  // Tracks
+  ['wisdom','grit','bond'].forEach(t=>{
+    const el=document.getElementById(`co-${t}-pips`);if(!el)return;
+    el.innerHTML='';
+    for(let i=1;i<=4;i++){const pip=document.createElement('div');pip.className=`co-pip${i<=(charData[t]||0)?' on '+t:''}`;el.appendChild(pip);}
+  });
+  // Weapon
+  const wpnEl=document.getElementById('co-weapon-display');
+  if(wpnEl){
+    const weapons=inventoryData.filter(i=>i.is_weapon);
+    if(weapons.length){
+      const w=weapons[0];const harmTag=(w.tags||[]).find(t=>t.includes('Harm'))||'';
+      wpnEl.innerHTML=`<div class="co-weapon-display"><span class="co-weapon-name">${w.name}</span><span class="co-weapon-harm">${harmTag}</span></div>`;
+    } else wpnEl.innerHTML='<div style="color:var(--dim);font-size:12px;font-style:italic">No weapon equipped.</div>';
+  }
+  // Inventory
+  const invEl=document.getElementById('co-inventory');
+  if(invEl){
+    if(!inventoryData.length){invEl.innerHTML='<div style="color:var(--dim);font-size:12px;font-style:italic">No items.</div>';return;}
+    invEl.innerHTML='';
+    inventoryData.forEach(item=>{
+      const div=document.createElement('div');div.className='co-inv-item';
+      const canUse=item.uses_max>0||item.healing_value;
+      div.innerHTML=`<span style="flex:1;font-size:12px">${item.name}</span>
+        ${item.uses_max>0?`<span style="font-size:11px;color:var(--dim)">${item.uses_current}/${item.uses_max}</span>`:''}
+        ${canUse?`<button class="co-inv-use" onclick="useItem('${item.id}')">Use</button>`:''}`;
+      invEl.appendChild(div);
+    });
+  }
+  // Turn indicator
+  const isMyTurn=combatSessionData.current_turn_id===CHAR_ID&&combatSessionData.current_turn_type==='pc';
+  document.getElementById('co-turn-text').textContent=isMyTurn?'▶ YOUR TURN':'';
+  const actionPanel=document.getElementById('co-action-panel');
+  if(actionPanel) actionPanel.style.display=isMyTurn?'block':'none';
+  if(isMyTurn) buildCombatActionGrid();
+  // Queue
+  renderCombatQueue();
+  // Join button
+  const joinBtn=document.getElementById('co-join-btn');
+  if(joinBtn){
+    const inQueue=combatQueueData.some(q=>q.character_id===CHAR_ID&&q.status!=='done');
+    const noActions=combatParticipantData&&combatParticipantData.actions_used>=combatParticipantData.actions_max;
+    joinBtn.disabled=inQueue||noActions||isMyTurn;
+    joinBtn.textContent=inQueue?'⏳ In Queue — Waiting...':noActions?'No Actions Left':'⚔ I Want to Act';
+  }
+}
+async function joinCombatQueue(){
+  if(!combatSessionData)return;
+  const{data}=await db.from('combat_queue').insert({session_id:combatSessionData.id,character_id:CHAR_ID,status:'waiting',position:combatQueueData.length+1}).select().single();
+  if(data){myQueueItem=data;combatQueueData.push(data);}
+  updateCombatOverlay();showToast('Added to queue — waiting for your turn');
+}
+function renderCombatQueue(){
+  const list=document.getElementById('co-queue-list');if(!list)return;
+  const active=combatQueueData.filter(q=>q.status!=='done');
+  if(!active.length){list.innerHTML='<div style="color:var(--dim);font-size:12px;font-style:italic">No one in queue.</div>';return;}
+  list.innerHTML='';
+  active.forEach((q,i)=>{
+    const isMe=q.character_id===CHAR_ID;
+    const div=document.createElement('div');
+    div.className=`co-queue-item${isMe?' my-turn':''}${q.status==='active'?' active':''}`;
+    div.innerHTML=`<span style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--lewis-acc)">#${i+1}</span><span style="font-size:13px;color:${isMe?'var(--gold)':'var(--text)'}">${q.character_id}${isMe?' (you)':''}</span>`;
+    list.appendChild(div);
+  });
+}
+function buildCombatActionGrid(){
+  const grid=document.getElementById('co-action-grid');if(!grid)return;
+  const featsUnlocked=[...unlockedFeats];
+  const actions=[
+    {icon:'⚔',label:'Attack',desc:'Roll weapon damage',cost:'',onclick:'submitCombatAction("attack","Attack with weapon")'},
+    {icon:'🎲',label:'Skill Roll',desc:'Roll any skill',cost:'',onclick:'submitCombatAction("skill","Skill roll")'},
+    {icon:'🏃',label:'Move',desc:'Reposition on the field',cost:'',onclick:'submitCombatAction("move","Move")'},
+    {icon:'🔍',label:'Scope',desc:'Investigate surroundings',cost:'',onclick:'submitCombatAction("scope","Scope")'},
+    {icon:'🎒',label:'Use Item',desc:'Use an item from inventory',cost:'',onclick:'submitCombatAction("item","Use item")'},
+  ];
+  // Add unlocked feats
+  FEATS.filter(f=>featsUnlocked.has(f.id)).forEach(f=>{
+    actions.push({icon:f.type==='combat'?'⚔':'🛡',label:f.name,desc:f.desc,cost:'1 Grit',onclick:`submitCombatAction("feat","${f.name}")`});
+  });
+  grid.innerHTML='';
+  actions.forEach(a=>{
+    const btn=document.createElement('button');btn.className='co-action-btn';
+    btn.innerHTML=`<span class="co-action-icon">${a.icon}</span>${a.label}<span class="co-action-cost">${a.cost}</span>`;
+    btn.onclick=()=>{ eval(a.onclick); };
+    grid.appendChild(btn);
+  });
+}
+async function submitCombatAction(type,label){
+  if(!combatSessionData)return;
+  // Deduct Grit for feats
+  if(type==='feat'){
+    const grit=charData.grit||0;
+    if(grit<=0){showToast('Not enough Grit');return;}
+    const newGrit=grit-1;charData.grit=newGrit;buildStatPips();
+    await db.from('characters').update({grit:newGrit,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+    await logMomentumChange('grit',grit,newGrit,`Grit spent for feat: ${label}`);
+  }
+  // Submit action to DB — DM sees it and narrates
+  await db.from('combat_actions').insert({
+    session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
+    action_type:type,action_label:label,resolved:false
+  });
+  document.getElementById('co-action-panel').style.display='none';
+  showToast(`Action submitted: ${label}`);
+  // Mark queue item active
+  if(myQueueItem){await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);}
+}
+
+// ── ITEM USE ──
+async function useItem(itemId){
+  const item=inventoryData.find(i=>i.id===itemId);if(!item)return;
+  if(!confirm(`Use "${item.name}"? This may be permanent.`))return;
+  if(item.healing_value){
+    await useHealingItem(item);
+  } else if(item.uses_max>0){
+    await decrementItem(item);
+  }
+}
+async function useHealingItem(item){
+  if(!conditions.length){showToast('No conditions to heal');return;}
+  // Show condition picker
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  const condHtml=conditions.map(c=>`<button onclick="applyHealing('${item.id}','${c.id}','${item.healing_value}')" style="display:block;width:100%;padding:8px 12px;margin-bottom:6px;background:var(--surf2);border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;text-align:left;font-size:13px;transition:all .18s" onmouseover="this.style.borderColor='var(--success)'" onmouseout="this.style.borderColor='var(--border)'">${c.label} — ${c.harm} harm</button>`).join('');
+  content.innerHTML=`
+    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--success);margin-bottom:10px">Apply ${item.healing_value} Healing</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Which condition are you healing?</div>
+    ${condHtml}
+    <button class="add-cond-btn" style="margin-top:8px" onclick="closeRollModal()">Cancel</button>`;
+  modal.classList.add('vis');
+}
+async function applyHealing(itemId,condId,healVal){
+  const item=inventoryData.find(i=>i.id===itemId);
+  const cond=conditions.find(c=>c.id===condId);
+  if(!item||!cond)return;
+  // Parse healing value
+  const healAmt=rollDieStr(healVal);
+  const newHarm=Math.max(0,cond.harm-healAmt);
+  if(newHarm<=0){
+    // Remove condition entirely
+    await db.from('conditions').delete().eq('id',condId);
+    conditions=conditions.filter(c=>c.id!==condId);
+    showToast(`${cond.label} healed — removed (${healAmt} healing)`);
+  } else {
+    await db.from('conditions').update({harm:newHarm,updated_at:new Date().toISOString()}).eq('id',condId);
+    cond.harm=newHarm;
+    showToast(`${healAmt} healing applied to ${cond.label}`);
+  }
+  renderConditions();
+  await decrementItem(item);
+  closeRollModal();
+}
+function rollDieStr(s){
+  if(!s)return 0;const f=parseInt(s);if(!isNaN(f)&&!String(s).includes('d'))return f;
+  const m=String(s).match(/(\d+)d(\d+)/i);if(!m)return 0;
+  let t=0;for(let i=0;i<parseInt(m[1]);i++)t+=Math.ceil(Math.random()*parseInt(m[2]));return t;
+}
+async function decrementItem(item){
+  if(item.uses_max>0){
+    const newUses=Math.max(0,item.uses_current-1);
+    await db.from('equipment').update({uses_current:newUses,updated_at:new Date().toISOString()}).eq('id',item.id);
+    item.uses_current=newUses;
+    if(newUses<=0){showToast(`${item.name} used up`);inventoryData=inventoryData.filter(i=>i.id!==item.id);}
+    renderInventory();
+  }
+}
+
+// ── REST & UNDO NOTIFICATIONS ──
+function subscribeNotifications(){
+  db.channel(`${CHAR_ID}-rest`).on('postgres_changes',{event:'INSERT',schema:'public',table:'rest_events'},async(payload)=>{
+    const ev=payload.new;if(!ev)return;
+    const initiator=ev.initiated_by||'';
+    if(initiator.startsWith(`undo_${CHAR_ID}_`)){
+      // This is an undo notification for me
+      const changeType=initiator.replace(`undo_${CHAR_ID}_`,'');
+      showUndoNotification(changeType);
+    } else if(ev.rest_type==='short'||ev.rest_type==='long'){
+      showRestPopup(ev.rest_type);
+      // Reload character data to get updated favor
+      await loadCharacter();
+      buildFavorTokens();
+      if(ev.rest_type==='long'){await loadConditions();renderConditions();}
+    }
+  }).subscribe();
+  // Combat session changes
+  db.channel(`${CHAR_ID}-dm-settings`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'dm_settings',filter:'id=eq.1'},async(payload)=>{
+    if(payload.new?.combat_active&&payload.new?.combat_session_id){
+      const{data:sess}=await db.from('combat_sessions').select('*').eq('id',payload.new.combat_session_id).single();
+      combatSessionData=sess;
+      const{data:part}=await db.from('combat_participants').select('*').eq('session_id',payload.new.combat_session_id).eq('participant_id',CHAR_ID).single();
+      combatParticipantData=part||null;
+      showCombatOverlay();
+    } else if(!payload.new?.combat_active){
+      hideCombatOverlay();
+    }
+  }).subscribe();
+  // Combat session updates (round changes, turn changes)
+  db.channel(`${CHAR_ID}-combat-sess`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'combat_sessions'},async(payload)=>{
+    if(combatSessionData&&payload.new?.id===combatSessionData.id){
+      combatSessionData=payload.new;updateCombatOverlay();
+    }
+  }).subscribe();
+  // My participant row
+  db.channel(`${CHAR_ID}-combat-part`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'combat_participants',filter:`participant_id=eq.${CHAR_ID}`},async(payload)=>{
+    combatParticipantData=payload.new;updateCombatOverlay();
+  }).subscribe();
+  // Combat queue
+  db.channel(`${CHAR_ID}-combat-q`).on('postgres_changes',{event:'*',schema:'public',table:'combat_queue'},async(payload)=>{
+    if(!combatSessionData)return;
+    const{data}=await db.from('combat_queue').select('*').eq('session_id',combatSessionData.id).in('status',['waiting','active']).order('created_at');
+    combatQueueData=data||[];
+    myQueueItem=combatQueueData.find(q=>q.character_id===CHAR_ID)||null;
+    renderCombatQueue();updateCombatOverlay();
+  }).subscribe();
+  // Advancement — pending_advances field
+  db.channel(`${CHAR_ID}-advance-check`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'characters',filter:`id=eq.${CHAR_ID}`},async(payload)=>{
+    const pending=payload.new?.pending_advances||0;
+    if(pending>0) showAdvanceModal();
+  }).subscribe();
+}
+
+function showRestPopup(type){
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  const icon=type==='short'?'☽':'☀';
+  const title=type==='short'?'Short Rest':'Long Rest';
+  const sub=type==='short'?'Your Favor has been restored.':'Favor restored and conditions cleared.';
+  content.innerHTML=`
+    <div style="text-align:center;padding:10px 0">
+      <div style="font-size:48px;margin-bottom:12px">${icon}</div>
+      <div style="font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);margin-bottom:6px">${title}</div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:16px">${sub}</div>
+      <button class="add-cond-btn" onclick="closeRollModal()">Dismissed</button>
+    </div>`;
+  modal.classList.add('vis');
+}
+
+function showUndoNotification(changeType){
+  const notif=document.getElementById('undo-notif');if(!notif)return;
+  const typeLabel=changeType.replace('momentum_','');
+  notif.querySelector('p').textContent=`⟲ Your ${typeLabel} gain was undone by the Weaver — please re-choose your momentum track`;
+  notif.classList.add('vis');
+  setTimeout(()=>notif.classList.remove('vis'),8000);
+  // Re-open roll modal with track choices if ones were pending
+  const content=document.getElementById('roll-modal-content');
+  const modal=document.getElementById('roll-modal');
+  content.innerHTML=`
+    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--fail);margin-bottom:10px">Track Gain Undone</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">The Weaver undid your last momentum gain. Choose again:</div>
+    <div class="track-btns">
+      <button class="track-btn wisdom" onclick="gainTrack('wisdom',1)">Wisdom</button>
+      <button class="track-btn grit" onclick="gainTrack('grit',1)">Grit</button>
+      <button class="track-btn bond" onclick="gainTrack('bond',1)">Bond</button>
+    </div>`;
+  modal.classList.add('vis');
 }
 
 // ── BOOT ──
