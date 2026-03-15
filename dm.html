@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weaver Screen — Demigods Campaign</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#07070e;--surf:#0e0e1c;--surf2:#13132a;--border:#252540;--border2:#3a3a58;
+  --text:#e8e0d0;--muted:#9090b0;--dim:#606080;
+  --gold:#d4a84b;--gold2:#d4a84b30;
+  --lewis:#7c3aed;--murphy:#10b981;--kara:#f59e0b;--finn:#8b5cf6;
+  --lewis-acc:#ddd6fe;--murphy-acc:#6ee7b7;--kara-acc:#fcd34d;--finn-acc:#c4b5fd;
+  --success:#22c55e;--partial:#f59e0b;--fail:#ef4444;
+  --harm:#ef4444;--unstable:#f97316;
+  --rc:#fbbf24;--fc:#e879f9;--gc:#34d399;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+#bg-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.3}
+.wrap{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:0 16px 80px}
+
+/* ── HEADER ── */
+.dm-header{display:flex;align-items:center;gap:16px;padding:20px 0 16px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.dm-title{font-family:'Cinzel Decorative',serif;font-size:20px;color:var(--gold);letter-spacing:2px}
+.dm-sub{font-size:11px;letter-spacing:4px;color:var(--dim);font-family:'Cinzel',serif;font-weight:700;text-transform:uppercase;margin-top:2px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;box-shadow:0 0 6px #22c55e;margin-left:auto}
+.sync-dot.off{background:#ef4444;box-shadow:0 0 6px #ef4444}
+.round-badge{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;color:var(--gold);background:var(--gold2);border:1px solid var(--gold);padding:4px 12px;border-radius:20px;margin-left:12px}
+
+/* ── SECTION TITLES ── */
+.section-title{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:var(--dim);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.section{margin-bottom:28px}
+
+/* ── PENDING ROLLS BANNER ── */
+.pending-roll-card{padding:14px 18px;background:linear-gradient(135deg,#1a1a00,#0a0a00);border:1px solid var(--gold);border-radius:6px;margin-bottom:10px;display:flex;align-items:center;gap:14px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 8px var(--gold2)}50%{box-shadow:0 0 20px var(--gold2)}}
+.pr-player{font-family:'Cinzel Decorative',serif;font-size:14px;font-weight:700}
+.pr-skill{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.pr-dice{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);margin-left:auto;white-space:nowrap}
+.pr-conditions{font-size:12px;color:var(--harm);margin-top:3px}
+.pr-mod{display:flex;align-items:center;gap:6px;margin-left:12px}
+.pr-mod-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border2);background:var(--surf2);color:var(--text);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .18s}
+.pr-mod-btn:hover{border-color:var(--gold);color:var(--gold)}
+.pr-mod-val{font-family:'Cinzel',serif;font-size:13px;font-weight:700;min-width:28px;text-align:center;color:var(--gold)}
+.pr-approve{padding:8px 18px;border-radius:4px;border:1px solid var(--success);background:transparent;color:var(--success);font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s;white-space:nowrap}
+.pr-approve:hover{background:#22c55e20}
+.pr-cancel{padding:8px 14px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s;white-space:nowrap}
+.pr-cancel:hover{border-color:var(--fail);color:var(--fail)}
+.no-pending{color:var(--dim);font-size:13px;text-align:center;padding:12px;font-style:italic}
+
+/* ── PARTY GRID ── */
+.party-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(min-width:900px){.party-grid{grid-template-columns:repeat(4,1fr)}}
+.player-card{background:var(--surf);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.pc-header{padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.pc-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.pc-name{font-family:'Cinzel Decorative',serif;font-size:14px}
+.pc-playbook{font-size:10px;letter-spacing:2px;font-family:'Cinzel',serif;font-weight:700;text-transform:uppercase;margin-top:1px}
+.pc-body{padding:12px 14px}
+.pc-stat-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pc-stat-label{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim)}
+.pc-stat-val{font-family:'Cinzel Decorative',serif;font-size:16px}
+.pc-harm-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:10px}
+.pc-harm-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444);transition:width .5s}
+.pc-tracks{display:flex;gap:8px;margin-bottom:10px}
+.pc-track{flex:1;text-align:center}
+.pc-track-label{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:3px}
+.pc-track-pips{display:flex;gap:2px;justify-content:center}
+.pc-pip{width:10px;height:10px;border-radius:50%;border:1px solid var(--border2);background:var(--surf2)}
+.pc-pip.on.wisdom{background:#60a5fa;border-color:#93c5fd}
+.pc-pip.on.grit{background:#f87171;border-color:#fca5a5}
+.pc-pip.on.bond{background:#4ade80;border-color:#86efac}
+.pc-conditions{margin-top:6px}
+.pc-cond{display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--surf2);border-radius:4px;margin-bottom:4px;font-size:12px}
+.pc-cond-label{flex:1;color:var(--text)}
+.pc-cond-harm{font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--harm)}
+.pc-cond-unstable{font-size:9px;color:var(--unstable);font-weight:700;letter-spacing:1px}
+.pc-favor{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.pc-favor-label{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--fc);text-transform:uppercase}
+.pc-favor-val{font-family:'Cinzel Decorative',serif;font-size:14px;color:var(--fc);margin-left:auto}
+.pc-powers-toggle{width:100%;padding:6px;border:none;background:var(--surf2);color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all .18s;border-top:1px solid var(--border)}
+.pc-powers-toggle:hover{color:var(--text);background:var(--border)}
+.pc-powers-panel{display:none;padding:10px 14px;background:var(--surf2);border-top:1px solid var(--border)}
+.pc-powers-panel.open{display:block}
+.pc-power-item{font-size:12px;color:var(--muted);padding:3px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.pc-power-item:last-child{border-bottom:none}
+.pc-power-branch{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.kara-reveal-btn{width:100%;padding:8px;border:1px solid var(--kara);background:transparent;color:var(--kara-acc);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s;margin-top:6px;border-radius:4px}
+.kara-reveal-btn:hover{background:var(--kara)20}
+.kara-reveal-btn.revealed{border-color:var(--success);color:var(--success)}
+
+/* ── INITIATIVE ── */
+.initiative-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.init-btn{padding:7px 14px;border-radius:4px;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s;border:1px solid var(--border2);background:var(--surf);color:var(--text)}
+.init-btn:hover{border-color:var(--gold);color:var(--gold)}
+.init-btn.primary{border-color:var(--gold);color:var(--gold)}
+.init-btn.primary:hover{background:var(--gold2)}
+.init-btn.danger{border-color:var(--fail);color:var(--fail)}
+.init-btn.danger:hover{background:#ef444420}
+.add-combatant-form{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.init-input{padding:7px 12px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:13px;flex:1;min-width:120px}
+.init-input:focus{outline:none;border-color:var(--gold)}
+.init-select{padding:7px 12px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:13px;cursor:pointer}
+.initiative-list{display:flex;flex-direction:column;gap:8px}
+.init-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surf);border:1px solid var(--border);border-radius:6px;transition:all .2s}
+.init-row.current-turn{border-color:var(--gold);background:var(--gold2);box-shadow:0 0 12px var(--gold2)}
+.init-row.current-turn .init-name{color:var(--gold)}
+.init-position{font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--dim);min-width:24px;text-align:center}
+.init-name{font-family:'Cinzel',serif;font-size:13px;font-weight:700;letter-spacing:1px;flex:1}
+.init-npc-badge{font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 6px;border-radius:10px;background:var(--surf2);border:1px solid var(--border2);color:var(--dim);text-transform:uppercase}
+.init-actions{display:flex;gap:4px;align-items:center}
+.action-pip{width:20px;height:20px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;font-size:10px}
+.action-pip.used{background:var(--border);border-color:var(--dim)}
+.action-pip.available{background:#22c55e20;border-color:var(--success);color:var(--success)}
+.action-pip:hover{transform:scale(1.1)}
+.init-del{width:24px;height:24px;border-radius:4px;border:none;background:transparent;color:var(--dim);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:color .18s;flex-shrink:0}
+.init-del:hover{color:var(--fail)}
+.init-move{cursor:grab;color:var(--dim);font-size:16px;padding:0 4px}
+.round-controls{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.round-label{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;color:var(--gold);text-transform:uppercase}
+.round-num{font-family:'Cinzel Decorative',serif;font-size:22px;color:var(--gold);margin:0 8px}
+
+/* ── NPC TRACKER ── */
+.npc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.npc-card{background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:14px}
+.npc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.npc-name{font-family:'Cinzel',serif;font-size:14px;font-weight:700;flex:1;color:var(--text)}
+.npc-name-input{flex:1;background:transparent;border:none;border-bottom:1px solid var(--border2);color:var(--text);font-family:'Cinzel',serif;font-size:14px;font-weight:700;padding:2px 0}
+.npc-name-input:focus{outline:none;border-color:var(--gold)}
+.npc-harm-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.npc-harm-label{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);min-width:40px}
+.npc-harm-bar-bg{flex:1;height:8px;background:var(--surf2);border-radius:4px;overflow:hidden}
+.npc-harm-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444);transition:width .4s}
+.npc-harm-nums{font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:var(--harm);white-space:nowrap}
+.npc-harm-btns{display:flex;gap:4px;margin-bottom:8px}
+.npc-btn{padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .18s}
+.npc-btn:hover{border-color:var(--gold);color:var(--gold)}
+.npc-btn.harm{border-color:var(--harm)40;color:var(--harm)}.npc-btn.harm:hover{background:var(--harm)20}
+.npc-conds{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.npc-cond-row{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 8px;background:var(--surf2);border-radius:4px}
+.npc-cond-label{flex:1;color:var(--text)}
+.npc-cond-harm{color:var(--harm);font-weight:700;font-family:'Cinzel',serif;font-size:11px;min-width:20px}
+.npc-cond-del{background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:13px;transition:color .18s;padding:0 2px}
+.npc-cond-del:hover{color:var(--fail)}
+.npc-add-cond{display:flex;gap:6px;margin-bottom:8px}
+.npc-cond-input{flex:1;padding:5px 8px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:12px}
+.npc-cond-input:focus{outline:none;border-color:var(--gold)}
+.npc-armor-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.npc-armor-label{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+.npc-dur-pips{display:flex;gap:3px}
+.npc-dur-pip{width:12px;height:12px;border-radius:2px;border:1px solid var(--border2);background:var(--surf2);cursor:pointer;transition:all .18s}
+.npc-dur-pip.on{background:#60a5fa;border-color:#93c5fd}
+.npc-del-btn{margin-top:6px;width:100%;padding:5px;border:1px solid var(--border2);border-radius:4px;background:transparent;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s}
+.npc-del-btn:hover{border-color:var(--fail);color:var(--fail)}
+.add-npc-btn{padding:8px 16px;border-radius:4px;border:1px solid var(--border2);background:var(--surf);color:var(--muted);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all .18s;margin-bottom:12px}
+.add-npc-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── EQUIPMENT SENDER ── */
+.equip-form{background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:16px}
+.equip-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.equip-form-grid{grid-template-columns:1fr}}
+.form-field{display:flex;flex-direction:column;gap:4px}
+.form-label{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim)}
+.form-input{padding:7px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:13px}
+.form-input:focus{outline:none;border-color:var(--gold)}
+.form-checkbox{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--muted)}
+.form-checkbox input{width:14px;height:14px;cursor:pointer;accent-color:var(--gold)}
+.send-equip-btn{padding:9px 20px;border-radius:4px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all .18s;margin-top:10px}
+.send-equip-btn:hover{background:var(--gold2)}
+
+/* ── SESSION NOTES ── */
+.session-notes{width:100%;min-height:120px;padding:12px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surf);color:var(--text);font-family:'Crimson Pro',serif;font-size:15px;line-height:1.7;resize:vertical}
+.session-notes:focus{outline:none;border-color:var(--gold)}
+
+/* ── ROLL LOG ── */
+.roll-log-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto}
+.roll-log-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surf);border:1px solid var(--border);border-radius:4px}
+.rli-player{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;min-width:60px;text-transform:uppercase}
+.rli-skill{font-size:12px;color:var(--muted);min-width:80px}
+.rli-dice{font-size:12px;color:var(--dim)}
+.rli-outcome{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:10px;text-transform:uppercase;margin-left:auto}
+.rli-outcome.success{background:#22c55e20;color:var(--success);border:1px solid #22c55e40}
+.rli-outcome.mixed{background:#f59e0b20;color:var(--partial);border:1px solid #f59e0b40}
+.rli-outcome.fail{background:#ef444420;color:var(--fail);border:1px solid #ef444440}
+.rli-time{font-size:10px;color:var(--dim)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--surf2);border:1px solid var(--border2);border-radius:6px;padding:10px 20px;font-size:13px;color:var(--text);z-index:300;transition:transform .3s ease;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:#00000088;backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.modal-overlay.vis{display:flex}
+.modal-box{background:linear-gradient(135deg,#13132a,#07070e);border:1px solid var(--border);border-top:2px solid var(--gold);border-radius:8px;padding:26px 30px;max-width:460px;width:90%;box-shadow:0 0 50px var(--gold2);position:relative}
+.modal-close{position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--dim);font-size:20px;cursor:pointer}
+.modal-close:hover{color:var(--text)}
+.modal-title{font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--text);margin-bottom:14px}
+.modal-body{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:14px}
+
+footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:4px}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="dm-header">
+  <div>
+    <div class="dm-title">Weaver Screen</div>
+    <div class="dm-sub">Demigods Campaign</div>
+  </div>
+  <div class="round-badge" id="round-badge">Round 1</div>
+  <span class="sync-dot off" id="sync-dot"></span>
+</div>
+
+<!-- ══ PENDING ROLLS ══ -->
+<div class="section">
+  <div class="section-title">⏳ Pending Rolls</div>
+  <div id="pending-rolls-list">
+    <div class="no-pending">No pending rolls.</div>
+  </div>
+</div>
+
+<!-- ══ PARTY OVERVIEW ══ -->
+<div class="section">
+  <div class="section-title">Party Overview</div>
+  <div class="party-grid" id="party-grid"></div>
+</div>
+
+<!-- ══ INITIATIVE ══ -->
+<div class="section">
+  <div class="section-title">⚔ Initiative</div>
+  <div class="initiative-controls">
+    <button class="init-btn primary" onclick="addAllPCsToInit()">+ Add All PCs</button>
+    <button class="init-btn" onclick="nextTurn()">→ Next Turn</button>
+    <button class="init-btn" onclick="nextRound()">⟳ Next Round</button>
+    <button class="init-btn danger" onclick="clearInitiative()">✕ End Combat</button>
+  </div>
+  <div class="add-combatant-form">
+    <input class="init-input" id="init-name" placeholder="Name (NPC or PC)">
+    <input class="init-input" id="init-actions" type="number" min="1" max="3" value="2" placeholder="Actions" style="max-width:80px">
+    <select class="init-select" id="init-type">
+      <option value="pc">PC</option>
+      <option value="npc">NPC</option>
+    </select>
+    <button class="init-btn primary" onclick="addCombatant()">+ Add</button>
+  </div>
+  <div class="initiative-list" id="initiative-list">
+    <div style="color:var(--dim);font-size:13px;text-align:center;padding:12px;font-style:italic">No combatants. Add PCs or NPCs above.</div>
+  </div>
+  <div class="round-controls">
+    <span class="round-label">Round</span>
+    <span class="round-num" id="round-num">1</span>
+    <button class="init-btn" onclick="changeRound(-1)" style="padding:4px 10px">−</button>
+    <button class="init-btn" onclick="changeRound(1)" style="padding:4px 10px">+</button>
+    <span style="font-size:11px;color:var(--dim);margin-left:8px">Round 1: roll for actions (1–3). All other rounds: 2 actions.</span>
+  </div>
+</div>
+
+<!-- ══ NPC TRACKER ══ -->
+<div class="section">
+  <div class="section-title">👹 NPC Tracker</div>
+  <button class="add-npc-btn" onclick="addNPC()">+ Add NPC</button>
+  <div class="npc-grid" id="npc-grid">
+    <div style="color:var(--dim);font-size:13px;font-style:italic">No NPCs. Click above to add.</div>
+  </div>
+</div>
+
+<!-- ══ SEND EQUIPMENT ══ -->
+<div class="section">
+  <div class="section-title">📦 Send Equipment</div>
+  <div class="equip-form">
+    <div class="equip-form-grid">
+      <div class="form-field">
+        <label class="form-label">Item Name</label>
+        <input class="form-input" id="eq-name" placeholder="e.g. Spatha of the Tuatha">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Send To</label>
+        <select class="form-input" id="eq-target">
+          <option value="lewis">Lewis</option>
+          <option value="murphy">Murphy</option>
+          <option value="kara">Kara</option>
+          <option value="finn">Finn</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Tags (comma separated)</label>
+        <input class="form-input" id="eq-tags" placeholder="e.g. Close, 2 Harm, Blessed">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Notes</label>
+        <input class="form-input" id="eq-notes" placeholder="Optional description">
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;align-items:center">
+      <label class="form-checkbox"><input type="checkbox" id="eq-weapon"> Weapon</label>
+      <label class="form-checkbox"><input type="checkbox" id="eq-armor" onchange="toggleArmorFields()"> Armor</label>
+      <div id="armor-fields" style="display:none;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="form-field" style="flex-direction:row;align-items:center;gap:6px">
+          <label class="form-label">Durability</label>
+          <input class="form-input" id="eq-dur" type="number" min="1" max="10" value="3" style="width:60px">
+        </div>
+        <div class="form-field" style="flex-direction:row;align-items:center;gap:6px">
+          <label class="form-label">Coverage</label>
+          <input class="form-input" id="eq-coverage" placeholder="e.g. chest" style="width:100px">
+        </div>
+      </div>
+    </div>
+    <button class="send-equip-btn" onclick="sendEquipment()">📦 Send to Player</button>
+  </div>
+</div>
+
+<!-- ══ SESSION NOTES ══ -->
+<div class="section">
+  <div class="section-title">📝 Session Notes</div>
+  <textarea class="session-notes" id="session-notes" placeholder="Notes visible only to you..." oninput="saveNotes()"></textarea>
+</div>
+
+<!-- ══ ROLL LOG ══ -->
+<div class="section">
+  <div class="section-title">🎲 Recent Rolls</div>
+  <div class="roll-log-list" id="roll-log-list">
+    <div style="color:var(--dim);font-size:13px;font-style:italic;text-align:center;padding:8px">No rolls yet this session.</div>
+  </div>
+</div>
+
+<footer>WEAVER SCREEN · DEMIGODS CAMPAIGN · FOR DM USE ONLY</footer>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://hcrfqtwpraerheiuirem.supabase.co';
+const SUPABASE_KEY='sb_publishable_C3dTYXnpaYOg1QCBgXMcBQ_V9cE4Na1';
+const {createClient}=supabase;
+const db=createClient(SUPABASE_URL,SUPABASE_KEY);
+
+// ── CONFIG ──
+const PLAYERS=[
+  {id:'lewis', name:'Lewis', playbook:'Child of the Morrigan', emoji:'🐦‍⬛', color:'var(--lewis)', acc:'var(--lewis-acc)'},
+  {id:'murphy',name:'Murphy',playbook:'Child of Brigid',       emoji:'🔥', color:'var(--murphy)',acc:'var(--murphy-acc)'},
+  {id:'kara',  name:'Kara',  playbook:'Child of Goibniu',      emoji:'⚙️', color:'var(--kara)',  acc:'var(--kara-acc)'},
+  {id:'finn',  name:'Finn',  playbook:'Púca',                  emoji:'🐺', color:'var(--finn)',  acc:'var(--finn-acc)'}
+];
+
+// ── STATE ──
+let charData={};        // keyed by character id
+let conditionData={};   // keyed by character id → array
+let skillData={};       // keyed by character id → object
+let powerData={};       // keyed by character id → Set of power_ids
+let pendingRolls=[];
+let initiativeData=[];
+let npcData=[];
+let npcConditions={};   // keyed by npc id
+let dmSettings={kara_revealed:false,current_round:1,session_notes:''};
+let rollLog=[];
+let notesSaveTimer=null;
+
+// ── INIT ──
+async function init(){
+  await Promise.all([
+    loadAllCharacters(),
+    loadAllConditions(),
+    loadAllSkills(),
+    loadAllPowers(),
+    loadPendingRolls(),
+    loadInitiative(),
+    loadNPCs(),
+    loadDmSettings(),
+    loadRollLog()
+  ]);
+  renderPartyGrid();
+  renderPendingRolls();
+  renderInitiative();
+  renderNPCs();
+  subscribeAll();
+  setSyncDot(true);
+  startCanvas();
+}
+
+// ── LOADERS ──
+async function loadAllCharacters(){
+  const{data}=await db.from('characters').select('*');
+  if(data) data.forEach(c=>{charData[c.id]=c;});
+}
+async function loadAllConditions(){
+  const{data}=await db.from('conditions').select('*');
+  if(data){
+    conditionData={};
+    data.forEach(c=>{
+      if(!conditionData[c.character_id]) conditionData[c.character_id]=[];
+      conditionData[c.character_id].push(c);
+    });
+  }
+}
+async function loadAllSkills(){
+  const{data}=await db.from('character_skills').select('*');
+  if(data){
+    skillData={};
+    data.forEach(r=>{
+      if(!skillData[r.character_id]) skillData[r.character_id]={};
+      skillData[r.character_id][r.skill]=r.dice;
+    });
+  }
+}
+async function loadAllPowers(){
+  const{data}=await db.from('unlocked_powers').select('*');
+  if(data){
+    powerData={};
+    data.forEach(r=>{
+      if(!powerData[r.character_id]) powerData[r.character_id]=[];
+      powerData[r.character_id].push(r);
+    });
+  }
+}
+async function loadPendingRolls(){
+  const{data}=await db.from('pending_rolls').select('*').eq('status','waiting').order('created_at');
+  pendingRolls=data||[];
+}
+async function loadInitiative(){
+  const{data}=await db.from('initiative').select('*').eq('active',true).order('position');
+  initiativeData=data||[];
+}
+async function loadNPCs(){
+  const{data}=await db.from('npcs').select('*').eq('is_active',true).order('created_at');
+  npcData=data||[];
+  // Load NPC conditions
+  if(npcData.length>0){
+    const ids=npcData.map(n=>n.id);
+    const{data:conds}=await db.from('npc_conditions').select('*').in('npc_id',ids);
+    if(conds){
+      npcConditions={};
+      conds.forEach(c=>{
+        if(!npcConditions[c.npc_id]) npcConditions[c.npc_id]=[];
+        npcConditions[c.npc_id].push(c);
+      });
+    }
+  }
+}
+async function loadDmSettings(){
+  const{data}=await db.from('dm_settings').select('*').eq('id',1).single();
+  if(data){
+    dmSettings=data;
+    document.getElementById('round-num').textContent=data.current_round||1;
+    document.getElementById('round-badge').textContent=`Round ${data.current_round||1}`;
+    document.getElementById('session-notes').value=data.session_notes||'';
+  }
+}
+async function loadRollLog(){
+  const{data}=await db.from('roll_log').select('*').order('created_at',{ascending:false}).limit(20);
+  rollLog=data||[];
+  renderRollLog();
+}
+
+// ── COMPUTED ──
+function getMortality(charId){
+  const skills=skillData[charId]||{};
+  return Object.values(skills).reduce((s,v)=>s+v,0);
+}
+function getTotalHarm(charId){
+  const conds=conditionData[charId]||[];
+  return conds.reduce((s,c)=>s+c.harm,0);
+}
+
+// ── PARTY GRID ──
+function renderPartyGrid(){
+  const grid=document.getElementById('party-grid');
+  grid.innerHTML='';
+  PLAYERS.forEach(p=>{
+    const char=charData[p.id]||{};
+    const mortality=getMortality(p.id)||1;
+    const harm=getTotalHarm(p.id);
+    const pct=Math.min(100,(harm/mortality)*100);
+    const conds=conditionData[p.id]||[];
+    const powers=powerData[p.id]||[];
+    const wisdom=char.wisdom||0;
+    const grit=char.grit||0;
+    const bond=char.bond||0;
+    const favor=char.favor_current||0;
+
+    const card=document.createElement('div');
+    card.className='player-card';
+    card.id=`pc-card-${p.id}`;
+
+    // Tracks pips
+    const trackHtml=(track,val,cls)=>`<div class="pc-track">
+      <span class="pc-track-label" style="color:${cls}">${track}</span>
+      <div class="pc-track-pips">${[1,2,3,4].map(i=>`<div class="pc-pip${i<=val?' on '+track:''}"></div>`).join('')}</div>
+    </div>`;
+
+    // Conditions
+    const condHtml=conds.length?conds.map(c=>`<div class="pc-cond">
+      <span class="pc-cond-label">${c.label}</span>
+      <span class="pc-cond-harm">${c.harm}</span>
+      ${c.unstable?'<span class="pc-cond-unstable">⚠</span>':''}
+    </div>`).join(''):`<div style="color:var(--dim);font-size:11px;font-style:italic">No conditions</div>`;
+
+    // Powers list
+    const powersHtml=powers.length?powers.map(pw=>`<div class="pc-power-item">
+      <span class="pc-power-branch" style="color:${p.color}">${pw.power_id.charAt(0).toUpperCase()}</span>
+      ${pw.power_id}${pw.level>0?` (Lv${pw.level+1})`:''}
+    </div>`).join(''):`<div style="color:var(--dim);font-size:11px;font-style:italic">No powers unlocked</div>`;
+
+    const karaBtn=p.id==='kara'?`<button class="kara-reveal-btn ${dmSettings.kara_revealed?'revealed':''}" onclick="toggleKaraReveal()">${dmSettings.kara_revealed?'✓ Automaton Revealed':'🔒 Reveal Automaton Nature'}</button>`:'';
+
+    card.innerHTML=`
+      <div class="pc-header" style="border-bottom-color:${p.color}40">
+        <div class="pc-avatar" style="border:2px solid ${p.color};box-shadow:0 0 12px ${p.color}44">${p.emoji}</div>
+        <div>
+          <div class="pc-name" style="color:${p.acc}">${p.name}</div>
+          <div class="pc-playbook" style="color:${p.color}">${p.playbook}</div>
+        </div>
+      </div>
+      <div class="pc-body">
+        <div class="pc-stat-row">
+          <span class="pc-stat-label">Harm / Mortality</span>
+          <span class="pc-stat-val" style="color:var(--harm)">${harm}<span style="color:var(--dim);font-size:12px"> / ${mortality}</span></span>
+        </div>
+        <div class="pc-harm-bar"><div class="pc-harm-fill" style="width:${pct}%"></div></div>
+        <div class="pc-tracks">
+          ${trackHtml('Wisdom',wisdom,'#60a5fa')}
+          ${trackHtml('Grit',grit,'#f87171')}
+          ${trackHtml('Bond',bond,'#4ade80')}
+        </div>
+        <div class="pc-conditions">${condHtml}</div>
+        <div class="pc-favor">
+          <span class="pc-favor-label">Favor</span>
+          <span class="pc-favor-val">${favor} / ${mortality}</span>
+        </div>
+        ${karaBtn}
+      </div>
+      <button class="pc-powers-toggle" onclick="togglePowersPanel('${p.id}')">▼ Powers</button>
+      <div class="pc-powers-panel" id="powers-panel-${p.id}">${powersHtml}</div>`;
+    grid.appendChild(card);
+  });
+}
+
+function togglePowersPanel(id){
+  const panel=document.getElementById(`powers-panel-${id}`);
+  const btn=panel.previousElementSibling;
+  panel.classList.toggle('open');
+  btn.textContent=panel.classList.contains('open')?'▲ Powers':'▼ Powers';
+}
+
+async function toggleKaraReveal(){
+  const newVal=!dmSettings.kara_revealed;
+  dmSettings.kara_revealed=newVal;
+  await db.from('dm_settings').update({kara_revealed:newVal,updated_at:new Date().toISOString()}).eq('id',1);
+  renderPartyGrid();
+  showToast(newVal?'Kara\'s automaton nature revealed!':'Automaton nature hidden');
+}
+
+// ── PENDING ROLLS ──
+function renderPendingRolls(){
+  const list=document.getElementById('pending-rolls-list');
+  if(!pendingRolls||pendingRolls.length===0){
+    list.innerHTML='<div class="no-pending">No pending rolls.</div>';
+    return;
+  }
+  list.innerHTML='';
+  pendingRolls.forEach(roll=>{
+    const player=PLAYERS.find(p=>p.id===roll.character_id)||{name:roll.character_id,color:'var(--gold)',acc:'var(--gold)'};
+    const conds=conditionData[roll.character_id]||[];
+    const condWarning=conds.length?`Conditions: ${conds.map(c=>c.label+(c.unstable?' ⚠':'')).join(', ')}`:'No active conditions';
+    const modifier=roll.modifier||0;
+
+    const card=document.createElement('div');
+    card.className='pending-roll-card';
+    card.id=`pending-${roll.id}`;
+    card.innerHTML=`
+      <div style="flex:1">
+        <div class="pr-player" style="color:${player.acc}">${player.name}</div>
+        <div class="pr-skill">Rolling: ${roll.skill}</div>
+        <div class="pr-conditions">${condWarning}</div>
+      </div>
+      <div class="pr-dice">${roll.base_dice}d6</div>
+      <div class="pr-mod">
+        <button class="pr-mod-btn" onclick="adjustMod('${roll.id}',-1)">−</button>
+        <div class="pr-mod-val" id="mod-val-${roll.id}">${modifier>=0?'+':''}${modifier}</div>
+        <button class="pr-mod-btn" onclick="adjustMod('${roll.id}',1)">+</button>
+      </div>
+      <button class="pr-approve" onclick="approveRoll('${roll.id}')">✓ Roll</button>
+      <button class="pr-cancel" onclick="cancelRoll('${roll.id}')">✕</button>`;
+    list.appendChild(card);
+  });
+}
+
+async function adjustMod(rollId,delta){
+  const roll=pendingRolls.find(r=>r.id===rollId);
+  if(!roll) return;
+  const newMod=(roll.modifier||0)+delta;
+  roll.modifier=newMod;
+  const el=document.getElementById(`mod-val-${rollId}`);
+  if(el) el.textContent=(newMod>=0?'+':'')+newMod;
+  await db.from('pending_rolls').update({modifier:newMod,updated_at:new Date().toISOString()}).eq('id',rollId);
+}
+
+async function approveRoll(rollId){
+  const roll=pendingRolls.find(r=>r.id===rollId);
+  if(!roll) return;
+  await db.from('pending_rolls').update({status:'confirmed',modifier:roll.modifier||0,updated_at:new Date().toISOString()}).eq('id',rollId);
+  pendingRolls=pendingRolls.filter(r=>r.id!==rollId);
+  renderPendingRolls();
+  showToast(`${roll.skill} roll approved`);
+}
+
+async function cancelRoll(rollId){
+  await db.from('pending_rolls').update({status:'cancelled',updated_at:new Date().toISOString()}).eq('id',rollId);
+  pendingRolls=pendingRolls.filter(r=>r.id!==rollId);
+  renderPendingRolls();
+}
+
+// ── INITIATIVE ──
+async function addCombatant(){
+  const name=document.getElementById('init-name').value.trim();
+  const actions=parseInt(document.getElementById('init-actions').value)||2;
+  const isNpc=document.getElementById('init-type').value==='npc';
+  if(!name){showToast('Enter a name');return;}
+  const position=(initiativeData.length>0?Math.max(...initiativeData.map(r=>r.position))+1:1);
+  const{data}=await db.from('initiative').insert({name,is_npc:isNpc,actions_max:actions,actions_used:0,position,round:dmSettings.current_round||1,active:true}).select().single();
+  if(data){
+    initiativeData.push(data);
+    initiativeData.sort((a,b)=>a.position-b.position);
+    renderInitiative();
+  }
+  document.getElementById('init-name').value='';
+}
+
+async function addAllPCsToInit(){
+  for(const p of PLAYERS){
+    const exists=initiativeData.find(r=>r.name===p.name);
+    if(exists) continue;
+    const position=(initiativeData.length>0?Math.max(...initiativeData.map(r=>r.position))+1:1);
+    const{data}=await db.from('initiative').insert({name:p.name,character_id:p.id,is_npc:false,actions_max:2,actions_used:0,position,round:dmSettings.current_round||1,active:true}).select().single();
+    if(data) initiativeData.push(data);
+  }
+  initiativeData.sort((a,b)=>a.position-b.position);
+  renderInitiative();
+}
+
+async function removeCombatant(id){
+  await db.from('initiative').update({active:false}).eq('id',id);
+  initiativeData=initiativeData.filter(r=>r.id!==id);
+  renderInitiative();
+}
+
+async function toggleAction(rowId,actionIndex){
+  const row=initiativeData.find(r=>r.id===rowId);
+  if(!row) return;
+  const newUsed=actionIndex<=row.actions_used?actionIndex-1:actionIndex;
+  row.actions_used=newUsed;
+  await db.from('initiative').update({actions_used:newUsed,updated_at:new Date().toISOString()}).eq('id',rowId);
+  renderInitiative();
+}
+
+function nextTurn(){
+  // Find current turn (first row with actions remaining)
+  const active=initiativeData.filter(r=>r.actions_used<r.actions_max);
+  if(active.length===0){nextRound();return;}
+  // Mark all actions used for first active combatant
+  const first=active[0];
+  first.actions_used=first.actions_max;
+  db.from('initiative').update({actions_used:first.actions_max,updated_at:new Date().toISOString()}).eq('id',first.id);
+  renderInitiative();
+}
+
+async function nextRound(){
+  const newRound=(dmSettings.current_round||1)+1;
+  dmSettings.current_round=newRound;
+  // Reset all actions — round 1 uses rolled actions, subsequent rounds use 2
+  for(const row of initiativeData){
+    const newMax=newRound===1?row.actions_max:2;
+    row.actions_max=newMax;
+    row.actions_used=0;
+    await db.from('initiative').update({actions_max:newMax,actions_used:0,round:newRound,updated_at:new Date().toISOString()}).eq('id',row.id);
+  }
+  await db.from('dm_settings').update({current_round:newRound,updated_at:new Date().toISOString()}).eq('id',1);
+  document.getElementById('round-num').textContent=newRound;
+  document.getElementById('round-badge').textContent=`Round ${newRound}`;
+  renderInitiative();
+  showToast(`Round ${newRound} begins`);
+}
+
+async function clearInitiative(){
+  await db.from('initiative').update({active:false}).eq('active',true);
+  initiativeData=[];
+  await db.from('dm_settings').update({current_round:1,updated_at:new Date().toISOString()}).eq('id',1);
+  dmSettings.current_round=1;
+  document.getElementById('round-num').textContent=1;
+  document.getElementById('round-badge').textContent='Round 1';
+  renderInitiative();
+  showToast('Combat ended');
+}
+
+async function changeRound(delta){
+  const newRound=Math.max(1,(dmSettings.current_round||1)+delta);
+  dmSettings.current_round=newRound;
+  await db.from('dm_settings').update({current_round:newRound,updated_at:new Date().toISOString()}).eq('id',1);
+  document.getElementById('round-num').textContent=newRound;
+  document.getElementById('round-badge').textContent=`Round ${newRound}`;
+}
+
+function renderInitiative(){
+  const list=document.getElementById('initiative-list');
+  if(!initiativeData||initiativeData.length===0){
+    list.innerHTML='<div style="color:var(--dim);font-size:13px;text-align:center;padding:12px;font-style:italic">No combatants. Add PCs or NPCs above.</div>';
+    return;
+  }
+  list.innerHTML='';
+  initiativeData.forEach((row,idx)=>{
+    const hasActions=row.actions_used<row.actions_max;
+    const playerConfig=PLAYERS.find(p=>p.id===row.character_id);
+    const nameColor=playerConfig?playerConfig.acc:'var(--text)';
+    let actionPips='';
+    for(let i=1;i<=row.actions_max;i++){
+      const used=i<=row.actions_used;
+      actionPips+=`<div class="action-pip ${used?'used':'available'}" onclick="toggleAction('${row.id}',${i})" title="${used?'Used':'Available'}">${used?'✓':'◆'}</div>`;
+    }
+    const rowEl=document.createElement('div');
+    rowEl.className='init-row'+(hasActions?' current-turn':'');
+    rowEl.innerHTML=`
+      <div class="init-position">${idx+1}</div>
+      <div class="init-name" style="color:${nameColor}">${row.name}${row.is_npc?'':''}</div>
+      ${row.is_npc?'<span class="init-npc-badge">NPC</span>':''}
+      <div class="init-actions">${actionPips}</div>
+      <button class="init-del" onclick="removeCombatant('${row.id}')" title="Remove">✕</button>`;
+    list.appendChild(rowEl);
+  });
+}
+
+// ── NPC TRACKER ──
+async function addNPC(){
+  const{data}=await db.from('npcs').insert({name:'New NPC',harm_current:0,mortality:10,is_active:true}).select().single();
+  if(data){npcData.push(data);renderNPCs();}
+}
+
+async function updateNPCName(id,name){
+  await db.from('npcs').update({name,updated_at:new Date().toISOString()}).eq('id',id);
+  const npc=npcData.find(n=>n.id===id);
+  if(npc) npc.name=name;
+}
+
+async function adjustNPCHarm(id,delta){
+  const npc=npcData.find(n=>n.id===id);
+  if(!npc) return;
+  const newHarm=Math.max(0,npc.harm_current+delta);
+  npc.harm_current=newHarm;
+  await db.from('npcs').update({harm_current:newHarm,updated_at:new Date().toISOString()}).eq('id',id);
+  renderNPCs();
+}
+
+async function setNPCMortality(id,mortality){
+  const npc=npcData.find(n=>n.id===id);
+  if(!npc) return;
+  npc.mortality=parseInt(mortality)||10;
+  await db.from('npcs').update({mortality:npc.mortality,updated_at:new Date().toISOString()}).eq('id',id);
+  renderNPCs();
+}
+
+async function addNPCCondition(npcId){
+  const input=document.getElementById(`npc-cond-input-${npcId}`);
+  const harmInput=document.getElementById(`npc-cond-harm-${npcId}`);
+  const label=input?.value.trim();
+  const harm=parseInt(harmInput?.value)||1;
+  if(!label) return;
+  const{data}=await db.from('npc_conditions').insert({npc_id:npcId,label,harm,unstable:false}).select().single();
+  if(data){
+    if(!npcConditions[npcId]) npcConditions[npcId]=[];
+    npcConditions[npcId].push(data);
+    if(input) input.value='';
+    if(harmInput) harmInput.value='1';
+    renderNPCs();
+  }
+}
+
+async function deleteNPCCondition(npcId,condId){
+  await db.from('npc_conditions').delete().eq('id',condId);
+  if(npcConditions[npcId]) npcConditions[npcId]=npcConditions[npcId].filter(c=>c.id!==condId);
+  renderNPCs();
+}
+
+async function deleteNPC(id){
+  await db.from('npcs').update({is_active:false}).eq('id',id);
+  npcData=npcData.filter(n=>n.id!==id);
+  renderNPCs();
+}
+
+function renderNPCs(){
+  const grid=document.getElementById('npc-grid');
+  if(!npcData||npcData.length===0){
+    grid.innerHTML='<div style="color:var(--dim);font-size:13px;font-style:italic">No NPCs. Click above to add.</div>';
+    return;
+  }
+  grid.innerHTML='';
+  npcData.forEach(npc=>{
+    const pct=Math.min(100,(npc.harm_current/(npc.mortality||1))*100);
+    const conds=npcConditions[npc.id]||[];
+    const condHtml=conds.map(c=>`<div class="npc-cond-row">
+      <span class="npc-cond-label">${c.label}</span>
+      <span class="npc-cond-harm">${c.harm}</span>
+      <button class="npc-cond-del" onclick="deleteNPCCondition('${npc.id}','${c.id}')">✕</button>
+    </div>`).join('');
+
+    const card=document.createElement('div');
+    card.className='npc-card';
+    card.innerHTML=`
+      <div class="npc-header">
+        <input class="npc-name-input" value="${npc.name}" onblur="updateNPCName('${npc.id}',this.value)" onkeydown="if(event.key==='Enter')this.blur()">
+        <span style="font-size:11px;color:var(--dim);font-family:'Cinzel',serif;letter-spacing:1px">Mort: <input type="number" value="${npc.mortality}" min="1" max="100" style="width:40px;background:transparent;border:none;border-bottom:1px solid var(--border2);color:var(--muted);font-family:'Cinzel',serif;font-size:11px;text-align:center" onchange="setNPCMortality('${npc.id}',this.value)"></span>
+      </div>
+      <div class="npc-harm-row">
+        <span class="npc-harm-label">Harm</span>
+        <div class="npc-harm-bar-bg"><div class="npc-harm-bar-fill" style="width:${pct}%"></div></div>
+        <span class="npc-harm-nums">${npc.harm_current}/${npc.mortality}</span>
+      </div>
+      <div class="npc-harm-btns">
+        <button class="npc-btn harm" onclick="adjustNPCHarm('${npc.id}',-1)">− Harm</button>
+        <button class="npc-btn harm" onclick="adjustNPCHarm('${npc.id}',1)">+ Harm</button>
+        <button class="npc-btn" onclick="adjustNPCHarm('${npc.id}',-npc.harm_current)" style="margin-left:auto">Reset</button>
+      </div>
+      ${condHtml?`<div class="npc-conds">${condHtml}</div>`:''}
+      <div class="npc-add-cond">
+        <input class="npc-cond-input" id="npc-cond-input-${npc.id}" placeholder="Condition">
+        <input class="npc-cond-input" id="npc-cond-harm-${npc.id}" type="number" value="1" min="1" style="width:50px">
+        <button class="npc-btn" onclick="addNPCCondition('${npc.id}')">+</button>
+      </div>
+      <button class="npc-del-btn" onclick="deleteNPC('${npc.id}')">Remove NPC</button>`;
+    grid.appendChild(card);
+  });
+}
+
+// ── SEND EQUIPMENT ──
+function toggleArmorFields(){
+  const isArmor=document.getElementById('eq-armor').checked;
+  document.getElementById('armor-fields').style.display=isArmor?'flex':'none';
+}
+
+async function sendEquipment(){
+  const name=document.getElementById('eq-name').value.trim();
+  const target=document.getElementById('eq-target').value;
+  const tagsRaw=document.getElementById('eq-tags').value;
+  const notes=document.getElementById('eq-notes').value.trim();
+  const isWeapon=document.getElementById('eq-weapon').checked;
+  const isArmor=document.getElementById('eq-armor').checked;
+  const dur=isArmor?parseInt(document.getElementById('eq-dur').value)||3:0;
+  const coverage=isArmor?document.getElementById('eq-coverage').value.trim():'';
+  if(!name){showToast('Enter an item name');return;}
+  const tags=tagsRaw.split(',').map(t=>t.trim()).filter(t=>t.length>0);
+  const{error}=await db.from('equipment').insert({
+    owner_id:target,owner_type:'character',name,tags,notes,
+    is_weapon:isWeapon,is_armor:isArmor,
+    durability_current:dur,durability_max:dur,coverage,
+    sent_by:'dm'
+  });
+  if(error){showToast('Error sending item');console.error(error);return;}
+  showToast(`${name} sent to ${target.charAt(0).toUpperCase()+target.slice(1)}`);
+  document.getElementById('eq-name').value='';
+  document.getElementById('eq-tags').value='';
+  document.getElementById('eq-notes').value='';
+  document.getElementById('eq-weapon').checked=false;
+  document.getElementById('eq-armor').checked=false;
+  toggleArmorFields();
+}
+
+// ── SESSION NOTES ──
+function saveNotes(){
+  clearTimeout(notesSaveTimer);
+  notesSaveTimer=setTimeout(async()=>{
+    const notes=document.getElementById('session-notes').value;
+    await db.from('dm_settings').update({session_notes:notes,updated_at:new Date().toISOString()}).eq('id',1);
+  },1000);
+}
+
+// ── ROLL LOG ──
+function renderRollLog(){
+  const list=document.getElementById('roll-log-list');
+  if(!rollLog||rollLog.length===0){
+    list.innerHTML='<div style="color:var(--dim);font-size:13px;font-style:italic;text-align:center;padding:8px">No rolls yet this session.</div>';
+    return;
+  }
+  list.innerHTML='';
+  rollLog.slice(0,15).forEach(r=>{
+    const player=PLAYERS.find(p=>p.id===r.character_id)||{name:r.character_id,acc:'var(--muted)'};
+    const outcomeMap={success:'success',mixed:'mixed',fail:'fail'};
+    const time=new Date(r.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const item=document.createElement('div');
+    item.className='roll-log-item';
+    item.innerHTML=`
+      <span class="rli-player" style="color:${player.acc}">${player.name}</span>
+      <span class="rli-skill">${r.skill}</span>
+      <span class="rli-dice">[${(r.results||[]).join(', ')}] → ${r.highest}</span>
+      <span class="rli-outcome ${r.outcome}">${r.outcome==='success'?'Full Success':r.outcome==='mixed'?'Mixed':'Failure'}</span>
+      <span class="rli-time">${time}</span>`;
+    list.appendChild(item);
+  });
+}
+
+// ── SUBSCRIPTIONS ──
+function subscribeAll(){
+  // All character changes
+  db.channel('dm-chars').on('postgres_changes',{event:'*',schema:'public',table:'characters'},async()=>{
+    await loadAllCharacters();renderPartyGrid();
+  }).subscribe();
+  db.channel('dm-conds').on('postgres_changes',{event:'*',schema:'public',table:'conditions'},async()=>{
+    await loadAllConditions();renderPartyGrid();
+  }).subscribe();
+  db.channel('dm-skills').on('postgres_changes',{event:'*',schema:'public',table:'character_skills'},async()=>{
+    await loadAllSkills();renderPartyGrid();
+  }).subscribe();
+  db.channel('dm-powers').on('postgres_changes',{event:'*',schema:'public',table:'unlocked_powers'},async()=>{
+    await loadAllPowers();renderPartyGrid();
+  }).subscribe();
+  db.channel('dm-pending').on('postgres_changes',{event:'*',schema:'public',table:'pending_rolls'},async()=>{
+    await loadPendingRolls();renderPendingRolls();
+  }).subscribe();
+  db.channel('dm-init').on('postgres_changes',{event:'*',schema:'public',table:'initiative'},async()=>{
+    await loadInitiative();renderInitiative();
+  }).subscribe();
+  db.channel('dm-rolls').on('postgres_changes',{event:'*',schema:'public',table:'roll_log'},async()=>{
+    await loadRollLog();
+  }).subscribe();
+}
+
+// ── SYNC DOT ──
+function setSyncDot(on){
+  const dot=document.getElementById('sync-dot');
+  if(dot){dot.classList.toggle('off',!on);dot.title=on?'Synced':'Disconnected';}
+}
+
+// ── TOAST ──
+function showToast(msg,duration=2500){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),duration);
+}
+
+// ── CANVAS ──
+function startCanvas(){
+  const canvas=document.getElementById('bg-canvas');
+  const ctx=canvas.getContext('2d');
+  let particles=[];
+  function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+  function initP(){particles=[];for(let i=0;i<40;i++)particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*1.2+.3,vx:(Math.random()-.5)*.08,vy:(Math.random()-.5)*.08,a:Math.random()*.25+.05});}
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const g=ctx.createRadialGradient(canvas.width/2,0,0,canvas.width/2,canvas.height*.5,canvas.height*.8);
+    g.addColorStop(0,'rgba(212,168,75,.05)');g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.fillRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=canvas.width;if(p.x>canvas.width)p.x=0;if(p.y<0)p.y=canvas.height;if(p.y>canvas.height)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(212,168,75,${p.a*.4})`;ctx.fill();});
+    requestAnimationFrame(draw);
+  }
+  resize();initP();draw();
+  window.addEventListener('resize',()=>{resize();initP();});
+}
+
+// ── BOOT ──
+init().catch(e=>{console.error(e);setSyncDot(false);});
+</script>
+</body>
+</html>
