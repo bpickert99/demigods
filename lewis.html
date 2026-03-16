@@ -696,6 +696,15 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 .cap-outcome.fail{background:rgba(239,68,68,.08);border-color:#ef4444}
 .cap-outcome-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:2px;opacity:.7}
 .cap-use-btn{width:100%;margin-top:10px;padding:9px;border-radius:6px;border:none;font-family:"Cinzel",serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+/* Target picker inside ability card */
+.cap-target-section{margin-top:10px;padding:10px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25)}
+.cap-target-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:.6;margin-bottom:7px}
+.cap-target-btn{display:block;width:100%;padding:8px 12px;border-radius:5px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;font-family:"Inter",sans-serif;font-size:12px;cursor:pointer;text-align:left;transition:all .18s;margin-bottom:4px}
+.cap-target-btn:hover{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.08)}
+.cap-target-btn:last-child{margin-bottom:0}
+.cap-other-input{width:100%;padding:7px 10px;border-radius:5px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.3);color:inherit;font-size:12px;font-family:"Inter",sans-serif;margin-top:4px;box-sizing:border-box}
+.cap-other-input:focus{outline:none;border-color:rgba(255,255,255,.5)}
+.cap-other-confirm{margin-top:6px;width:100%;padding:8px;border-radius:5px;border:none;font-family:"Cinzel",serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
 /* Divine particle canvas */
 #ability-anim-canvas{position:fixed;inset:0;pointer-events:none;z-index:600;display:none}
 #ability-anim-canvas.vis{display:block}
@@ -1740,6 +1749,8 @@ async function useAbility(nodeId, favorCost){
 
   // If we are in combat, also write a rich combat_action so the DM gets full detail
   if(typeof combatSessionData !== 'undefined' && combatSessionData){
+    // Pick up target if set by confirmAbilityTarget
+    const _tgt=window._abilityTarget||null;
     const richLabel = JSON.stringify({
       type: 'ability',
       name: powerName,
@@ -1753,11 +1764,17 @@ async function useAbility(nodeId, favorCost){
       damageDie: damageDie||null,
       damageRoll: damageRoll||null,
       favorCost: favorCost||0,
-      roll: content.roll||null
+      roll: content.roll||null,
+      targetName: _tgt?.name||null,
+      targetType: _tgt?.type||null
     });
     await db.from('combat_actions').insert({
       session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-      action_type:'ability',action_label:richLabel,resolved:false
+      action_type:'ability',action_label:richLabel,
+      target_id:_tgt&&_tgt.type!=='environment'?_tgt.id:null,
+      target_type:_tgt?.type||null,
+      target_name:_tgt?.name||null,
+      resolved:false
     });
     if(typeof myQueueItem!=='undefined'&&myQueueItem){
       await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -2135,17 +2152,17 @@ const ND={
 p1:{name:"Crow's Eye",meta:"Prophecy · Tier I · 1 Favor",content:{type:"passive",desc:`On entering a new place, spend 1 Favor to ask 2 questions below, answered truthfully. Free: the Keeper says only whether something feels off.<ul><li>Has someone died here recently, and how?</li><li>Is a death imminent here?</li><li>Is an unseen spirit present?</li><li>Is something supernaturally concealed here?</li></ul>`},prereq:null,levels:null},
 p2:{name:"Read Intent",meta:"Prophecy · Tier I · Roll: Search · 2 Favor",content:{type:"move",trigger:"When you closely study a person to divine their immediate intentions,",roll:"Roll Search. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Hold 2. Spend each to ask one question below, answered truthfully."},{cls:"partial",label:"4–5 — Mixed",text:"Hold 1. Ask one question. The Keeper may attach a complication."},{cls:"fail",label:"1–3 — Fail",text:"Nothing useful. The target may have noticed your scrutiny."}],questions:["What is this person about to do?","Who are they most afraid of right now?","Are they lying to me — about what?","What do they want most in this moment?","Are they about to move against me or an ally?"]},prereq:null,levels:null},
 p3:{name:"Foretelling",meta:"Prophecy · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you enter a trance to read what fate has written about a person, place, or event,",roll:"Roll Wits. Spend 2 Favor. You are vulnerable during the trance.",outcomes:[{cls:"success",label:"6 — Full",text:"Hold 2. Spend each to ask one question below, answered truthfully."},{cls:"partial",label:"4–5 — Mixed",text:"Hold 1. The answer arrives in symbols — accurate but needs interpretation."},{cls:"fail",label:"1–3 — Fail",text:"The trance goes dark. The Keeper asks you one question about a secret or fear — you must answer honestly. You learn nothing."}],questions:["What is fated here if nothing changes?","Who will cause what's coming?","What could prevent or redirect this fate?","Who among those present is going to die?","What is the most important thing being hidden from me?"]},prereq:"Crow's Eye",levels:null},
-p4:{name:"Fated Blow",meta:"Prophecy · Tier II · Roll: Nimble · 2 Favor",content:{type:"move",trigger:"When you strike the precise instant fate lines up, a spectral crow diving beside you,",roll:"Roll Nimble. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. The crow lingers this scene: your next attack costs 0 Favor and deals +1 damage die."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. The crow dissipates after this strike."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. Lose 1 Action next turn."}]},prereq:"Read Intent",levels:["1d6","2d6","3d6"]},
+p4:{name:"Fated Blow",meta:"Prophecy · Tier II · Roll: Nimble · 2 Favor",content:{type:"move",trigger:"When you strike the precise instant fate lines up, a spectral crow diving beside you,",roll:"Roll Nimble. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. The crow lingers this scene: your next attack costs 0 Favor and deals +1 damage die."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. The crow dissipates after this strike."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. Lose 1 Action next turn."}]},prereq:"Read Intent",levels:["1d6","2d6","3d6"],targeted:true},
 p5:{name:"Omen Reading",meta:"Prophecy · Tier II · Passive",content:{type:"passive",desc:`Once per scene, observe a natural sign and receive a one-word warning from the Keeper about the most immediate hidden danger. The word is always accurate. No follow-up questions.<br><br>Corvids never attack you or your allies.`},prereq:"Crow's Eye",levels:null},
 p6:{name:"Doom-Sight",meta:"Prophecy · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you look at a living person to see whether a death-mark hangs over them,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The Keeper tells you: whether a mark exists, how soon (hours/days/weeks), and one concrete detail about the manner of death."},{cls:"partial",label:"4–5 — Mixed",text:"The Keeper confirms whether a mark is present and whether it's imminent (within 24 hours)."},{cls:"fail",label:"1–3 — Fail",text:"You see a mark on the wrong person — the Keeper decides who. You cannot use Doom-Sight on the original target again this session."}]},prereq:"Foretelling",levels:null},
 p7:{name:"Fulfilled Fate",meta:"Prophecy · Tier III · Passive",content:{type:"passive",desc:`When you personally bring about the death or downfall of someone you've used a Prophecy move on, immediately recover 3 Favor — even beyond your current maximum, until end of scene.`},prereq:"Fated Blow",levels:null},
 p8:{name:"Warp the Thread",meta:"Prophecy · Apex · Roll: Wits · 5 Favor · Once/Session",content:{type:"move",trigger:"When you attempt to redirect a foretold event — not erase it, but shift who bears it,",roll:"Roll Wits. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"The Keeper provides at least two options for who now bears the fate. You choose. The event still happens — only the recipient changes."},{cls:"partial",label:"4–5 — Mixed",text:"The fate shifts partially. Someone else shares the doom alongside the original target."},{cls:"fail",label:"1–3 — Fail",text:"The thread snaps back. The original fate arrives immediately and in full. You take 2 Harm (ignores armor). Cannot attempt this again this session."}]},prereq:"Doom-Sight + Fulfilled Fate",levels:null},
 w1:{name:"Crow's Presence",meta:"War · Tier I · Passive",content:{type:"passive",desc:`At the start of any combat scene, every ally within Close range gains +1 die on their first attack roll. Automatic — no activation needed.`},prereq:null,levels:null},
-w2:{name:"Raven's Talon",meta:"War · Tier I · Roll: Might · 1 Favor",content:{type:"move",trigger:"When you call on the Morrigan's fury and a spectral raven dives with phantom talons beside your strike,",roll:"Roll Might. Spend 1 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. The raven lingers — once this scene: use Cleave or Disarm free (no Grit, no action)."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. Raven dissipates after this strike."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. Cannot use Raven's Talon again until you take a hit."}]},prereq:null,levels:["1d6","2d6","3d6"]},
-w3:{name:"War Cry",meta:"War · Tier II · Roll: Intimidate · 2 Favor",content:{type:"move",trigger:"When you release a battle-cry that carries the Morrigan's fury,",roll:"Roll Intimidate. Spend 2 Favor. Uses your Action.",outcomes:[{cls:"success",label:"6 — Full",text:"Choose two: enemies in earshot lose their next Action; enemies at Close range pushed to Near; one enemy drops what they hold; all allies gain +1 die on their next roll."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one effect. Enemies beyond Close range unaffected."},{cls:"fail",label:"1–3 — Fail",text:"The cry fails. Action spent. Enemies may take a free action against you."}]},prereq:"Crow's Presence",levels:null},
+w2:{name:"Raven's Talon",meta:"War · Tier I · Roll: Might · 1 Favor",content:{type:"move",trigger:"When you call on the Morrigan's fury and a spectral raven dives with phantom talons beside your strike,",roll:"Roll Might. Spend 1 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. The raven lingers — once this scene: use Cleave or Disarm free (no Grit, no action)."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. Raven dissipates after this strike."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. Cannot use Raven's Talon again until you take a hit."}]},prereq:null,levels:["1d6","2d6","3d6"],targeted:true},
+w3:{name:"War Cry",meta:"War · Tier II · Roll: Intimidate · 2 Favor",content:{type:"move",trigger:"When you release a battle-cry that carries the Morrigan's fury,",roll:"Roll Intimidate. Spend 2 Favor. Uses your Action.",outcomes:[{cls:"success",label:"6 — Full",text:"Choose two: enemies in earshot lose their next Action; enemies at Close range pushed to Near; one enemy drops what they hold; all allies gain +1 die on their next roll."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one effect. Enemies beyond Close range unaffected."},{cls:"fail",label:"1–3 — Fail",text:"The cry fails. Action spent. Enemies may take a free action against you."}]},prereq:"Crow's Presence",levels:null,targeted:true},
 w4:{name:"Crow Form",meta:"War · Tier II · Passive",content:{type:"passive",desc:`Once per scene, transform into a large crow and back. No roll, no Favor, counts as a Move action.<br><br><strong>In crow form:</strong> Fly to any range as one Move; Scope with +1 die; carry one small object; pass unnoticed among corvids. <strong>Cannot:</strong> attack, use powers, or use items.`},prereq:"Raven's Talon",levels:null},
 w5:{name:"Battlefield Insight",meta:"War · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you assess a battlefield, ongoing conflict, or place where violence is imminent,",roll:"Roll Wits. Spend 2 Favor. Can be used as a Scope action.",outcomes:[{cls:"success",label:"6 — Full",text:"Hold 2. Spend each to ask one question below, answered specifically."},{cls:"partial",label:"4–5 — Mixed",text:"Hold 1. Ask one question. The Keeper may add a complication."},{cls:"fail",label:"1–3 — Fail",text:"You misread the field. The Keeper introduces a concealed threat that activates at the worst moment."}],questions:["Where is the greatest tactical advantage?","Where is the enemy most vulnerable?","Where could a small group hold against a larger force?","What is the enemy's actual plan — and where does it break down?","Who is the real threat, and what can hurt them?"]},prereq:"Crow's Presence",levels:null},
-w6:{name:"Blood Frenzy",meta:"War · Tier III · Roll: Tough · 3 Favor",content:{type:"move",trigger:"When you draw first blood and surrender to the Morrigan's battle-madness,",roll:"Roll Tough. Spend 3 Favor. Uses your Action.",outcomes:[{cls:"success",label:"6 — Full",text:"For the rest of combat: add the bonus damage die to all damage rolls; ignore dice penalties from one physical Condition."},{cls:"partial",label:"4–5 — Mixed",text:"Gain bonus damage, but the Keeper gains 1 complication token (may make you accidentally target an ally)."},{cls:"fail",label:"1–3 — Fail",text:"No bonus. Take 1 Harm. Cannot attempt Blood Frenzy again this combat."}]},prereq:"War Cry",levels:["1d8","2d8","3d8"]},
+w6:{name:"Blood Frenzy",meta:"War · Tier III · Roll: Tough · 3 Favor",content:{type:"move",trigger:"When you draw first blood and surrender to the Morrigan's battle-madness,",roll:"Roll Tough. Spend 3 Favor. Uses your Action.",outcomes:[{cls:"success",label:"6 — Full",text:"For the rest of combat: add the bonus damage die to all damage rolls; ignore dice penalties from one physical Condition."},{cls:"partial",label:"4–5 — Mixed",text:"Gain bonus damage, but the Keeper gains 1 complication token (may make you accidentally target an ally)."},{cls:"fail",label:"1–3 — Fail",text:"No bonus. Take 1 Harm. Cannot attempt Blood Frenzy again this combat."}]},prereq:"War Cry",levels:["1d8","2d8","3d8"],targeted:true},
 w7:{name:"Murder of Crows",meta:"War · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you send your crows to scout and harass enemies before or during a conflict,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Remove one enemy advantage — choose: no reinforcements this combat; enemies deal −1 damage; enemies cannot use Help an Ally; enemy leaders cannot use special abilities."},{cls:"partial",label:"4–5 — Mixed",text:"Disrupt one minor thing. The Keeper chooses what. Enemies know someone worked against them."},{cls:"fail",label:"1–3 — Fail",text:"Your crows are spotted. The enemy learns your location and one piece of your plan."}]},prereq:"Battlefield Insight",levels:null},
 w8:{name:"Phantom Army",meta:"War · Apex · Roll: Intimidate · 5 Favor · Once/Session",content:{type:"move",trigger:"When you summon a vast cloud of crows that writhes into the shape of an army,",roll:"Roll Intimidate. Spend 5 Favor. Uses your Action. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"The illusion holds one full scene. Choose two: all enemies break morale; the illusion holds a physical position; one group routes entirely; your group gains a free round of actions."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one effect. Enemies who see through it know who created it."},{cls:"fail",label:"1–3 — Fail",text:"The crows collapse immediately. Everyone present knows you're capable of this."}]},prereq:"Blood Frenzy + Murder of Crows",levels:null},
 s1:{name:"Queen's Bearing",meta:"Sovereignty · Tier I · Passive",content:{type:"passive",desc:`You enter any room as someone of consequence. NPCs never turn you away without a named reason. You speak first in social scenes. First Persuade, Charm, or Intimidate roll each scene: +1 die.`},prereq:null,levels:null},
@@ -3381,7 +3398,12 @@ function buildAbilityCards(){
 
     const triggerHtml=nd.content.trigger?`<div class="cap-card-trigger">${nd.content.trigger}</div>`:'';
     const rollHtml=nd.content.roll?`<div style="font-size:11px;margin-bottom:8px;padding:5px 8px;background:rgba(255,255,255,.06);border-radius:4px;font-style:italic">${nd.content.roll}</div>`:'';
-    const useBtnHtml=canAfford?`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="useCombatAbilityFromPanel('${id}',${cost})">✦ Use — ${costLabel}</button>`
+        const isTargeted=nd.content.targeted===true;
+    const inCombat=typeof combatSessionData!=='undefined'&&combatSessionData;
+    const useBtnHtml=canAfford
+      ?(isTargeted&&inCombat
+        ?`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="showAbilityTargetPicker('${id}',${cost},this)">⚔ Choose Target — ${costLabel}</button>`
+        :`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="useCombatAbilityFromPanel('${id}',${cost})">✦ Use — ${costLabel}</button>`)
       :`<div style="font-size:10px;text-align:center;color:#ef4444;padding:6px">Need ${cost} Favor (have ${favor})</div>`;
 
     card.innerHTML=`
@@ -3408,6 +3430,72 @@ function toggleAbilityCard(nodeId){
       c.classList.remove('expanded'); // close others (accordion)
     }
   });
+}
+
+// ── TARGET PICKER (for abilities that deal damage to a specific combatant) ──
+function showAbilityTargetPicker(nodeId, cost, btn){
+  // Replace the "Choose Target" button with an inline target list
+  const card=btn.closest('.cap-card');if(!card)return;
+  // Remove existing picker if re-opening
+  card.querySelector('.cap-target-section')?.remove();
+
+  const targets=combatParticipantsAll.filter(p=>p.participant_id!==CHAR_ID&&p.is_active&&!p.is_dead);
+  const acc=DIVINE_PANEL_CFG.acc;
+
+  const section=document.createElement('div');
+  section.className='cap-target-section';
+  section.innerHTML=`<div class="cap-target-lbl">Choose Target</div>`;
+
+  // Combat participant buttons
+  targets.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='cap-target-btn';
+    b.innerHTML=`${t.participant_type==='npc'?'👹':'🧑'} ${t.participant_name}`;
+    b.onclick=()=>confirmAbilityTarget(nodeId,cost,t.participant_id,t.participant_type,t.participant_name);
+    section.appendChild(b);
+  });
+
+  // "Other" option — environmental/custom target
+  const otherBtn=document.createElement('button');
+  otherBtn.className='cap-target-btn';
+  otherBtn.innerHTML='✏️ Other (environment / object)';
+  otherBtn.onclick=()=>{
+    otherBtn.style.display='none';
+    const inp=document.createElement('input');
+    inp.className='cap-other-input';
+    inp.placeholder='Describe what you're targeting…';
+    inp.autofocus=true;
+    const confirm=document.createElement('button');
+    confirm.className='cap-other-confirm';
+    confirm.style.cssText=`background:${acc};color:#0a0a0f`;
+    confirm.textContent='✦ Confirm Target';
+    confirm.onclick=()=>{
+      const val=inp.value.trim()||'Unknown target';
+      confirmAbilityTarget(nodeId,cost,'environment','environment',val);
+    };
+    inp.onkeydown=e=>{if(e.key==='Enter')confirm.click();};
+    section.appendChild(inp);
+    section.appendChild(confirm);
+    setTimeout(()=>inp.focus(),50);
+  };
+  section.appendChild(otherBtn);
+
+  // Replace the use button with the picker
+  btn.replaceWith(section);
+}
+
+async function confirmAbilityTarget(nodeId, cost, targetId, targetType, targetName){
+  closeAbilityPanel();
+  await playDivineAnimation();
+  // Pass target into useFavor → useAbility via a temporary global so useAbility can thread it
+  window._abilityTarget={id:targetId,type:targetType,name:targetName};
+  await useFavor(cost,nodeId);
+  window._abilityTarget=null;
+  if(combatSessionData&&myQueueItem){
+    await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
+  }
+  actionSubmittedThisTurn=true;
+  document.getElementById('co-action-panel').style.display='none';
 }
 
 async function useCombatAbilityFromPanel(nodeId,cost){

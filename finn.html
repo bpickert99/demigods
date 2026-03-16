@@ -742,6 +742,15 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 .cap-outcome.fail{background:rgba(239,68,68,.08);border-color:#ef4444}
 .cap-outcome-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:2px;opacity:.7}
 .cap-use-btn{width:100%;margin-top:10px;padding:9px;border-radius:6px;border:none;font-family:"Cinzel",serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+/* Target picker inside ability card */
+.cap-target-section{margin-top:10px;padding:10px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25)}
+.cap-target-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:.6;margin-bottom:7px}
+.cap-target-btn{display:block;width:100%;padding:8px 12px;border-radius:5px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;font-family:"Inter",sans-serif;font-size:12px;cursor:pointer;text-align:left;transition:all .18s;margin-bottom:4px}
+.cap-target-btn:hover{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.08)}
+.cap-target-btn:last-child{margin-bottom:0}
+.cap-other-input{width:100%;padding:7px 10px;border-radius:5px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.3);color:inherit;font-size:12px;font-family:"Inter",sans-serif;margin-top:4px;box-sizing:border-box}
+.cap-other-input:focus{outline:none;border-color:rgba(255,255,255,.5)}
+.cap-other-confirm{margin-top:6px;width:100%;padding:8px;border-radius:5px;border:none;font-family:"Cinzel",serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
 /* Divine particle canvas */
 #ability-anim-canvas{position:fixed;inset:0;pointer-events:none;z-index:600;display:none}
 #ability-anim-canvas.vis{display:block}
@@ -1785,6 +1794,8 @@ async function useAbility(nodeId, favorCost){
 
   // If we are in combat, also write a rich combat_action so the DM gets full detail
   if(typeof combatSessionData !== 'undefined' && combatSessionData){
+    // Pick up target if set by confirmAbilityTarget
+    const _tgt=window._abilityTarget||null;
     const richLabel = JSON.stringify({
       type: 'ability',
       name: powerName,
@@ -1798,11 +1809,17 @@ async function useAbility(nodeId, favorCost){
       damageDie: damageDie||null,
       damageRoll: damageRoll||null,
       favorCost: favorCost||0,
-      roll: content.roll||null
+      roll: content.roll||null,
+      targetName: _tgt?.name||null,
+      targetType: _tgt?.type||null
     });
     await db.from('combat_actions').insert({
       session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-      action_type:'ability',action_label:richLabel,resolved:false
+      action_type:'ability',action_label:richLabel,
+      target_id:_tgt&&_tgt.type!=='environment'?_tgt.id:null,
+      target_type:_tgt?.type||null,
+      target_name:_tgt?.name||null,
+      resolved:false
     });
     if(typeof myQueueItem!=='undefined'&&myQueueItem){
       await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -2263,7 +2280,7 @@ const ND={
 t1:{name:"Fey Tongue",meta:"Trickery · Tier I · Passive",content:{type:"passive",desc:`Púca don't lie — they mislead and reframe. But they always know when others lie. You always know when a statement in your presence is false — the Keeper tells you privately. When you speak with clear intent, others know you mean it.<br><br>Once per scene: ask the Keeper if a specific statement you just heard is literally true.`},prereq:null,levels:null},
 t2:{name:"Minor Illusion",meta:"Trickery · Tier I · Roll: Deceive · 2 Favor",content:{type:"move",trigger:"When you conjure a convincing sensory illusion — a sound, smell, shadow, or brief visual —",roll:"Roll Deceive. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Fully convincing to all present. Lasts until scene ends or someone physically interacts with it."},{cls:"partial",label:"4–5 — Mixed",text:"The illusion holds but has a flaw. The Keeper names it. Someone paying attention may notice."},{cls:"fail",label:"1–3 — Fail",text:"Forms briefly then collapses. Onlookers see the attempt."}]},prereq:null,levels:null},
 t3:{name:"Mislead",meta:"Trickery · Tier II · Roll: Charm · 2 Favor",content:{type:"move",trigger:"When you plant a false but plausible belief in someone's mind,",roll:"Roll Charm. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The target believes it and won't second-guess it without direct contradicting evidence."},{cls:"partial",label:"4–5 — Mixed",text:"The belief holds for now, but they have a lingering doubt. The Keeper will test it once this session."},{cls:"fail",label:"1–3 — Fail",text:"They see through it. Their trust in you decreases. They may question other things you've said."}]},prereq:"Fey Tongue",levels:null},
-t4:{name:"Curse Misfortune",meta:"Trickery · Tier II · Roll: Deceive · 2 Favor",content:{type:"move",trigger:"When you whisper a Púca curse on a target — whether they hear it or not —",roll:"Roll Deceive. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The target's next important roll is made with −2 dice. They don't know why."},{cls:"partial",label:"4–5 — Mixed",text:"Weaker curse — they roll −1 die on the next roll only."},{cls:"fail",label:"1–3 — Fail",text:"The curse rebounds. You roll −1 die on your next action. The target feels something brush against them."}]},prereq:"Minor Illusion",levels:null},
+t4:{name:"Curse Misfortune",meta:"Trickery · Tier II · Roll: Deceive · 2 Favor",content:{type:"move",trigger:"When you whisper a Púca curse on a target — whether they hear it or not —",roll:"Roll Deceive. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The target's next important roll is made with −2 dice. They don't know why."},{cls:"partial",label:"4–5 — Mixed",text:"Weaker curse — they roll −1 die on the next roll only."},{cls:"fail",label:"1–3 — Fail",text:"The curse rebounds. You roll −1 die on your next action. The target feels something brush against them."}]},prereq:"Minor Illusion",levels:null,targeted:true},
 t5:{name:"Shadow Step",meta:"Trickery · Tier II · Passive",content:{type:"passive",desc:`In darkness, dim light, or shadow you are effectively invisible. Cannot be seen unless a light source directly illuminates your position. Move silently in shadow — no Sneak roll for basic movement. Remain motionless indefinitely without detection.`},prereq:"Fey Tongue",levels:null},
 t6:{name:"Major Illusion",meta:"Trickery · Tier III · Roll: Deceive · 3 Favor",content:{type:"move",trigger:"When you weave a full sensory illusion of a place, person, creature, or event,",roll:"Roll Deceive. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Fools all senses including touch. Persists until dawn or until you end it."},{cls:"partial",label:"4–5 — Mixed",text:"Convincing visually and audibly, but fails under physical scrutiny. Lasts until midnight."},{cls:"fail",label:"1–3 — Fail",text:"Forms but obviously wrong in some significant way. Lasts 3 rounds before collapsing."}]},prereq:"Mislead + Curse Misfortune",levels:null},
 t7:{name:"Vanish",meta:"Trickery · Tier III · Roll: Sneak · 3 Favor",content:{type:"move",trigger:"When you step sideways through reality to reappear somewhere nearby,",roll:"Roll Sneak. Spend 3 Favor. Counts as your Move action.",outcomes:[{cls:"success",label:"6 — Full",text:"Teleport up to 20 feet to any visible location. Silent. No trace. Can be used while restrained."},{cls:"partial",label:"4–5 — Mixed",text:"Teleport up to 10 feet. A brief visual shimmer that anyone watching will notice."},{cls:"fail",label:"1–3 — Fail",text:"Misjudge the landing — end up in a random adjacent location. Take 1 Harm."}]},prereq:"Shadow Step + Black Stallion (Shifting)",levels:null},
@@ -2273,7 +2290,7 @@ o2:{name:"Fey Step",meta:"Otherworld · Tier I · Roll: Wits · 2 Favor",content
 o3:{name:"Púca's Guidance",meta:"Otherworld · Tier II · Roll: Care · 2 Favor",content:{type:"move",trigger:"When you spend 1 Wisdom to grant an ally a glimpse of their true path,",roll:"Roll Care. Spend 2 Favor and 1 Wisdom.",outcomes:[{cls:"success",label:"6 — Full",text:"The ally gains +2 dice on their next roll and cannot be surprised for the rest of the scene."},{cls:"partial",label:"4–5 — Mixed",text:"+1 die on their next roll only. The vision is fragmented."},{cls:"fail",label:"1–3 — Fail",text:"The vision is false. The ally rolls −1 die on their next action. You lose the Wisdom spent."}]},prereq:"Fey Senses",levels:null},
 o4:{name:"Read the Thin Place",meta:"Otherworld · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you pause at a location touched by the Otherworld,",roll:"Roll Wits. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Ask the Keeper three questions about what has passed through here. Answers are specific and accurate."},{cls:"partial",label:"4–5 — Mixed",text:"Ask one question. Accurate but may be symbolic rather than literal."},{cls:"fail",label:"1–3 — Fail",text:"The thin place reacts. Something on the other side notices you. The Keeper will determine when this matters."}]},prereq:"Fey Step",levels:null},
 o5:{name:"The Púca's Bargain",meta:"Otherworld · Tier II · Passive",content:{type:"passive",desc:`The Otherworld runs deeper in you than you knew. Once per scene, you may spend up to 3 Wisdom to gain an equal amount of Favor — the price of borrowing against your fey nature.<br><br>Additionally: add one permanent slot to your Favor track.`},prereq:"Fey Senses",levels:null},
-o6:{name:"Combat Curse",meta:"Otherworld · Tier III · Roll: Intimidate · 3 Favor",content:{type:"move",trigger:"When you lay a Púca curse on an enemy in combat,",roll:"Roll Intimidate. Spend 3 Favor. Uses your Action.",outcomes:[{cls:"success",label:"6 — Full",text:"The target loses all remaining Actions this round. Their first attack next round: −2 dice."},{cls:"partial",label:"4–5 — Mixed",text:"They lose their next Action only."},{cls:"fail",label:"1–3 — Fail",text:"The curse rebounds. You lose your next Action. The target is specifically angry at you."}]},prereq:"Púca's Guidance + Read the Thin Place",levels:null},
+o6:{name:"Combat Curse",meta:"Otherworld · Tier III · Roll: Intimidate · 3 Favor",content:{type:"move",trigger:"When you lay a Púca curse on an enemy in combat,",roll:"Roll Intimidate. Spend 3 Favor. Uses your Action.",outcomes:[{cls:"success",label:"6 — Full",text:"The target loses all remaining Actions this round. Their first attack next round: −2 dice."},{cls:"partial",label:"4–5 — Mixed",text:"They lose their next Action only."},{cls:"fail",label:"1–3 — Fail",text:"The curse rebounds. You lose your next Action. The target is specifically angry at you."}]},prereq:"Púca's Guidance + Read the Thin Place",levels:null,targeted:true},
 o7:{name:"Veil the Road",meta:"Otherworld · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you draw the Otherworld's misdirection over a specific area or path,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Named people cannot find or reach the area for the rest of the session. Affects navigation, GPS, maps, and supernatural tracking."},{cls:"partial",label:"4–5 — Mixed",text:"The veil holds for three hours. Very powerful supernatural entities may roll Wits (difficulty 5) to pierce it."},{cls:"fail",label:"1–3 — Fail",text:"The veil inverts — it makes the location easier to find. Undo it with another Wits roll (difficulty 4)."}]},prereq:"Extra Favor Slot + Minor Illusion (Trickery)",levels:null},
 o8:{name:"Open the Way",meta:"Otherworld · Apex · Roll: Wits · 5 Favor · Once/Session",content:{type:"move",trigger:"When you tear a passage between this world and the Otherworld large enough to walk through,",roll:"Roll Wits. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"A doorway opens. Any ally may use it. Remains open for one hour. Creatures inside must navigate fey logic to return."},{cls:"partial",label:"4–5 — Mixed",text:"The passage opens but closes in 10 minutes. Those inside when it closes must find their own way back."},{cls:"fail",label:"1–3 — Fail",text:"Something from the Otherworld comes through instead. The Keeper decides what. The passage does not open."}]},prereq:"Combat Curse + Veil the Road",levels:null}
 };
@@ -3591,7 +3608,12 @@ function buildAbilityCards(){
 
     const triggerHtml=nd.content.trigger?`<div class="cap-card-trigger">${nd.content.trigger}</div>`:'';
     const rollHtml=nd.content.roll?`<div style="font-size:11px;margin-bottom:8px;padding:5px 8px;background:rgba(255,255,255,.06);border-radius:4px;font-style:italic">${nd.content.roll}</div>`:'';
-    const useBtnHtml=canAfford?`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="useCombatAbilityFromPanel('${id}',${cost})">✦ Use — ${costLabel}</button>`
+        const isTargeted=nd.content.targeted===true;
+    const inCombat=typeof combatSessionData!=='undefined'&&combatSessionData;
+    const useBtnHtml=canAfford
+      ?(isTargeted&&inCombat
+        ?`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="showAbilityTargetPicker('${id}',${cost},this)">⚔ Choose Target — ${costLabel}</button>`
+        :`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="useCombatAbilityFromPanel('${id}',${cost})">✦ Use — ${costLabel}</button>`)
       :`<div style="font-size:10px;text-align:center;color:#ef4444;padding:6px">Need ${cost} Favor (have ${favor})</div>`;
 
     card.innerHTML=`
@@ -3618,6 +3640,72 @@ function toggleAbilityCard(nodeId){
       c.classList.remove('expanded'); // close others (accordion)
     }
   });
+}
+
+// ── TARGET PICKER (for abilities that deal damage to a specific combatant) ──
+function showAbilityTargetPicker(nodeId, cost, btn){
+  // Replace the "Choose Target" button with an inline target list
+  const card=btn.closest('.cap-card');if(!card)return;
+  // Remove existing picker if re-opening
+  card.querySelector('.cap-target-section')?.remove();
+
+  const targets=combatParticipantsAll.filter(p=>p.participant_id!==CHAR_ID&&p.is_active&&!p.is_dead);
+  const acc=DIVINE_PANEL_CFG.acc;
+
+  const section=document.createElement('div');
+  section.className='cap-target-section';
+  section.innerHTML=`<div class="cap-target-lbl">Choose Target</div>`;
+
+  // Combat participant buttons
+  targets.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='cap-target-btn';
+    b.innerHTML=`${t.participant_type==='npc'?'👹':'🧑'} ${t.participant_name}`;
+    b.onclick=()=>confirmAbilityTarget(nodeId,cost,t.participant_id,t.participant_type,t.participant_name);
+    section.appendChild(b);
+  });
+
+  // "Other" option — environmental/custom target
+  const otherBtn=document.createElement('button');
+  otherBtn.className='cap-target-btn';
+  otherBtn.innerHTML='✏️ Other (environment / object)';
+  otherBtn.onclick=()=>{
+    otherBtn.style.display='none';
+    const inp=document.createElement('input');
+    inp.className='cap-other-input';
+    inp.placeholder='Describe what you're targeting…';
+    inp.autofocus=true;
+    const confirm=document.createElement('button');
+    confirm.className='cap-other-confirm';
+    confirm.style.cssText=`background:${acc};color:#0a0a0f`;
+    confirm.textContent='✦ Confirm Target';
+    confirm.onclick=()=>{
+      const val=inp.value.trim()||'Unknown target';
+      confirmAbilityTarget(nodeId,cost,'environment','environment',val);
+    };
+    inp.onkeydown=e=>{if(e.key==='Enter')confirm.click();};
+    section.appendChild(inp);
+    section.appendChild(confirm);
+    setTimeout(()=>inp.focus(),50);
+  };
+  section.appendChild(otherBtn);
+
+  // Replace the use button with the picker
+  btn.replaceWith(section);
+}
+
+async function confirmAbilityTarget(nodeId, cost, targetId, targetType, targetName){
+  closeAbilityPanel();
+  await playDivineAnimation();
+  // Pass target into useFavor → useAbility via a temporary global so useAbility can thread it
+  window._abilityTarget={id:targetId,type:targetType,name:targetName};
+  await useFavor(cost,nodeId);
+  window._abilityTarget=null;
+  if(combatSessionData&&myQueueItem){
+    await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
+  }
+  actionSubmittedThisTurn=true;
+  document.getElementById('co-action-panel').style.display='none';
 }
 
 async function useCombatAbilityFromPanel(nodeId,cost){

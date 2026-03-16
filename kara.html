@@ -742,6 +742,15 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 .cap-outcome.fail{background:rgba(239,68,68,.08);border-color:#ef4444}
 .cap-outcome-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:2px;opacity:.7}
 .cap-use-btn{width:100%;margin-top:10px;padding:9px;border-radius:6px;border:none;font-family:"Cinzel",serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+/* Target picker inside ability card */
+.cap-target-section{margin-top:10px;padding:10px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25)}
+.cap-target-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:.6;margin-bottom:7px}
+.cap-target-btn{display:block;width:100%;padding:8px 12px;border-radius:5px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;font-family:"Inter",sans-serif;font-size:12px;cursor:pointer;text-align:left;transition:all .18s;margin-bottom:4px}
+.cap-target-btn:hover{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.08)}
+.cap-target-btn:last-child{margin-bottom:0}
+.cap-other-input{width:100%;padding:7px 10px;border-radius:5px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.3);color:inherit;font-size:12px;font-family:"Inter",sans-serif;margin-top:4px;box-sizing:border-box}
+.cap-other-input:focus{outline:none;border-color:rgba(255,255,255,.5)}
+.cap-other-confirm{margin-top:6px;width:100%;padding:8px;border-radius:5px;border:none;font-family:"Cinzel",serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
 /* Divine particle canvas */
 #ability-anim-canvas{position:fixed;inset:0;pointer-events:none;z-index:600;display:none}
 #ability-anim-canvas.vis{display:block}
@@ -1877,6 +1886,8 @@ async function useAbility(nodeId, favorCost){
 
   // If we are in combat, also write a rich combat_action so the DM gets full detail
   if(typeof combatSessionData !== 'undefined' && combatSessionData){
+    // Pick up target if set by confirmAbilityTarget
+    const _tgt=window._abilityTarget||null;
     const richLabel = JSON.stringify({
       type: 'ability',
       name: powerName,
@@ -1890,11 +1901,17 @@ async function useAbility(nodeId, favorCost){
       damageDie: damageDie||null,
       damageRoll: damageRoll||null,
       favorCost: favorCost||0,
-      roll: content.roll||null
+      roll: content.roll||null,
+      targetName: _tgt?.name||null,
+      targetType: _tgt?.type||null
     });
     await db.from('combat_actions').insert({
       session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-      action_type:'ability',action_label:richLabel,resolved:false
+      action_type:'ability',action_label:richLabel,
+      target_id:_tgt&&_tgt.type!=='environment'?_tgt.id:null,
+      target_type:_tgt?.type||null,
+      target_name:_tgt?.name||null,
+      resolved:false
     });
     if(typeof myQueueItem!=='undefined'&&myQueueItem){
       await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -2290,13 +2307,13 @@ k6:{name:"Blessed Feast",meta:"Construct · Tier III · Roll: Wits · 2 Favor",c
 k7:{name:"Grand Commission",meta:"Construct · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you spend 2 Bond to bless a meal with deep sacred intent,",roll:"Roll Wits. Spend 3 Favor and 2 Bond.",outcomes:[{cls:"success",label:"6 — Full",text:"Whoever eats removes one Lasting Condition entirely. The divine quality cannot be extracted or replicated."},{cls:"partial",label:"4–5 — Mixed",text:"The Lasting Condition is downgraded to Fleeting rather than removed."},{cls:"fail",label:"1–3 — Fail",text:"The meal is mundane. All Favor and Bond spent. Cannot attempt Grand Commission again this session."}]},prereq:"Extra Capacity + Analyze Machine",levels:null},
 k8:{name:"Master Forging",meta:"Construct · Apex · Roll: Wits · 5 Favor · Once/Session",content:{type:"move",trigger:"When you spend a full scene of focused work to forge something extraordinary,",roll:"Roll Wits. Spend 5 Favor plus material costs. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"Create one item: Weapon (+2 damage die, one special property: Returning/Seeking/Divine); Tool (auto-succeeds its function once per scene); or Device (performs one impossible mechanical function). Permanent — cannot be destroyed by mundane means."},{cls:"partial",label:"4–5 — Mixed",text:"Create the item with one significant limitation. The Keeper names it."},{cls:"fail",label:"1–3 — Fail",text:"Catastrophic failure. All Favor lost. Materials ruined. Take 2 Harm."}]},prereq:"Blessed Feast + Grand Commission",levels:null},
 e1:{name:"Static Sense",meta:"Electric · Tier I · Passive",content:{type:"passive",desc:`You feel electrical currents as naturally as temperature. Always know if any machine or device within Near range is powered, functional, damaged, or dormant — no roll. Cannot be surprised by electrical hazards. Touch a powered object to receive a general impression of its purpose and state.`},prereq:null,levels:null},
-e2:{name:"Lightning Bolt",meta:"Electric · Tier I · Roll: Might · 2 Favor",content:{type:"move",trigger:"When you throw a bolt of electricity at a target or object,",roll:"Roll Might. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. Choose: standard damage to a living target; disable a mechanical device until repaired; cause an electrical surge — lights, alarms, nearby devices activate or shut down."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level on the primary target. No secondary effects."},{cls:"fail",label:"1–3 — Fail",text:"Bolt discharges uncontrolled. Damage at one level lower on a random target within Close range — the Keeper decides who."}]},prereq:null,levels:["1d6","1d8","1d10"]},
+e2:{name:"Lightning Bolt",meta:"Electric · Tier I · Roll: Might · 2 Favor",content:{type:"move",trigger:"When you throw a bolt of electricity at a target or object,",roll:"Roll Might. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. Choose: standard damage to a living target; disable a mechanical device until repaired; cause an electrical surge — lights, alarms, nearby devices activate or shut down."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level on the primary target. No secondary effects."},{cls:"fail",label:"1–3 — Fail",text:"Bolt discharges uncontrolled. Damage at one level lower on a random target within Close range — the Keeper decides who."}]},prereq:null,levels:["1d6","1d8","1d10"],targeted:true},
 e3:{name:"Machine Control",meta:"Electric · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you touch a machine and extend your electrical sense into it,",roll:"Roll Wits. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Control any machine up to 15 feet in any dimension for the rest of the scene. Direct its movement, activate its functions, or freeze it completely — no physical input required."},{cls:"partial",label:"4–5 — Mixed",text:"Control for 3 actions, then the machine fights back or locks up."},{cls:"fail",label:"1–3 — Fail",text:"The machine rejects the signal and acts erratically for the scene. The Keeper controls its behavior. Cannot attempt Machine Control on it again this scene."}]},prereq:"Static Sense",levels:null},
-e4:{name:"Arc Chain",meta:"Electric · Tier II · Roll: Might · 2 Favor",content:{type:"move",trigger:"When you channel electricity that jumps between multiple targets,",roll:"Roll Might. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level to primary target. Chain jumps to up to 2 additional targets within Close range — each takes half damage (rounded up). You choose which targets are hit."},{cls:"partial",label:"4–5 — Mixed",text:"Damage to primary target. Chain hits one additional random target within Close range."},{cls:"fail",label:"1–3 — Fail",text:"The chain is uncontrolled. Roll damage at one level lower; distribute randomly among all targets within Close range including allies. The Keeper assigns."}]},prereq:"Lightning Bolt",levels:["1d6","1d8","1d10"]},
+e4:{name:"Arc Chain",meta:"Electric · Tier II · Roll: Might · 2 Favor",content:{type:"move",trigger:"When you channel electricity that jumps between multiple targets,",roll:"Roll Might. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level to primary target. Chain jumps to up to 2 additional targets within Close range — each takes half damage (rounded up). You choose which targets are hit."},{cls:"partial",label:"4–5 — Mixed",text:"Damage to primary target. Chain hits one additional random target within Close range."},{cls:"fail",label:"1–3 — Fail",text:"The chain is uncontrolled. Roll damage at one level lower; distribute randomly among all targets within Close range including allies. The Keeper assigns."}]},prereq:"Lightning Bolt",levels:["1d6","1d8","1d10"],targeted:true},
 e5:{name:"Overclock",meta:"Electric · Tier II · Passive",content:{type:"passive",desc:`You can push any device you're touching to perform above its rated capacity. Once per scene per device: it performs its function once at double effectiveness — double speed, double output, or double precision. The device takes 1 point of wear afterward.`},prereq:"Machine Control",levels:null},
 e6:{name:"Greater Control",meta:"Electric · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you extend your control to multiple machines simultaneously,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Control up to 3 machines simultaneously within Near range for the rest of the scene. Each can perform independently. No physical contact required after initial activation."},{cls:"partial",label:"4–5 — Mixed",text:"Control up to 2 machines for 5 actions total before losing the link."},{cls:"fail",label:"1–3 — Fail",text:"The machines you attempted to link fight each other and act chaotically. Cannot attempt Greater Control again this scene."}]},prereq:"Overclock + Arc Chain",levels:null},
-e7:{name:"EMP Pulse",meta:"Electric · Tier III · Roll: Might · 3 Favor",content:{type:"move",trigger:"When you release a concentrated burst of electromagnetic energy,",roll:"Roll Might. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"All electronic and mechanical devices within Close range are disabled for one full scene. You may exclude up to two specific devices."},{cls:"partial",label:"4–5 — Mixed",text:"All devices disabled, but you cannot exclude anything — including devices on allies."},{cls:"fail",label:"1–3 — Fail",text:"Pulse weaker than intended — only devices within Intimate range are affected, and only for 3 rounds."}]},prereq:"Overclock",levels:null},
-e8:{name:"Storm Form",meta:"Electric · Apex · Roll: Might · 5 Favor · Once/Session",content:{type:"move",trigger:"When you let forge-lightning fully inhabit your body,",roll:"Roll Might. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"For one full scene: all attacks deal +1d6 electrical damage; immune to electrical damage; jump between any two conducting surfaces you can see as a free action; machines within Close range function at peak efficiency."},{cls:"partial",label:"4–5 — Mixed",text:"First two benefits only. The form is unstable — take 1 Harm per round."},{cls:"fail",label:"1–3 — Fail",text:"The storm escapes. Everything within Close range takes 2d6 electrical damage including allies. You take 4 Harm. Storm Form ends."}]},prereq:"Greater Control + EMP Pulse",levels:null},
+e7:{name:"EMP Pulse",meta:"Electric · Tier III · Roll: Might · 3 Favor",content:{type:"move",trigger:"When you release a concentrated burst of electromagnetic energy,",roll:"Roll Might. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"All electronic and mechanical devices within Close range are disabled for one full scene. You may exclude up to two specific devices."},{cls:"partial",label:"4–5 — Mixed",text:"All devices disabled, but you cannot exclude anything — including devices on allies."},{cls:"fail",label:"1–3 — Fail",text:"Pulse weaker than intended — only devices within Intimate range are affected, and only for 3 rounds."}]},prereq:"Overclock",levels:null,targeted:true},
+e8:{name:"Storm Form",meta:"Electric · Apex · Roll: Might · 5 Favor · Once/Session",content:{type:"move",trigger:"When you let forge-lightning fully inhabit your body,",roll:"Roll Might. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"For one full scene: all attacks deal +1d6 electrical damage; immune to electrical damage; jump between any two conducting surfaces you can see as a free action; machines within Close range function at peak efficiency."},{cls:"partial",label:"4–5 — Mixed",text:"First two benefits only. The form is unstable — take 1 Harm per round."},{cls:"fail",label:"1–3 — Fail",text:"The storm escapes. Everything within Close range takes 2d6 electrical damage including allies. You take 4 Harm. Storm Form ends."}]},prereq:"Greater Control + EMP Pulse",levels:null,targeted:true},
 a1:{name:"Iron Constitution",meta:"Automaton · Tier I · Passive",content:{type:"passive",desc:`Your constructed nature is undeniable. You do not need to eat, sleep, or breathe. Biological hazards — poison, disease, suffocation, hunger — do not apply. You are immune to mind-altering substances. You heal at the same rate as others, but your healing is mechanical in nature.`},prereq:null,levels:null},
 a2:{name:"Self-Repair",meta:"Automaton · Tier I · Roll: Tough · 2 Favor",content:{type:"move",trigger:"When you take time to repair your own body using tools and materials,",roll:"Roll Tough. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Remove one Condition of any severity. If physical, fully remove. If unstable, it becomes stable."},{cls:"partial",label:"4–5 — Mixed",text:"Downgrade the Condition one step: Severe → Lasting → Fleeting → removed."},{cls:"fail",label:"1–3 — Fail",text:"Secondary damage. The Condition remains. Take 1 additional Harm."}]},prereq:null,levels:null},
 a3:{name:"Enhanced Chassis",meta:"Automaton · Tier II · Passive",content:{type:"passive",desc:`Your constructed body exceeds mortal limits. Mortality increased by 4 permanently. Armor is twice as effective (double durability rating). You carry twice normal encumbrance without penalty.`},prereq:"Iron Constitution",levels:null},
@@ -3504,7 +3521,12 @@ function buildAbilityCards(){
 
     const triggerHtml=nd.content.trigger?`<div class="cap-card-trigger">${nd.content.trigger}</div>`:'';
     const rollHtml=nd.content.roll?`<div style="font-size:11px;margin-bottom:8px;padding:5px 8px;background:rgba(255,255,255,.06);border-radius:4px;font-style:italic">${nd.content.roll}</div>`:'';
-    const useBtnHtml=canAfford?`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="useCombatAbilityFromPanel('${id}',${cost})">✦ Use — ${costLabel}</button>`
+        const isTargeted=nd.content.targeted===true;
+    const inCombat=typeof combatSessionData!=='undefined'&&combatSessionData;
+    const useBtnHtml=canAfford
+      ?(isTargeted&&inCombat
+        ?`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="showAbilityTargetPicker('${id}',${cost},this)">⚔ Choose Target — ${costLabel}</button>`
+        :`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="useCombatAbilityFromPanel('${id}',${cost})">✦ Use — ${costLabel}</button>`)
       :`<div style="font-size:10px;text-align:center;color:#ef4444;padding:6px">Need ${cost} Favor (have ${favor})</div>`;
 
     card.innerHTML=`
@@ -3531,6 +3553,72 @@ function toggleAbilityCard(nodeId){
       c.classList.remove('expanded'); // close others (accordion)
     }
   });
+}
+
+// ── TARGET PICKER (for abilities that deal damage to a specific combatant) ──
+function showAbilityTargetPicker(nodeId, cost, btn){
+  // Replace the "Choose Target" button with an inline target list
+  const card=btn.closest('.cap-card');if(!card)return;
+  // Remove existing picker if re-opening
+  card.querySelector('.cap-target-section')?.remove();
+
+  const targets=combatParticipantsAll.filter(p=>p.participant_id!==CHAR_ID&&p.is_active&&!p.is_dead);
+  const acc=DIVINE_PANEL_CFG.acc;
+
+  const section=document.createElement('div');
+  section.className='cap-target-section';
+  section.innerHTML=`<div class="cap-target-lbl">Choose Target</div>`;
+
+  // Combat participant buttons
+  targets.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='cap-target-btn';
+    b.innerHTML=`${t.participant_type==='npc'?'👹':'🧑'} ${t.participant_name}`;
+    b.onclick=()=>confirmAbilityTarget(nodeId,cost,t.participant_id,t.participant_type,t.participant_name);
+    section.appendChild(b);
+  });
+
+  // "Other" option — environmental/custom target
+  const otherBtn=document.createElement('button');
+  otherBtn.className='cap-target-btn';
+  otherBtn.innerHTML='✏️ Other (environment / object)';
+  otherBtn.onclick=()=>{
+    otherBtn.style.display='none';
+    const inp=document.createElement('input');
+    inp.className='cap-other-input';
+    inp.placeholder='Describe what you're targeting…';
+    inp.autofocus=true;
+    const confirm=document.createElement('button');
+    confirm.className='cap-other-confirm';
+    confirm.style.cssText=`background:${acc};color:#0a0a0f`;
+    confirm.textContent='✦ Confirm Target';
+    confirm.onclick=()=>{
+      const val=inp.value.trim()||'Unknown target';
+      confirmAbilityTarget(nodeId,cost,'environment','environment',val);
+    };
+    inp.onkeydown=e=>{if(e.key==='Enter')confirm.click();};
+    section.appendChild(inp);
+    section.appendChild(confirm);
+    setTimeout(()=>inp.focus(),50);
+  };
+  section.appendChild(otherBtn);
+
+  // Replace the use button with the picker
+  btn.replaceWith(section);
+}
+
+async function confirmAbilityTarget(nodeId, cost, targetId, targetType, targetName){
+  closeAbilityPanel();
+  await playDivineAnimation();
+  // Pass target into useFavor → useAbility via a temporary global so useAbility can thread it
+  window._abilityTarget={id:targetId,type:targetType,name:targetName};
+  await useFavor(cost,nodeId);
+  window._abilityTarget=null;
+  if(combatSessionData&&myQueueItem){
+    await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
+  }
+  actionSubmittedThisTurn=true;
+  document.getElementById('co-action-panel').style.display='none';
 }
 
 async function useCombatAbilityFromPanel(nodeId,cost){

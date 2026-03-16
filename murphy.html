@@ -742,6 +742,15 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 .cap-outcome.fail{background:rgba(239,68,68,.08);border-color:#ef4444}
 .cap-outcome-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:2px;opacity:.7}
 .cap-use-btn{width:100%;margin-top:10px;padding:9px;border-radius:6px;border:none;font-family:"Cinzel",serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+/* Target picker inside ability card */
+.cap-target-section{margin-top:10px;padding:10px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25)}
+.cap-target-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:.6;margin-bottom:7px}
+.cap-target-btn{display:block;width:100%;padding:8px 12px;border-radius:5px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;font-family:"Inter",sans-serif;font-size:12px;cursor:pointer;text-align:left;transition:all .18s;margin-bottom:4px}
+.cap-target-btn:hover{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.08)}
+.cap-target-btn:last-child{margin-bottom:0}
+.cap-other-input{width:100%;padding:7px 10px;border-radius:5px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.3);color:inherit;font-size:12px;font-family:"Inter",sans-serif;margin-top:4px;box-sizing:border-box}
+.cap-other-input:focus{outline:none;border-color:rgba(255,255,255,.5)}
+.cap-other-confirm{margin-top:6px;width:100%;padding:8px;border-radius:5px;border:none;font-family:"Cinzel",serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
 /* Divine particle canvas */
 #ability-anim-canvas{position:fixed;inset:0;pointer-events:none;z-index:600;display:none}
 #ability-anim-canvas.vis{display:block}
@@ -1779,6 +1788,8 @@ async function useAbility(nodeId, favorCost){
 
   // If we are in combat, also write a rich combat_action so the DM gets full detail
   if(typeof combatSessionData !== 'undefined' && combatSessionData){
+    // Pick up target if set by confirmAbilityTarget
+    const _tgt=window._abilityTarget||null;
     const richLabel = JSON.stringify({
       type: 'ability',
       name: powerName,
@@ -1792,11 +1803,17 @@ async function useAbility(nodeId, favorCost){
       damageDie: damageDie||null,
       damageRoll: damageRoll||null,
       favorCost: favorCost||0,
-      roll: content.roll||null
+      roll: content.roll||null,
+      targetName: _tgt?.name||null,
+      targetType: _tgt?.type||null
     });
     await db.from('combat_actions').insert({
       session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-      action_type:'ability',action_label:richLabel,resolved:false
+      action_type:'ability',action_label:richLabel,
+      target_id:_tgt&&_tgt.type!=='environment'?_tgt.id:null,
+      target_type:_tgt?.type||null,
+      target_name:_tgt?.name||null,
+      resolved:false
     });
     if(typeof myQueueItem!=='undefined'&&myQueueItem){
       await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -2184,17 +2201,17 @@ const ND={
 h1:{name:"Bright Hands",meta:"Healing · Tier I · Passive",content:{type:"passive",desc:`Your touch carries warmth others feel and trust. Once per scene, lay hands on any person to: remove dice penalties from minor pain; let someone who gave up from pain try once more; stop pain from limiting action for the rest of the scene.<br><br>Medical actions you take on others never make things worse on a partial success.`},prereq:null,levels:null},
 h2:{name:"Mend the Wound",meta:"Healing · Tier I · Roll: Care · 2 Favor",content:{type:"move",trigger:"When you channel Brigid's healing fire into a wound you can touch,",roll:"Roll Care. Spend 2 Favor. Roll damage for healing amount.",outcomes:[{cls:"success",label:"6 — Full",text:"Heal for current damage die. Remove one minor Condition entirely. If second+ use this scene, remove a major Condition instead."},{cls:"partial",label:"4–5 — Mixed",text:"Heal for current damage die. Either: you take 1 Harm (the fire redirects), or the target cannot be healed again this scene."},{cls:"fail",label:"1–3 — Fail",text:"The healing surges and fails. You take 2 Harm. Cannot use Mend the Wound again this scene."}]},prereq:null,levels:["1d6","2d6","3d6"]},
 h3:{name:"Cloak of Wellness",meta:"Healing · Tier II · Roll: Care · 2 Favor",content:{type:"move",trigger:"When you extend a protective warmth over the people around you,",roll:"Roll Care. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"For this scene, choose two: allies at Close range immune to poison/disease/toxins; allies auto-succeed Tough rolls for physical hardship; first Harm each ally takes is reduced by 2."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one effect. Applies to yourself and one other ally only."},{cls:"fail",label:"1–3 — Fail",text:"No effect. Lose 1 Action next turn as the fire reabsorbs."}]},prereq:"Bright Hands",levels:null},
-h4:{name:"Brigid's Fire Strike",meta:"Healing · Tier II · Roll: Tough · 2 Favor · 🔥",content:{type:"move",trigger:"When you turn sacred fire outward as a weapon — 🔥 marks the Fire Track,",roll:"Roll Tough. Spend 2 Favor. Mark 1 Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. Against undead/corrupted/supernatural: double damage. One ally within Near range heals 1d4."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. No healing reflection. Against supernatural: +1d4 bonus damage."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. The fire sputters — the Keeper may have the enemy react aggressively."}]},prereq:"Mend the Wound",levels:["1d6","2d6","3d6"]},
+h4:{name:"Brigid's Fire Strike",meta:"Healing · Tier II · Roll: Tough · 2 Favor · 🔥",content:{type:"move",trigger:"When you turn sacred fire outward as a weapon — 🔥 marks the Fire Track,",roll:"Roll Tough. Spend 2 Favor. Mark 1 Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. Against undead/corrupted/supernatural: double damage. One ally within Near range heals 1d4."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. No healing reflection. Against supernatural: +1d4 bonus damage."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. The fire sputters — the Keeper may have the enemy react aggressively."}]},prereq:"Mend the Wound",levels:["1d6","2d6","3d6"],targeted:true},
 h5:{name:"Healer's Ear",meta:"Healing · Tier II · Passive",content:{type:"passive",desc:`Diagnose any physical condition without rolling after a few moments of examination. The Keeper tells you: exactly what's wrong and how severe; whether it's mundane or supernatural; what category of treatment would work; whether it will worsen and how fast.<br><br>Any healing action on someone you've examined: +1 die.`},prereq:"Bright Hands",levels:null},
-h6:{name:"Cauterize",meta:"Healing · Tier III · Roll: Care · 3 Favor · 🔥",content:{type:"move",trigger:"When you purge a corruption from an ally and release that energy as a weapon — 🔥 marks the Fire Track,",roll:"Roll Care. Spend 3 Favor. Mark 1 Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Simultaneously: remove one Condition from one ally within Close range AND deal damage at current level to one enemy within Near range. If the Condition was caused by a supernatural creature, deal double damage to it."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one: fully heal the Condition, or deal damage — not both. Healing costs you 1 Harm."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. Condition reduced but not removed. You take 1 Harm. Both you and the target lose 1 Action."}]},prereq:"Cloak of Wellness + Brigid's Fire Strike",levels:["1d8","2d8","3d8"]},
+h6:{name:"Cauterize",meta:"Healing · Tier III · Roll: Care · 3 Favor · 🔥",content:{type:"move",trigger:"When you purge a corruption from an ally and release that energy as a weapon — 🔥 marks the Fire Track,",roll:"Roll Care. Spend 3 Favor. Mark 1 Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Simultaneously: remove one Condition from one ally within Close range AND deal damage at current level to one enemy within Near range. If the Condition was caused by a supernatural creature, deal double damage to it."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one: fully heal the Condition, or deal damage — not both. Healing costs you 1 Harm."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. Condition reduced but not removed. You take 1 Harm. Both you and the target lose 1 Action."}]},prereq:"Cloak of Wellness + Brigid's Fire Strike",levels:["1d8","2d8","3d8"],targeted:true},
 h7:{name:"Read the Sickness",meta:"Healing · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you examine any affliction — mundane, supernatural, cursed, or divine — to understand its full nature,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The Keeper tells you: precise origin; exact mechanism and progression; two concrete cure methods (at least one achievable now); whether others will be affected. +2 dice on any cure roll."},{cls:"partial",label:"4–5 — Mixed",text:"Origin and one cure method (may be harder). +1 die on the cure roll."},{cls:"fail",label:"1–3 — Fail",text:"You learn only that it's supernatural. Cannot attempt Read the Sickness on this affliction again until you find new information."}]},prereq:"Healer's Ear",levels:null},
 h8:{name:"The Wells of Brigid",meta:"Healing · Apex · Roll: Care · 5 Favor · Once/Session",content:{type:"move",trigger:"When you draw from Brigid's deepest wellspring and pour sacred waters over all present,",roll:"Roll Care. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"All allies present: fully healed; all Conditions removed; dying allies stabilized and conscious. If an ally died this scene: you may offer them 1 HP + one severe Condition — their choice."},{cls:"partial",label:"4–5 — Mixed",text:"Choose two: full HP restoration; all Conditions removed; stabilize dying; offer breath to the dead."},{cls:"fail",label:"1–3 — Fail",text:"The wells don't answer. No healing. You take 3 Harm. Cannot attempt this again this session."}]},prereq:"Cauterize + Read the Sickness",levels:null},
 c1:{name:"The Maker's Eye",meta:"Craft · Tier I · Passive",content:{type:"passive",desc:`When you examine any made thing, you automatically know: its structural weaknesses and how to exploit them; roughly how it was made, by whom, and when; whether it's been modified; the fastest method to destroy or disable it; whether it can be repaired and how difficult.<br><br>Scope in a constructed environment: +1 die.`},prereq:null,levels:null},
-c2:{name:"Forge Strike",meta:"Craft · Tier I · Roll: Might · 1 Favor · 🔥",content:{type:"move",trigger:"When you strike with the weight of the forge behind you — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 1 Favor. Mark 1 Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. Choose: deal a specific Condition (Disarmed, Stunned, Off-Balance) instead of standard damage; or if striking a constructed object, destroy or reshape it outright."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. Choose standard damage or a minor Condition — not both."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. An enemy may take a free action against you before you recover."}]},prereq:null,levels:["1d6","2d6","3d6"]},
+c2:{name:"Forge Strike",meta:"Craft · Tier I · Roll: Might · 1 Favor · 🔥",content:{type:"move",trigger:"When you strike with the weight of the forge behind you — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 1 Favor. Mark 1 Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. Choose: deal a specific Condition (Disarmed, Stunned, Off-Balance) instead of standard damage; or if striking a constructed object, destroy or reshape it outright."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. Choose standard damage or a minor Condition — not both."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. An enemy may take a free action against you before you recover."}]},prereq:null,levels:["1d6","2d6","3d6"],targeted:true},
 c3:{name:"Rapid Mend",meta:"Craft · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you quickly repair a broken or damaged item in the field,",roll:"Roll Wits. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The item is fully restored. If it's a weapon: it also gains +1 to its next damage die this scene. If it's armor: restore 2 durability."},{cls:"partial",label:"4–5 — Mixed",text:"The item is functional but fragile — it will break again on the next critical use."},{cls:"fail",label:"1–3 — Fail",text:"The repair fails and damages the item further. It cannot be used until properly repaired."}]},prereq:"The Maker's Eye",levels:null},
 c4:{name:"Shatter",meta:"Craft · Tier II · Roll: Might · 2 Favor · 🔥",content:{type:"move",trigger:"When you direct Brigid's breaking force against a constructed object — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 2 Favor. Mark 1 Fire Track.",outcomes:[{cls:"success",label:"6 — Full",text:"The object is destroyed. Choose the manner — explosive, quiet, or targeted. If held or worn: target takes 2 Harm. You may leave one specific part intact."},{cls:"partial",label:"4–5 — Mixed",text:"Object broken but not destroyed — may be salvageable. If held or worn: target takes 1 Harm."},{cls:"fail",label:"1–3 — Fail",text:"Object damaged but not broken. Something nearby may be affected by the misfire."}]},prereq:"Forge Strike",levels:null},
 c5:{name:"Brigid's Blessing",meta:"Craft · Tier II · Passive",content:{type:"passive",desc:`Items you personally craft or repair carry a subtle warmth. They: never fail on their first use after you make or mend them; have +1 durability when you carry them; can be sensed as blessed by those with supernatural awareness.`},prereq:"Rapid Mend",levels:null},
-c6:{name:"Forge-Born Weapon",meta:"Craft · Tier III · Roll: Might · 3 Favor · 🔥",content:{type:"move",trigger:"When you conjure a weapon of sacred forge-fire — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 3 Favor. Mark 1 Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"A weapon of pure flame in your hands until end of scene. Damage at current level. Cannot be disarmed or parried by mundane means. Bypasses mundane armor. Once per scene: throw it — it returns."},{cls:"partial",label:"4–5 — Mixed",text:"The weapon forms and deals damage at current level, but dissipates after 3 uses or end of scene."},{cls:"fail",label:"1–3 — Fail",text:"The conjuring misfires. You and one random target within Close range each take 1d4 Harm. No weapon forms. Cannot attempt this again this scene."}]},prereq:"Rapid Mend + Shatter",levels:["1d8","2d8","3d8"]},
+c6:{name:"Forge-Born Weapon",meta:"Craft · Tier III · Roll: Might · 3 Favor · 🔥",content:{type:"move",trigger:"When you conjure a weapon of sacred forge-fire — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 3 Favor. Mark 1 Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"A weapon of pure flame in your hands until end of scene. Damage at current level. Cannot be disarmed or parried by mundane means. Bypasses mundane armor. Once per scene: throw it — it returns."},{cls:"partial",label:"4–5 — Mixed",text:"The weapon forms and deals damage at current level, but dissipates after 3 uses or end of scene."},{cls:"fail",label:"1–3 — Fail",text:"The conjuring misfires. You and one random target within Close range each take 1d4 Harm. No weapon forms. Cannot attempt this again this scene."}]},prereq:"Rapid Mend + Shatter",levels:["1d8","2d8","3d8"],targeted:true},
 c7:{name:"Sacred Commission",meta:"Craft · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you craft or heavily modify an item with specific intent and sacred purpose,",roll:"Roll Wits. Spend 3 Favor. Requires at least one uninterrupted scene of work.",outcomes:[{cls:"success",label:"6 — Full",text:"The item gains one permanent sacred property — choose: deals full damage to supernatural creatures; cannot be destroyed by mundane means; glows faintly in the presence of a specific type of threat you name."},{cls:"partial",label:"4–5 — Mixed",text:"The property manifests but is limited to 3 uses before it fades."},{cls:"fail",label:"1–3 — Fail",text:"The work is flawed. The item is mundane. Favor is spent. You cannot attempt Sacred Commission on this item again."}]},prereq:"Forge-Born Weapon",levels:null},
 c8:{name:"The Anvil of Making",meta:"Craft · Apex · Roll: Might · 5 Favor · 🔥 · Once/Session",content:{type:"move",trigger:"When you let Brigid's full craft-aspect flow through you, making the world forge-soft — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 5 Favor. Mark 2 Fire Track. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"For one full scene, any non-living constructed thing you can see responds to your will: reshape, repair, destroy, or create from available materials. No touch required."},{cls:"partial",label:"4–5 — Mixed",text:"Three specific uses rather than the full scene. Must still touch the objects."},{cls:"fail",label:"1–3 — Fail",text:"Force exceeds control. For the next hour you cannot touch a constructed object without warping it. Cannot use Craft powers for the rest of the scene."}]},prereq:"Forge-Born Weapon + Sacred Commission",levels:null},
 o1:{name:"Keening Voice",meta:"Poetry · Tier I · Passive",content:{type:"passive",desc:`Animals understand your clear intent. Spirits and unmanifested entities can hear you. When you raise your voice with purpose, you cannot be ignored.<br><br>Once per scene: a sound of grief, joy, or fury stops everyone in earshot for one moment — no roll.`},prereq:null,levels:null},
@@ -3432,7 +3449,12 @@ function buildAbilityCards(){
 
     const triggerHtml=nd.content.trigger?`<div class="cap-card-trigger">${nd.content.trigger}</div>`:'';
     const rollHtml=nd.content.roll?`<div style="font-size:11px;margin-bottom:8px;padding:5px 8px;background:rgba(255,255,255,.06);border-radius:4px;font-style:italic">${nd.content.roll}</div>`:'';
-    const useBtnHtml=canAfford?`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="useCombatAbilityFromPanel('${id}',${cost})">✦ Use — ${costLabel}</button>`
+        const isTargeted=nd.content.targeted===true;
+    const inCombat=typeof combatSessionData!=='undefined'&&combatSessionData;
+    const useBtnHtml=canAfford
+      ?(isTargeted&&inCombat
+        ?`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="showAbilityTargetPicker('${id}',${cost},this)">⚔ Choose Target — ${costLabel}</button>`
+        :`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="useCombatAbilityFromPanel('${id}',${cost})">✦ Use — ${costLabel}</button>`)
       :`<div style="font-size:10px;text-align:center;color:#ef4444;padding:6px">Need ${cost} Favor (have ${favor})</div>`;
 
     card.innerHTML=`
@@ -3459,6 +3481,72 @@ function toggleAbilityCard(nodeId){
       c.classList.remove('expanded'); // close others (accordion)
     }
   });
+}
+
+// ── TARGET PICKER (for abilities that deal damage to a specific combatant) ──
+function showAbilityTargetPicker(nodeId, cost, btn){
+  // Replace the "Choose Target" button with an inline target list
+  const card=btn.closest('.cap-card');if(!card)return;
+  // Remove existing picker if re-opening
+  card.querySelector('.cap-target-section')?.remove();
+
+  const targets=combatParticipantsAll.filter(p=>p.participant_id!==CHAR_ID&&p.is_active&&!p.is_dead);
+  const acc=DIVINE_PANEL_CFG.acc;
+
+  const section=document.createElement('div');
+  section.className='cap-target-section';
+  section.innerHTML=`<div class="cap-target-lbl">Choose Target</div>`;
+
+  // Combat participant buttons
+  targets.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='cap-target-btn';
+    b.innerHTML=`${t.participant_type==='npc'?'👹':'🧑'} ${t.participant_name}`;
+    b.onclick=()=>confirmAbilityTarget(nodeId,cost,t.participant_id,t.participant_type,t.participant_name);
+    section.appendChild(b);
+  });
+
+  // "Other" option — environmental/custom target
+  const otherBtn=document.createElement('button');
+  otherBtn.className='cap-target-btn';
+  otherBtn.innerHTML='✏️ Other (environment / object)';
+  otherBtn.onclick=()=>{
+    otherBtn.style.display='none';
+    const inp=document.createElement('input');
+    inp.className='cap-other-input';
+    inp.placeholder='Describe what you're targeting…';
+    inp.autofocus=true;
+    const confirm=document.createElement('button');
+    confirm.className='cap-other-confirm';
+    confirm.style.cssText=`background:${acc};color:#0a0a0f`;
+    confirm.textContent='✦ Confirm Target';
+    confirm.onclick=()=>{
+      const val=inp.value.trim()||'Unknown target';
+      confirmAbilityTarget(nodeId,cost,'environment','environment',val);
+    };
+    inp.onkeydown=e=>{if(e.key==='Enter')confirm.click();};
+    section.appendChild(inp);
+    section.appendChild(confirm);
+    setTimeout(()=>inp.focus(),50);
+  };
+  section.appendChild(otherBtn);
+
+  // Replace the use button with the picker
+  btn.replaceWith(section);
+}
+
+async function confirmAbilityTarget(nodeId, cost, targetId, targetType, targetName){
+  closeAbilityPanel();
+  await playDivineAnimation();
+  // Pass target into useFavor → useAbility via a temporary global so useAbility can thread it
+  window._abilityTarget={id:targetId,type:targetType,name:targetName};
+  await useFavor(cost,nodeId);
+  window._abilityTarget=null;
+  if(combatSessionData&&myQueueItem){
+    await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
+  }
+  actionSubmittedThisTurn=true;
+  document.getElementById('co-action-panel').style.display='none';
 }
 
 async function useCombatAbilityFromPanel(nodeId,cost){

@@ -1240,6 +1240,7 @@ function showAbilityActionCard(ab, rawAction){
     </div>
     <div class="acard-name" style="color:${p.acc}">${ab.name}</div>
     <div class="acard-meta">${ab.meta||''}</div>
+    ${ab.targetName?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:5px 10px;background:rgba(255,255,255,.06);border-radius:4px;border:1px solid rgba(255,255,255,.12)"><span style="font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;opacity:.5">TARGET</span><span style="font-size:13px;color:var(--text)">${ab.targetName}</span></div>`:''}
     ${ab.roll?`<div style="font-size:11px;color:var(--dim);margin-bottom:10px;font-style:italic">${ab.roll}</div>`:''}
     ${diceHtml}
     ${dmgHtml}
