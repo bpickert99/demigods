@@ -242,20 +242,32 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
       <button class="btn sm" onclick="skipRound()">⟳ Next Round</button>
       <button class="btn sm red" onclick="promptEndCombat()">End Combat</button>
     </div>
+    <div id="dm-turn-banner" style="display:none;padding:12px 16px;border-radius:6px;margin-bottom:12px;border:2px solid var(--gold);background:transparent;animation:fadeUp .2s ease">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="dm-turn-banner-text" style="font-family:'Cinzel Decorative',serif;font-size:14px;letter-spacing:1px;flex:1"></div>
+        <div id="dm-turn-banner-sub" style="font-size:11px;color:var(--muted)"></div>
+      </div>
+    </div>
     <div id="action-card-area"></div>
+    <div id="npc-turn-panel" style="display:none;padding:14px 16px;background:linear-gradient(135deg,#1a0808,#0a0404);border:2px solid var(--harm);border-radius:8px;margin-bottom:14px">
+      <div style="font-family:'Cinzel Decorative',serif;font-size:13px;color:var(--harm);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+        <span id="npc-turn-name">NPC</span>
+        <span style="font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;color:var(--muted);margin-left:auto">NPC TURN</span>
+      </div>
+      <div class="row" style="margin-bottom:10px;gap:10px;flex-wrap:wrap">
+        <div class="col" style="flex:1;min-width:110px"><label class="lbl">Attacker</label><select class="inp sm" id="npc-atk-sel" onchange="populateWeaponSel()"></select></div>
+        <div class="col" style="flex:1;min-width:110px"><label class="lbl">Weapon</label><select class="inp sm" id="npc-wpn-sel"></select></div>
+        <div class="col" style="flex:1;min-width:110px"><label class="lbl">Target</label><select class="inp sm" id="npc-tgt-sel"></select></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn gold" onclick="executeNPCAttack()">⚔ Attack → Auto-Apply</button>
+        <button class="btn sm" onclick="npcSkipTurn()">⏭ Skip / Pass</button>
+      </div>
+    </div>
     <div class="cmb-grid">
       <div>
         <div class="sec-title">Combatants</div>
         <div id="comb-list"></div>
-        <div class="npc-atk-panel" id="npc-atk-panel" style="display:none">
-          <div class="sec-title">NPC Attack</div>
-          <div class="row" style="margin-bottom:10px;gap:10px">
-            <div class="col" style="flex:1"><label class="lbl">Attacker</label><select class="inp sm" id="npc-atk-sel" onchange="populateWeaponSel()"></select></div>
-            <div class="col" style="flex:1"><label class="lbl">Weapon</label><select class="inp sm" id="npc-wpn-sel"></select></div>
-            <div class="col" style="flex:1"><label class="lbl">Target</label><select class="inp sm" id="npc-tgt-sel"></select></div>
-          </div>
-          <button class="btn gold" onclick="executeNPCAttack()">⚔ Attack → Auto-Apply</button>
-        </div>
       </div>
       <div>
         <div class="sec-title">Queue</div>
@@ -411,18 +423,14 @@ const SB_KEY='sb_publishable_C3dTYXnpaYOg1QCBgXMcBQ_V9cE4Na1';
 const{createClient}=supabase;
 const db=createClient(SB_URL,SB_KEY);
 
+const FINN_FORMS={stallion:{emoji:'🐴',name:'Stallion'},hare:{emoji:'🐇',name:'Hare'},goat:{emoji:'🐐',name:'Goat'},cow:{emoji:'🐄',name:'Cow'},magpie:{emoji:'🐦',name:'Magpie'},salmon:{emoji:'🐟',name:'Salmon'},wolf:{emoji:'🐺',name:'Wolf'},bear:{emoji:'🐻',name:'Bear'}};
+
 const PLAYERS=[
   {id:'lewis', name:'Lewis', playbook:'Child of the Morrigan',emoji:'🐦‍⬛',color:'var(--lewis)',acc:'var(--lewis-acc)'},
   {id:'murphy',name:'Murphy',playbook:'Child of Brigid',      emoji:'🔥', color:'var(--murphy)',acc:'var(--murphy-acc)'},
   {id:'kara',  name:'Kara',  playbook:'Child of Goibniu',     emoji:'⚙️',  color:'var(--kara)',  acc:'var(--kara-acc)'},
   {id:'finn',  name:'Finn',  playbook:'Púca',                 emoji:'🐺', color:'var(--finn)',  acc:'var(--finn-acc)'}
 ];
-
-const FINN_FORMS={
-  stallion:{emoji:'🐴',name:'Stallion'},hare:{emoji:'🐇',name:'Hare'},goat:{emoji:'🐐',name:'Goat'},
-  cow:{emoji:'🐄',name:'Cow'},magpie:{emoji:'🐦',name:'Magpie'},salmon:{emoji:'🐟',name:'Salmon'},
-  wolf:{emoji:'🐺',name:'Wolf'},bear:{emoji:'🐻',name:'Bear'}
-};
 
 const TAG_DEFS=[
   {grp:'Range',tags:[
@@ -537,7 +545,7 @@ function renderPartyGrid(){
     card.innerHTML=`
       <div class="pcard-hdr" style="border-bottom-color:${p.color}40">
         <div class="pcard-av" style="border:2px solid ${p.color};box-shadow:0 0 10px ${p.color}33">${p.emoji}</div>
-        <div><div class="pcard-name" style="color:${p.acc}">${p.name}</div><div class="pcard-sub" style="color:${p.color}">${p.playbook}${p.id==='finn'&&ch.current_form&&ch.current_form!=='human'?` · ${(FINN_FORMS[ch.current_form]?.emoji||'')+'  '+( FINN_FORMS[ch.current_form]?.name||ch.current_form)}`  :''}</div></div>
+        <div><div class="pcard-name" style="color:${p.acc}">${p.name}</div><div class="pcard-sub" style="color:${p.color}">${p.playbook}${p.id==='finn'&&ch.current_form&&ch.current_form!=='human'?` · ${(FINN_FORMS[ch.current_form]?.emoji||'')} ${(FINN_FORMS[ch.current_form]?.name||ch.current_form)}`:''}</div></div>
       </div>
       <div class="pcard-body">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
@@ -737,7 +745,7 @@ function showActiveCombat(){
   document.getElementById('combat-idle').style.display='none';
   document.getElementById('combat-active').style.display='block';
   if(combatSess) document.getElementById('round-lbl').textContent=`Round ${combatSess.round||1}`;
-  renderCombatants();populateNPCAttackPanel();
+  renderCombatants();updateDMTurnBanner();
 }
 function renderCombatants(){
   const list=document.getElementById('comb-list');if(!list)return;list.innerHTML='';
@@ -755,13 +763,13 @@ async function toggleAction(partId,idx){
   const p=combatParts.find(c=>c.id===partId);if(!p)return;
   p.actions_used=idx<=p.actions_used?idx-1:idx;
   await db.from('combat_participants').update({actions_used:p.actions_used,updated_at:new Date().toISOString()}).eq('id',partId);
-  renderCombatants();checkRoundEnd();
+  renderCombatants();checkRoundEnd();updateDMTurnBanner();
 }
 async function activateTurn(partId){
   const p=combatParts.find(c=>c.id===partId);if(!p)return;
   await db.from('combat_sessions').update({current_turn_id:p.participant_id,current_turn_type:p.participant_type,updated_at:new Date().toISOString()}).eq('id',combatSess.id);
   if(p.participant_type==='npc'){const ap=document.getElementById('npc-atk-panel');if(ap)ap.style.display='block';const sel=document.getElementById('npc-atk-sel');if(sel){sel.value=p.participant_id;populateWeaponSel();}}
-  showToast(`${p.participant_name}'s turn`);
+  updateDMTurnBanner();showToast(`${p.participant_name}'s turn`);
 }
 function populateNPCAttackPanel(){
   const atk=document.getElementById('npc-atk-sel');const tgt=document.getElementById('npc-tgt-sel');if(!atk||!tgt)return;
@@ -774,6 +782,40 @@ function populateWeaponSel(){
   const sel=document.getElementById('npc-atk-sel');const wsel=document.getElementById('npc-wpn-sel');if(!sel||!wsel)return;
   const wpns=npcWpnData[sel.value]||[];
   wsel.innerHTML=wpns.length?wpns.map(w=>`<option value="${w.id}" data-harm="${w.harm_die}">${w.name} (${w.harm_die})</option>`):'<option>No weapons</option>';
+}
+function updateDMTurnBanner(){
+  const banner=document.getElementById('dm-turn-banner');
+  const npcPanel=document.getElementById('npc-turn-panel');
+  if(!banner||!combatSess){if(banner)banner.style.display='none';if(npcPanel)npcPanel.style.display='none';return;}
+  const tid=combatSess.current_turn_id;
+  const ttype=combatSess.current_turn_type;
+  if(!tid){banner.style.display='none';if(npcPanel)npcPanel.style.display='none';return;}
+  banner.style.display='block';
+  if(ttype==='pc'){
+    const p=PLAYERS.find(pl=>pl.id===tid);
+    banner.style.borderColor=p?p.color:'var(--gold)';
+    banner.style.background=p?p.color+'15':'transparent';
+    document.getElementById('dm-turn-banner-text').style.color=p?p.acc:'var(--gold)';
+    document.getElementById('dm-turn-banner-text').textContent=`${p?p.emoji+' ':''} ${p?p.name:tid} — AWAITING ACTION`;
+    document.getElementById('dm-turn-banner-sub').textContent='Waiting for player…';
+    if(npcPanel)npcPanel.style.display='none';
+  } else {
+    const npcPart=combatParts.find(cp=>cp.participant_id===tid);
+    const name=npcPart?.participant_name||tid;
+    banner.style.borderColor='var(--harm)';
+    banner.style.background='#ef444410';
+    document.getElementById('dm-turn-banner-text').style.color='var(--harm)';
+    document.getElementById('dm-turn-banner-text').textContent=`👹 ${name} — NPC TURN`;
+    document.getElementById('dm-turn-banner-sub').textContent='Choose an action below';
+    if(npcPanel){npcPanel.style.display='block';document.getElementById('npc-turn-name').textContent=name;}
+    populateNPCAttackPanel();
+    const sel=document.getElementById('npc-atk-sel');
+    if(sel){const opt=[...sel.options].find(o=>o.value===tid);if(opt)sel.value=opt.value;populateWeaponSel();}
+  }
+}
+async function npcSkipTurn(){
+  showToast('NPC passed their turn');
+  const npcPanel=document.getElementById('npc-turn-panel');if(npcPanel)npcPanel.style.display='none';
 }
 async function executeNPCAttack(){
   const atkSel=document.getElementById('npc-atk-sel');const wpnSel=document.getElementById('npc-wpn-sel');const tgtSel=document.getElementById('npc-tgt-sel');
@@ -829,7 +871,7 @@ async function skipRound(){
   await db.from('combat_sessions').update({round:nr,current_turn_id:null,updated_at:new Date().toISOString()}).eq('id',combatSess.id);
   await db.from('combat_queue').update({status:'done'}).eq('session_id',combatSess.id);
   combatQ=[];document.getElementById('round-lbl').textContent=`Round ${nr}`;document.getElementById('cmb-status').textContent='Combat in progress';document.getElementById('action-card-area').innerHTML='';
-  renderCombatants();renderCombatQueue();showToast(`Round ${nr} begins`);
+  renderCombatants();renderCombatQueue();updateDMTurnBanner();showToast(`Round ${nr} begins`);
 }
 function promptEndCombat(){
   dmModal('<h3>End Combat?</h3><div style="font-size:13px;color:var(--muted);margin-bottom:16px">This will dismiss the combat overlay for all players.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="closeDMModal();endCombat()">End Combat</button></div>');
