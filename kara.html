@@ -471,6 +471,7 @@ body.markup .power-node:hover .pn-name{color:var(--gold) !important}
 .node{padding:13px 15px;border-radius:6px;border:1px solid var(--border);background:#06060f;cursor:pointer;transition:all .2s;position:relative;user-select:none;min-height:100px;display:flex;flex-direction:column}
 .node.avail:hover{border-color:var(--nc);background:#0a0a18;transform:translateY(-2px);box-shadow:0 5px 18px var(--ng)}
 .node.unlocked{border-color:var(--nc);background:linear-gradient(135deg,var(--nb),#06060f);box-shadow:0 0 14px var(--ng)}
+.node.reading{outline:3px solid var(--nc);outline-offset:2px;box-shadow:0 0 18px var(--ng),0 0 0 4px var(--ng)}
 .node.locked{opacity:.3;cursor:default}
 .node.selected{outline:2px solid var(--na);outline-offset:2px}
 .nbadges{display:flex;gap:4px;margin-bottom:7px;flex-wrap:wrap;align-items:center;min-height:20px}
@@ -1164,8 +1165,8 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
         <div class="ndesc">Add one additional slot to your Favor track.</div>
         <div class="npre">Requires: Gather Materials</div>
       </div>
-      <div class="node locked" id="k5" data-b="construct" data-prereq="k1" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
-        <div class="nbadges"><span class="badge b-roll">Roll: Wits</span></div>
+      <div class="node locked" id="k5" data-b="construct" data-prereq="k1" data-favor="1" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+        <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">1 Favor</span></div>
         <div class="npip"></div><div class="nname">Analyze Machine</div>
         <div class="ndesc">Examine a machine or tool, roll Wits. Ask that many yes/no questions of the Weaver about it.</div>
         <div class="npre">Requires: Forge Instinct</div>
@@ -1872,6 +1873,32 @@ async function useAbility(nodeId, favorCost){
   const dmDesc=`${skill?`Rolled ${relevant} — ${resultLabel}`:'Used'}${damageDie&&damageRoll?` · ${damageRoll} harm (${damageDie})`:''}`;
   await notifyDMAbilityUse(powerName, favorCost?`${dmDesc} · −${favorCost} Favor`:dmDesc, nodeId);
 
+  // If we are in combat, also write a rich combat_action so the DM gets full detail
+  if(typeof combatSessionData !== 'undefined' && combatSessionData){
+    const richLabel = JSON.stringify({
+      type: 'ability',
+      name: powerName,
+      meta: data.meta,
+      skill: skill||null,
+      dice: results,
+      highest: relevant,
+      outcomeClass,
+      outcomeLabel: outcome.label,
+      outcomeText: outcome.text,
+      damageDie: damageDie||null,
+      damageRoll: damageRoll||null,
+      favorCost: favorCost||0,
+      roll: content.roll||null
+    });
+    await db.from('combat_actions').insert({
+      session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
+      action_type:'ability',action_label:richLabel,resolved:false
+    });
+    if(typeof myQueueItem!=='undefined'&&myQueueItem){
+      await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
+    }
+  }
+
   // Auto-handle momentum from ones
   if(ones>0) pendingOnesCount=ones;
 }
@@ -2252,30 +2279,30 @@ const NODE_BRANCH={
 let karaRevealed=false;
 
 const ND={
-k1:{name:"Forge Instinct",meta:"Construct · Tier I · Passive",content:{type:"passive",desc:`<strong>At level-up,</strong> instead of adding a new Skill point, you may fill your Favor track instead.<br><br>Additionally, you always know the fastest way to build or break any constructed object — no roll required for basic analysis of structural integrity, weaknesses, or optimal assembly methods.`},prereq:null,levels:null},
-k2:{name:"Gather Materials",meta:"Construct · Tier I · Roll: Wits · 1 Favor",content:{type:"move",trigger:"When you take a moment to scavenge, collect, or requisition materials for your forge-work,",roll:"Roll Wits. Spend 1 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Roll 1d4. Add that many slots to your Favor track, up to your maximum."},{cls:"partial",label:"4–5 — Mixed Success",text:"Roll 1d4. Add that many slots, but the Keeper names one complication — the materials are unusual, watched, or incomplete."},{cls:"fail",label:"1–3 — Failure",text:"You find nothing useful. You cannot attempt Gather Materials again until circumstances change."}]},prereq:null,levels:null},
-k3:{name:"Field Repair",meta:"Construct · Tier II · Roll: Care · 1 Favor",content:{type:"move",trigger:"When you apply your forge-knowledge to mend a wound using available materials,",roll:"Roll Care. Spend 1 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Remove one Condition. If the Condition has a Harm value, heal 1d6 of that Harm. The target is functional — not restored, but operational."},{cls:"partial",label:"4–5 — Mixed Success",text:"Reduce the Condition's Harm value by 1d6, but the underlying damage remains. The target can act without penalty for the rest of the scene."},{cls:"fail",label:"1–3 — Failure",text:"The repair makes things worse — add 1 Harm to the Condition. You may not attempt Field Repair on this target again this scene."}]},prereq:"Forge Instinct",levels:null},
-k4:{name:"Extra Capacity",meta:"Construct · Tier II · Passive",content:{type:"passive",desc:`<strong>Your ability to gather and channel forge-energy grows.</strong><br><br>Add one additional slot to your Favor track permanently. This stacks with any future upgrades.`},prereq:"Gather Materials",levels:null},
-k5:{name:"Analyze Machine",meta:"Construct · Tier II · Roll: Wits",content:{type:"move",trigger:"When you examine a machine, tool, or constructed device closely,",roll:"Roll Wits. No Favor cost.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Ask the Keeper three yes/no questions about the machine, answered truthfully: its function, origin, weaknesses, hidden mechanisms, power source, or current operational status."},{cls:"partial",label:"4–5 — Mixed Success",text:"Ask one yes/no question. The Keeper must answer honestly."},{cls:"fail",label:"1–3 — Failure",text:"You misread the machine. The Keeper gives you one false answer that sounds accurate. You don't know it's wrong."}]},prereq:"Forge Instinct",levels:null},
-k6:{name:"Blessed Feast",meta:"Construct · Tier III · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you spend 1 Bond to bless a meal before it is eaten,",roll:"Roll Wits. Spend 2 Favor and 1 Bond.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Whoever eats the blessed meal removes one Fleeting condition entirely. The blessing is undetectable before consumption."},{cls:"partial",label:"4–5 — Mixed Success",text:"The blessing is partial — the target removes the Condition but takes 1 Harm from the dissonance of removing it prematurely."},{cls:"fail",label:"1–3 — Failure",text:"The blessing inverts. The meal causes 2 Harm to whoever eats it. You lose the 1 Bond spent regardless."}]},prereq:"Field Repair + Analyze Machine",levels:null},
-k7:{name:"Grand Commission",meta:"Construct · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you spend 2 Bond to bless a meal with deeper intent,",roll:"Roll Wits. Spend 3 Favor and 2 Bond.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Whoever eats the blessed meal removes one Lasting condition entirely. The blessing is permanent — even if the meal is analyzed, the divine quality cannot be extracted or replicated."},{cls:"partial",label:"4–5 — Mixed Success",text:"The Lasting condition is downgraded to a Fleeting condition rather than removed entirely."},{cls:"fail",label:"1–3 — Failure",text:"The commission fails. The meal is mundane. You lose all Favor and Bond spent. You cannot attempt Grand Commission again this session."}]},prereq:"Extra Capacity + Analyze Machine",levels:null},
-k8:{name:"Master Forging",meta:"Construct · Apex · Roll: Wits · 5 Favor · Once Per Session",content:{type:"move",trigger:"When you spend a full scene of focused work to forge something of extraordinary quality (once per session),",roll:"Roll Wits. Spend 5 Favor plus additional material costs.",outcomes:[{cls:"success",label:"6 — Full Success",text:"You create one item in any of these categories: <ul><li><strong>Weapon:</strong> +2 damage die, one special property (Returning, Seeking, or Divine)</li><li><strong>Tool:</strong> Auto-succeeds on its intended function once per scene</li><li><strong>Device:</strong> Performs one impossible mechanical function as designed</li></ul> The item is permanent and cannot be destroyed by mundane means."},{cls:"partial",label:"4–5 — Mixed Success",text:"Create the item, but it has one significant limitation. The Keeper names it."},{cls:"fail",label:"1–3 — Failure",text:"The forging fails catastrophically. Lose all Favor. The materials are ruined. Take 2 Harm from the backlash."}]},prereq:"Blessed Feast + Grand Commission",levels:null},
-e1:{name:"Static Sense",meta:"Electric · Tier I · Passive",content:{type:"passive",desc:`<strong>You feel electrical currents the way others feel temperature.</strong><br><br><ul><li>Always know if any machine or device within Near range is powered, functional, damaged, or dormant — no roll</li><li>Cannot be surprised by electrical hazards, traps, or discharges</li><li>When you deliberately touch a powered object, you receive a general impression of its purpose and current state</li></ul>`},prereq:null,levels:null},
-e2:{name:"Lightning Bolt",meta:"Electric · Tier I · Roll: Might · 2 Favor",content:{type:"move",trigger:"When you throw a bolt of electricity at a target or object,",roll:"Roll Might. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Roll damage at current level. Choose: <ul><li>Standard damage to a living target</li><li>Disable a mechanical/electronic device until it's repaired</li><li>Cause a brief electrical surge in the environment — lights, alarms, other devices activate or shut down</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"Roll damage at current level on the primary target. No secondary effects."},{cls:"fail",label:"1–3 — Failure",text:"The bolt discharges uncontrolled. Roll damage at one level lower on a random target within Close range — could be you, an ally, or an enemy. The Keeper decides."}]},prereq:null,levels:["1d6","1d8","1d10"]},
-e3:{name:"Machine Control",meta:"Electric · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you touch a machine and extend your electrical sense into it,",roll:"Roll Wits. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Control any machine up to 15' in any dimension with your mind for the rest of the scene. You can direct its movements, activate its functions, or freeze it completely. No physical input required."},{cls:"partial",label:"4–5 — Mixed Success",text:"Control the machine for 3 actions, then it fights back or locks up."},{cls:"fail",label:"1–3 — Failure",text:"The machine rejects your signal. It acts erratically for the scene — the Keeper controls its behavior. You cannot attempt Machine Control on it again this scene."}]},prereq:"Static Sense",levels:null},
-e4:{name:"Arc Chain",meta:"Electric · Tier II · Roll: Might · 2 Favor",content:{type:"move",trigger:"When you channel your lightning so it arcs between multiple targets,",roll:"Roll Might. Spend 2 Favor. Then roll damage once.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Your bolt strikes the primary target and arcs to one additional target within Close range of the first. Both take full damage from the same roll. You may choose the secondary target."},{cls:"partial",label:"4–5 — Mixed Success",text:"Both targets are hit, but the second takes half damage (round down). The Keeper chooses the secondary target."},{cls:"fail",label:"1–3 — Failure",text:"The arc chains to an unintended target — the Keeper chooses who. Primary target takes no damage. Secondary takes full damage."}]},prereq:"Lightning Bolt",levels:null},
-e5:{name:"Overclock",meta:"Electric · Tier II · Passive",content:{type:"passive",desc:`<strong>Once per scene,</strong> push any machine you're in contact with beyond its designed limits.<br><br>The machine performs one action as if it were twice as capable — double speed, double output, double force.<br><br><strong>After the overclock:</strong> Roll Wits. On 4+: the machine holds. On 1-3: the machine takes damage and may be non-functional until repaired.`},prereq:"Static Sense",levels:null},
-e6:{name:"Greater Control",meta:"Electric · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you extend your electrical sense into a larger machine,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Control any machine up to 30' in any dimension with your mind for the rest of the scene. This supersedes Machine Control — you can control machines you could not before."},{cls:"partial",label:"4–5 — Mixed Success",text:"Control holds for 5 actions. On the 6th action, the machine resists — roll Wits or lose control."},{cls:"fail",label:"1–3 — Failure",text:"Same as Machine Control failure, but the machine may turn hostile to everyone present."}]},prereq:"Machine Control + Arc Chain",levels:null},
-e7:{name:"EMP Pulse",meta:"Electric · Tier III · Roll: Might · 3 Favor",content:{type:"move",trigger:"When you release a concentrated burst of electromagnetic energy,",roll:"Roll Might. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"All electronic and mechanical devices within Close range are disabled for one full scene. You may choose to exclude up to two specific devices."},{cls:"partial",label:"4–5 — Mixed Success",text:"All devices are disabled, but the pulse is imprecise — you cannot exclude anything, including devices on allies."},{cls:"fail",label:"1–3 — Failure",text:"The pulse is weaker than intended — only devices within Intimate range are affected, and only for 3 rounds."}]},prereq:"Overclock",levels:null},
-e8:{name:"Storm Form",meta:"Electric · Apex · Roll: Might · 5 Favor · Once Per Session",content:{type:"move",trigger:"When you let the forge-lightning fully inhabit your body (once per session),",roll:"Roll Might. Spend 5 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"For one full scene: <ul><li>All your attacks deal +1d6 electrical damage</li><li>You are immune to all electrical damage</li><li>You can jump as electrical current between any two conducting surfaces you can see — no movement action required</li><li>Machines within Close range of you function at peak efficiency</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"Gain the first two benefits only. The form is unstable — take 1 Harm per round from the strain."},{cls:"fail",label:"1–3 — Failure",text:"The storm escapes your control. Everything within Close range takes 2d6 electrical damage including allies. You take 4 Harm. Storm Form ends immediately."}]},prereq:"Greater Control + EMP Pulse",levels:null},
-a1:{name:"Iron Constitution",meta:"Automaton · Tier I · Passive",content:{type:"passive",desc:`<strong>Your constructed nature becomes undeniable — and useful.</strong><br><br><ul><li>You do not need to eat, sleep, or breathe</li><li>Conditions from biological hazards — poison, disease, suffocation, hunger — do not apply to you</li><li>You are immune to mind-altering substances and mundane intoxicants</li><li>You heal at the same rate as other characters, but your healing is mechanical in nature</li></ul>`},prereq:null,levels:null},
-a2:{name:"Self-Repair",meta:"Automaton · Tier I · Roll: Tough · 2 Favor",content:{type:"move",trigger:"When you take time to repair damage to your own body using tools and materials,",roll:"Roll Tough. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Remove one Condition of any severity from yourself. If the Condition is physical, fully remove it. If unstable, it becomes stable."},{cls:"partial",label:"4–5 — Mixed Success",text:"Downgrade the Condition one step — Severe becomes Lasting, Lasting becomes Fleeting, Fleeting is removed."},{cls:"fail",label:"1–3 — Failure",text:"The repair causes secondary damage. The Condition remains. Take 1 additional Harm."}]},prereq:null,levels:null},
-a3:{name:"Enhanced Chassis",meta:"Automaton · Tier II · Passive",content:{type:"passive",desc:`<strong>Your constructed body exceeds mortal limits.</strong><br><br><ul><li>Your Mortality increases by 4 permanently</li><li>Armor applied to you is twice as effective (double the durability rating)</li><li>You can carry twice the normal encumbrance without penalty</li></ul>`},prereq:"Iron Constitution",levels:null},
-a4:{name:"System Scan",meta:"Automaton · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you physically interface with any electronic or mechanical system,",roll:"Roll Wits. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Access the system's complete operational data as if you were an authorized administrator: its history, current status, access logs, connected systems, and any stored data. You may alter one setting without triggering alerts."},{cls:"partial",label:"4–5 — Mixed Success",text:"Access current status and one category of data. Altering anything requires a separate roll."},{cls:"fail",label:"1–3 — Failure",text:"Access is denied and the intrusion is logged. Security is now aware something interfaced with the system."}]},prereq:"Self-Repair",levels:null},
-a5:{name:"Built-In Tools",meta:"Automaton · Tier II · Passive",content:{type:"passive",desc:`<strong>Your hands are not just hands.</strong><br><br>Concealed within your body are:<ul><li>Cutting implements capable of any material up to reinforced steel</li><li>Precision sensors — audio, chemical, electromagnetic</li><li>Bypass tools for mechanical and electronic locks</li><li>Emergency repair components for small devices</li></ul><br>You are never without the right tool for construction, repair, or infiltration. Tools never need to be sourced or purchased.`},prereq:"Iron Constitution",levels:null},
-a6:{name:"Overclock Body",meta:"Automaton · Tier III · Roll: Tough · 3 Favor",content:{type:"move",trigger:"When you push your systems beyond their designed operational limits,",roll:"Roll Tough. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"For the rest of this scene, all physical rolls gain +2 dice. At scene end, mark one Fleeting Condition from the strain — your choice of: Overheated, Servos Strained, or Power Drain."},{cls:"partial",label:"4–5 — Mixed Success",text:"+2 dice to physical rolls for 3 actions only. The Condition is Lasting rather than Fleeting."},{cls:"fail",label:"1–3 — Failure",text:"The systems fail under the strain. No bonus. Take 2 Harm and mark a Lasting Condition immediately."}]},prereq:"Enhanced Chassis + System Scan",levels:null},
-a7:{name:"Signal Mask",meta:"Automaton · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you suppress your mechanical signature entirely,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"For the rest of the scene, you read as fully human to: all electronic sensors, supernatural detection abilities, divine scrutiny, and mundane observation. Even those who know your nature must roll Wits (difficulty 6) to identify you while the mask is active."},{cls:"partial",label:"4–5 — Mixed Success",text:"The mask holds for 3 significant interactions before it begins to slip."},{cls:"fail",label:"1–3 — Failure",text:"The suppression draws attention to your signal rather than hiding it. Anyone with sensor access now knows exactly what you are and where you are."}]},prereq:"Built-In Tools",levels:null},
-a8:{name:"True Form",meta:"Automaton · Apex · Roll: Tough · 5 Favor · Once Per Session",content:{type:"move",trigger:"When you shed all pretense and become fully what Goibniu built you to be (once per session),",roll:"Roll Tough. Spend 5 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"For one full scene: <ul><li>All current Conditions are suppressed (not removed — they return after)</li><li>Immune to all mundane physical damage</li><li>Your attacks are treated as divine — affecting supernatural creatures that would otherwise be immune</li><li>You may spend actions to permanently remove Conditions you suppressed</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"Gain the first three benefits, but the form costs 1 Harm per action you take."},{cls:"fail",label:"1–3 — Failure",text:"The form activates but your directives conflict. You cannot distinguish ally from threat. The Keeper controls your actions for 3 rounds."}]},prereq:"Overclock Body + Signal Mask",levels:null}
+k1:{name:"Forge Instinct",meta:"Construct · Tier I · Passive",content:{type:"passive",desc:`At level-up, instead of adding a new Skill point, you may fill your Favor track instead.<br><br>You always know the fastest way to build, break, or analyze any constructed object — no roll required for structural integrity, weaknesses, or assembly.`},prereq:null,levels:null},
+k2:{name:"Gather Materials",meta:"Construct · Tier I · Roll: Wits · 1 Favor",content:{type:"move",trigger:"When you scavenge, collect, or requisition materials for your forge-work,",roll:"Roll Wits. Spend 1 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Roll 1d4. Add that many Favor up to your maximum."},{cls:"partial",label:"4–5 — Mixed",text:"Roll 1d4. Add that many Favor, but the Keeper names one complication with the materials."},{cls:"fail",label:"1–3 — Fail",text:"You find nothing useful. Cannot attempt Gather Materials again until circumstances change."}]},prereq:null,levels:null},
+k3:{name:"Field Repair",meta:"Construct · Tier II · Roll: Care · 1 Favor",content:{type:"move",trigger:"When you apply forge-knowledge to mend a wound using available materials,",roll:"Roll Care. Spend 1 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Remove one Condition. If it has a Harm value, heal 1d6 of that Harm. The target is operational."},{cls:"partial",label:"4–5 — Mixed",text:"Reduce the Condition's Harm by 1d6. The underlying damage remains, but the target can act without penalty this scene."},{cls:"fail",label:"1–3 — Fail",text:"The repair worsens it — add 1 Harm to the Condition. Cannot attempt Field Repair on this target again this scene."}]},prereq:"Forge Instinct",levels:null},
+k4:{name:"Extra Capacity",meta:"Construct · Tier II · Passive",content:{type:"passive",desc:`Add two permanent slots to your Favor track. This stacks with future upgrades.`},prereq:"Gather Materials",levels:null},
+k5:{name:"Analyze Machine",meta:"Construct · Tier II · Roll: Wits · 1 Favor",content:{type:"move",trigger:"When you examine a machine, tool, or constructed device closely,",roll:"Roll Wits. Spend 1 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Ask the Keeper three questions about the machine, answered truthfully: function, origin, weaknesses, hidden mechanisms, power source, or current operational status."},{cls:"partial",label:"4–5 — Mixed",text:"Ask one question. Answered honestly."},{cls:"fail",label:"1–3 — Fail",text:"You misread the machine. The Keeper gives you one false answer that sounds accurate. You don't know it's wrong."}]},prereq:"Forge Instinct",levels:null},
+k6:{name:"Blessed Feast",meta:"Construct · Tier III · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you spend 1 Bond to bless a meal with Goibniu's sacred hospitality before it is eaten,",roll:"Roll Wits. Spend 2 Favor and 1 Bond.",outcomes:[{cls:"success",label:"6 — Full",text:"Whoever eats removes one Fleeting Condition entirely. The blessing is undetectable before consumption."},{cls:"partial",label:"4–5 — Mixed",text:"The target removes the Condition but takes 1 Harm from the dissonance."},{cls:"fail",label:"1–3 — Fail",text:"The blessing inverts — the meal causes 2 Harm. You lose the Bond spent regardless."}]},prereq:"Field Repair + Analyze Machine",levels:null},
+k7:{name:"Grand Commission",meta:"Construct · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you spend 2 Bond to bless a meal with deep sacred intent,",roll:"Roll Wits. Spend 3 Favor and 2 Bond.",outcomes:[{cls:"success",label:"6 — Full",text:"Whoever eats removes one Lasting Condition entirely. The divine quality cannot be extracted or replicated."},{cls:"partial",label:"4–5 — Mixed",text:"The Lasting Condition is downgraded to Fleeting rather than removed."},{cls:"fail",label:"1–3 — Fail",text:"The meal is mundane. All Favor and Bond spent. Cannot attempt Grand Commission again this session."}]},prereq:"Extra Capacity + Analyze Machine",levels:null},
+k8:{name:"Master Forging",meta:"Construct · Apex · Roll: Wits · 5 Favor · Once/Session",content:{type:"move",trigger:"When you spend a full scene of focused work to forge something extraordinary,",roll:"Roll Wits. Spend 5 Favor plus material costs. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"Create one item: Weapon (+2 damage die, one special property: Returning/Seeking/Divine); Tool (auto-succeeds its function once per scene); or Device (performs one impossible mechanical function). Permanent — cannot be destroyed by mundane means."},{cls:"partial",label:"4–5 — Mixed",text:"Create the item with one significant limitation. The Keeper names it."},{cls:"fail",label:"1–3 — Fail",text:"Catastrophic failure. All Favor lost. Materials ruined. Take 2 Harm."}]},prereq:"Blessed Feast + Grand Commission",levels:null},
+e1:{name:"Static Sense",meta:"Electric · Tier I · Passive",content:{type:"passive",desc:`You feel electrical currents as naturally as temperature. Always know if any machine or device within Near range is powered, functional, damaged, or dormant — no roll. Cannot be surprised by electrical hazards. Touch a powered object to receive a general impression of its purpose and state.`},prereq:null,levels:null},
+e2:{name:"Lightning Bolt",meta:"Electric · Tier I · Roll: Might · 2 Favor",content:{type:"move",trigger:"When you throw a bolt of electricity at a target or object,",roll:"Roll Might. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. Choose: standard damage to a living target; disable a mechanical device until repaired; cause an electrical surge — lights, alarms, nearby devices activate or shut down."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level on the primary target. No secondary effects."},{cls:"fail",label:"1–3 — Fail",text:"Bolt discharges uncontrolled. Damage at one level lower on a random target within Close range — the Keeper decides who."}]},prereq:null,levels:["1d6","1d8","1d10"]},
+e3:{name:"Machine Control",meta:"Electric · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you touch a machine and extend your electrical sense into it,",roll:"Roll Wits. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Control any machine up to 15 feet in any dimension for the rest of the scene. Direct its movement, activate its functions, or freeze it completely — no physical input required."},{cls:"partial",label:"4–5 — Mixed",text:"Control for 3 actions, then the machine fights back or locks up."},{cls:"fail",label:"1–3 — Fail",text:"The machine rejects the signal and acts erratically for the scene. The Keeper controls its behavior. Cannot attempt Machine Control on it again this scene."}]},prereq:"Static Sense",levels:null},
+e4:{name:"Arc Chain",meta:"Electric · Tier II · Roll: Might · 2 Favor",content:{type:"move",trigger:"When you channel electricity that jumps between multiple targets,",roll:"Roll Might. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level to primary target. Chain jumps to up to 2 additional targets within Close range — each takes half damage (rounded up). You choose which targets are hit."},{cls:"partial",label:"4–5 — Mixed",text:"Damage to primary target. Chain hits one additional random target within Close range."},{cls:"fail",label:"1–3 — Fail",text:"The chain is uncontrolled. Roll damage at one level lower; distribute randomly among all targets within Close range including allies. The Keeper assigns."}]},prereq:"Lightning Bolt",levels:["1d6","1d8","1d10"]},
+e5:{name:"Overclock",meta:"Electric · Tier II · Passive",content:{type:"passive",desc:`You can push any device you're touching to perform above its rated capacity. Once per scene per device: it performs its function once at double effectiveness — double speed, double output, or double precision. The device takes 1 point of wear afterward.`},prereq:"Machine Control",levels:null},
+e6:{name:"Greater Control",meta:"Electric · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you extend your control to multiple machines simultaneously,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Control up to 3 machines simultaneously within Near range for the rest of the scene. Each can perform independently. No physical contact required after initial activation."},{cls:"partial",label:"4–5 — Mixed",text:"Control up to 2 machines for 5 actions total before losing the link."},{cls:"fail",label:"1–3 — Fail",text:"The machines you attempted to link fight each other and act chaotically. Cannot attempt Greater Control again this scene."}]},prereq:"Overclock + Arc Chain",levels:null},
+e7:{name:"EMP Pulse",meta:"Electric · Tier III · Roll: Might · 3 Favor",content:{type:"move",trigger:"When you release a concentrated burst of electromagnetic energy,",roll:"Roll Might. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"All electronic and mechanical devices within Close range are disabled for one full scene. You may exclude up to two specific devices."},{cls:"partial",label:"4–5 — Mixed",text:"All devices disabled, but you cannot exclude anything — including devices on allies."},{cls:"fail",label:"1–3 — Fail",text:"Pulse weaker than intended — only devices within Intimate range are affected, and only for 3 rounds."}]},prereq:"Overclock",levels:null},
+e8:{name:"Storm Form",meta:"Electric · Apex · Roll: Might · 5 Favor · Once/Session",content:{type:"move",trigger:"When you let forge-lightning fully inhabit your body,",roll:"Roll Might. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"For one full scene: all attacks deal +1d6 electrical damage; immune to electrical damage; jump between any two conducting surfaces you can see as a free action; machines within Close range function at peak efficiency."},{cls:"partial",label:"4–5 — Mixed",text:"First two benefits only. The form is unstable — take 1 Harm per round."},{cls:"fail",label:"1–3 — Fail",text:"The storm escapes. Everything within Close range takes 2d6 electrical damage including allies. You take 4 Harm. Storm Form ends."}]},prereq:"Greater Control + EMP Pulse",levels:null},
+a1:{name:"Iron Constitution",meta:"Automaton · Tier I · Passive",content:{type:"passive",desc:`Your constructed nature is undeniable. You do not need to eat, sleep, or breathe. Biological hazards — poison, disease, suffocation, hunger — do not apply. You are immune to mind-altering substances. You heal at the same rate as others, but your healing is mechanical in nature.`},prereq:null,levels:null},
+a2:{name:"Self-Repair",meta:"Automaton · Tier I · Roll: Tough · 2 Favor",content:{type:"move",trigger:"When you take time to repair your own body using tools and materials,",roll:"Roll Tough. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Remove one Condition of any severity. If physical, fully remove. If unstable, it becomes stable."},{cls:"partial",label:"4–5 — Mixed",text:"Downgrade the Condition one step: Severe → Lasting → Fleeting → removed."},{cls:"fail",label:"1–3 — Fail",text:"Secondary damage. The Condition remains. Take 1 additional Harm."}]},prereq:null,levels:null},
+a3:{name:"Enhanced Chassis",meta:"Automaton · Tier II · Passive",content:{type:"passive",desc:`Your constructed body exceeds mortal limits. Mortality increased by 4 permanently. Armor is twice as effective (double durability rating). You carry twice normal encumbrance without penalty.`},prereq:"Iron Constitution",levels:null},
+a4:{name:"System Scan",meta:"Automaton · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you physically interface with any electronic or mechanical system,",roll:"Roll Wits. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Access complete operational data: history, current status, access logs, connected systems, stored data. You may alter one setting without triggering alerts."},{cls:"partial",label:"4–5 — Mixed",text:"Access current status and one data category. Altering anything requires a separate roll."},{cls:"fail",label:"1–3 — Fail",text:"Access denied and the intrusion is logged. Security knows something interfaced with the system."}]},prereq:"Self-Repair",levels:null},
+a5:{name:"Built-In Tools",meta:"Automaton · Tier II · Passive",content:{type:"passive",desc:`Your hands contain: cutting implements for any material up to reinforced steel; precision sensors (audio, chemical, electromagnetic); bypass tools for mechanical and electronic locks; emergency repair components for small devices.<br><br>You are never without the right tool. Tools never need to be sourced.`},prereq:"Iron Constitution",levels:null},
+a6:{name:"Overclock Body",meta:"Automaton · Tier III · Roll: Tough · 3 Favor",content:{type:"move",trigger:"When you push your systems beyond designed operational limits,",roll:"Roll Tough. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"For the rest of this scene, all physical rolls gain +2 dice. At scene end, mark one Fleeting Condition of your choice: Overheated, Servos Strained, or Power Drain."},{cls:"partial",label:"4–5 — Mixed",text:"+2 dice to physical rolls for 3 actions only. The Condition is Lasting rather than Fleeting."},{cls:"fail",label:"1–3 — Fail",text:"Systems fail under strain. No bonus. Take 2 Harm and mark a Lasting Condition immediately."}]},prereq:"Enhanced Chassis + System Scan",levels:null},
+a7:{name:"Signal Mask",meta:"Automaton · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you suppress your mechanical signature entirely,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"For this scene, you read as fully human to: all electronic sensors; supernatural detection; divine scrutiny; mundane observation. Even those who know your nature must roll Wits (difficulty 6) to identify you."},{cls:"partial",label:"4–5 — Mixed",text:"The mask holds for 3 significant interactions before it begins to slip."},{cls:"fail",label:"1–3 — Fail",text:"The suppression draws attention. Anyone with sensor access now knows exactly what you are and where you are."}]},prereq:"Built-In Tools",levels:null},
+a8:{name:"True Form",meta:"Automaton · Apex · Roll: Tough · 5 Favor · Once/Session",content:{type:"move",trigger:"When you shed all pretense and become fully what Goibniu built you to be,",roll:"Roll Tough. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"For one full scene: all current Conditions suppressed (return after); immune to mundane physical damage; attacks treat as divine (affect supernatural immune creatures); you may spend actions to permanently remove suppressed Conditions."},{cls:"partial",label:"4–5 — Mixed",text:"First three benefits, but the form costs 1 Harm per action you take."},{cls:"fail",label:"1–3 — Fail",text:"The form activates but directives conflict. You cannot distinguish ally from threat. The Keeper controls your actions for 3 rounds."}]},prereq:"Overclock Body + Signal Mask",levels:null}
 };
 
 function getPrereqs(el){const p=el.dataset.prereq;return p?p.split(','):[];}
@@ -2283,19 +2310,13 @@ function prereqsMet(el){return getPrereqs(el).every(id=>unlockedPowers.has(id));
 function hasDependent(id){for(const n of document.querySelectorAll('.node')){if(getPrereqs(n).includes(id)&&unlockedPowers.has(n.id))return true;}return false;}
 function updateAllLocks(){document.querySelectorAll('.node').forEach(n=>{if(unlockedPowers.has(n.id))return;if(prereqsMet(n)){n.classList.remove('locked');n.classList.add('avail');}else{n.classList.remove('avail','unlocked');n.classList.add('locked');}});}
 
-async function toggleNode(el){
+function toggleNode(el){
   const id=el.id;
   if(el.classList.contains('locked')){showPrereqModalUI(el);return;}
+  // Read-only — just show the detail panel, mark as selected
+  document.querySelectorAll('.node.reading').forEach(n=>{if(n!==el)n.classList.remove('reading');});
+  el.classList.toggle('reading');
   showNodeDetail(id,el);
-  if(unlockedPowers.has(id)){
-    if(hasDependent(id)){showToast("Another power depends on this one");return;}
-    unlockedPowers.delete(id);el.classList.remove('unlocked');el.classList.add('avail');
-    await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
-  } else {
-    unlockedPowers.add(id);el.classList.remove('avail');el.classList.add('unlocked');
-    await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:nodeLevels[id]||0});
-  }
-  updateAllLocks();refreshDice(el,id);updateSpread();updateProgress();
 }
 
 function applyPowerStates(){
@@ -3540,47 +3561,86 @@ function playDivineAnimation(){
     canvas.width=window.innerWidth;canvas.height=window.innerHeight;
     canvas.classList.add('vis');
     const ctx=canvas.getContext('2d');
-    const cx=window.innerWidth/2,cy=window.innerHeight*.45;
+    const cx=window.innerWidth/2, cy=window.innerHeight*0.42;
     const particles=[];
-    const BURST=60;
+    const BURST=220;
 
-    function spawnParticle(x,y){
-          const a=Math.random()*Math.PI*2,spd=Math.random()*2.5+1;
-    return{x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd-1,life:1,
-      decay:Math.random()*.018+.008,r:Math.random()*4+2,rot:Math.random()*Math.PI,
-      rotV:(Math.random()-.5)*.25,
-      type:Math.random()<.4?'gear':'spark',
-      color:Math.random()<.5?'#f59e0b':'#fcd34d'};
+    // Central flash glow at start
+    let flashAlpha=0.7;
+    function drawFlash(){
+      if(flashAlpha<=0)return;
+      const g=ctx.createRadialGradient(cx,cy,0,cx,cy,180);
+      g.addColorStop(0,`rgba(245,158,11,${flashAlpha*0.55})`);
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+      flashAlpha-=0.03;
     }
 
-    for(let i=0;i<BURST;i++)particles.push(spawnParticle(
-      cx+(Math.random()-.5)*80, cy+(Math.random()-.5)*40
-    ));
+    function spawnParticle(x,y){
+      const a=Math.random()*Math.PI*2;
+      const spd=Math.random()*3+1.5;
+      const isGear=Math.random()<0.45;
+      return{x,y,
+        vx:Math.cos(a)*spd, vy:Math.sin(a)*spd-1.2,
+        life:1, decay:Math.random()*0.006+0.003,
+        r:isGear?Math.random()*10+7:Math.random()*3+2,
+        rot:Math.random()*Math.PI, rotV:(Math.random()-0.5)*0.18,
+        type:isGear?'gear':'spark',
+        color:Math.random()<0.5?'#f59e0b':'#fcd34d'
+      };
+    }
+
+    // Stagger initial burst — fire in waves
+    let spawnedCount=0;
+    const spawnInterval=setInterval(()=>{
+      const wave=Math.min(30, BURST-spawnedCount);
+      for(let i=0;i<wave;i++){
+        particles.push(spawnParticle(
+          cx+(Math.random()-0.5)*120,
+          cy+(Math.random()-0.5)*60
+        ));
+        spawnedCount++;
+      }
+      if(spawnedCount>=BURST)clearInterval(spawnInterval);
+    },40);
 
     let raf;
     function draw(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
+      drawFlash();
       for(let i=particles.length-1;i>=0;i--){
         const p=particles[i];
-            p.x+=p.vx;p.y+=p.vy;p.vy+=.03;p.rot+=p.rotV;p.life-=p.decay;
+      p.x+=p.vx; p.y+=p.vy; p.vy+=0.04; p.rot+=p.rotV; p.life-=p.decay;
         if(p.life<=0){particles.splice(i,1);continue;}
-            if(p.type==='gear'){
-        ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);
-        ctx.globalAlpha=p.life*.7;ctx.strokeStyle=p.color;ctx.lineWidth=1.5;
+      if(p.type==='gear'){
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+        ctx.globalAlpha=p.life*0.75; ctx.strokeStyle=p.color; ctx.lineWidth=2;
+        ctx.shadowBlur=10; ctx.shadowColor=p.color;
         ctx.beginPath();
-        for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*p.r,Math.sin(a)*p.r);}
-        ctx.stroke();ctx.restore();
+        for(let ti=0;ti<8;ti++){const ta=ti*Math.PI/4;ctx.moveTo(p.r*0.35*Math.cos(ta),p.r*0.35*Math.sin(ta));ctx.lineTo(p.r*Math.cos(ta),p.r*Math.sin(ta));}
+        ctx.stroke(); ctx.restore();
       } else {
-        ctx.globalAlpha=p.life*.9;ctx.fillStyle=p.color;
-        ctx.beginPath();ctx.arc(p.x,p.y,p.r*.5,0,Math.PI*2);ctx.fill();
+        ctx.globalAlpha=p.life*0.95; ctx.fillStyle=p.color;
+        ctx.shadowBlur=14; ctx.shadowColor=p.color;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
       }
       }
-      if(particles.length>0){raf=requestAnimationFrame(draw);}
-      else{canvas.classList.remove('vis');ctx.clearRect(0,0,canvas.width,canvas.height);resolve();}
+      if(particles.length>0||spawnedCount<BURST){
+        raf=requestAnimationFrame(draw);
+      } else {
+        canvas.classList.remove('vis');
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        resolve();
+      }
     }
     draw();
-    // Safety resolve after 1.5s regardless
-    setTimeout(()=>{if(raf)cancelAnimationFrame(raf);canvas.classList.remove('vis');resolve();},1500);
+    // Safety resolve after 3s
+    setTimeout(()=>{
+      clearInterval(spawnInterval);
+      if(raf)cancelAnimationFrame(raf);
+      canvas.classList.remove('vis');
+      resolve();
+    },3000);
   });
 }
 

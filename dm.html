@@ -227,6 +227,23 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 /* Heal flash animation */
 @keyframes healFlash{0%{background:transparent}20%{background:#22c55e30}100%{background:transparent}}
 .heal-flash{animation:healFlash .7s ease}
+/* Ability action card */
+.acard{padding:14px 16px;border-radius:6px;margin-bottom:14px;animation:fadeUp .25s ease}
+.acard-name{font-family:'Cinzel Decorative',serif;font-size:16px;margin-bottom:3px}
+.acard-meta{font-size:10px;letter-spacing:2px;font-family:'Cinzel',serif;font-weight:700;text-transform:uppercase;opacity:.6;margin-bottom:10px}
+.acard-dice-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.acard-die{width:36px;height:36px;border-radius:6px;border:2px solid var(--border);background:var(--surf2);display:flex;align-items:center;justify-content:center;font-family:'Cinzel Decorative',serif;font-size:16px;font-weight:700}
+.acard-die.chosen{border-color:var(--gold);color:var(--gold);box-shadow:0 0 10px var(--gold2)}
+.acard-die.low{border-color:var(--fail);color:var(--fail)}
+.acard-outcome{padding:10px 14px;border-radius:4px;border-left:4px solid;margin-bottom:10px;font-size:13px;line-height:1.6}
+.acard-outcome.success{border-color:var(--success);background:#22c55e10}
+.acard-outcome.partial{border-color:var(--partial);background:#f59e0b10}
+.acard-outcome.fail{border-color:var(--fail);background:#ef444410}
+.acard-outcome-lbl{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;opacity:.7}
+.acard-dmreq{margin-top:10px;padding:10px 14px;border-radius:6px;border:2px solid var(--harm);background:#ef444410;animation:pulseRed 1.2s ease infinite}
+@keyframes pulseRed{0%,100%{box-shadow:0 0 0 0 #ef444440}50%{box-shadow:0 0 0 6px transparent}}
+.acard-dmreq-title{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--harm);margin-bottom:6px}
+.acard-dmreq-body{font-size:13px;color:var(--text);line-height:1.5}
 /* Condition form inside action card */
 .cond-form{margin-top:12px;padding:12px 14px;background:#001a0a10;border:1px solid var(--success)40;border-radius:6px}
 .cond-form-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
@@ -1113,19 +1130,26 @@ async function executeNPCAttackDirect(){
 function rollDie(s){const f=parseInt(s);if(!isNaN(f)&&!s.includes('d'))return f;const m=s.match(/(\d+)d(\d+)/i);if(!m)return 1;let t=0;for(let i=0;i<parseInt(m[1]);i++)t+=Math.ceil(Math.random()*parseInt(m[2]));return t;}
 function showActionCard(a){
   const area=document.getElementById('action-card-area');if(!area)return;
+
+  // ── Ability action: parse rich JSON label ──
+  if(a.action_type==='ability'){
+    let ab=null;
+    try{ab=JSON.parse(a.action_label);}catch(e){}
+    if(ab){showAbilityActionCard(ab,a);return;}
+  }
+
+  // ── Standard attack / move / feat card ──
   const oc=a.roll_outcome==='success'?'var(--success)':a.roll_outcome==='mixed'?'var(--partial)':'var(--fail)';
-  // Determine target for harm (from action row or infer from label)
   const targetId=a.target_id||null;
   const targetType=a.target_type||'pc';
   const targetName=a.target_name||'target';
   const hasHarm=!!(a.harm_dealt&&a.harm_dealt>0&&targetId&&targetType==='pc');
   const actionId=a.id||'';
-
   const harmForm=hasHarm?`
     <div class="cond-form">
       <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--success);margin-bottom:8px">APPLY CONDITION TO ${targetName.toUpperCase()}</div>
       <div class="cond-form-row">
-        <input type="text" id="cond-label-input" placeholder="Condition name e.g. Blade wound" value="Hit by ${a.actor_name||'attack'}">
+        <input type="text" id="cond-label-input" placeholder="Condition name" value="Hit by ${a.actor_name||'attack'}">
         <input type="number" id="cond-harm-input" value="${a.harm_dealt}" min="1" max="99" title="Harm">
         <button class="unstable-toggle" id="unstable-toggle-btn" onclick="toggleCondUnstable(this)">Stable</button>
       </div>
@@ -1138,6 +1162,92 @@ function showActionCard(a){
     ${a.roll_highest?`<div style="font-family:'Cinzel Decorative',serif;font-size:13px;color:${oc};margin-bottom:4px">Rolled ${a.roll_highest} — ${a.roll_outcome}</div>`:''}
     ${a.harm_dealt?`<div style="font-size:13px;color:var(--harm);margin-bottom:4px">⚔ ${a.harm_dealt} Harm dealt</div>`:''}
     ${a.healing_dealt?`<div style="font-size:13px;color:var(--success);margin-bottom:4px">✦ ${a.healing_dealt} Healing</div>`:''}
+    ${harmForm}
+  </div>`;
+}
+
+function showAbilityActionCard(ab, rawAction){
+  const area=document.getElementById('action-card-area');if(!area)return;
+  const p=PLAYERS.find(pl=>pl.id===rawAction.actor_id)||{name:rawAction.actor_id,acc:'var(--gold)',color:'var(--gold)'};
+
+  const ocColor=ab.outcomeClass==='success'?'var(--success)':ab.outcomeClass==='partial'?'var(--partial)':'var(--fail)';
+  const bgColor=ab.outcomeClass==='success'?'#001a0a':ab.outcomeClass==='partial'?'#1a1000':'#1a0000';
+
+  // Dice display
+  let diceHtml='';
+  if(ab.dice&&ab.dice.length){
+    const isZero=ab.skill&&(Object.values(charData[rawAction.actor_id]?.skills||{}).length===0);
+    diceHtml=`<div class="acard-dice-row">`;
+    ab.dice.forEach((val,i)=>{
+      const isChosen=val===ab.highest&&ab.dice.indexOf(val)===i;
+      const isLow=val===Math.min(...ab.dice)&&ab.dice.indexOf(val)===i&&ab.dice.length>1&&ab.outcomeClass==='fail';
+      diceHtml+=`<div class="acard-die${isChosen?' chosen':isLow?' low':''}">${val}</div>`;
+    });
+    diceHtml+=`<span style="font-family:'Cinzel Decorative',serif;font-size:18px;color:${ocColor};margin-left:6px">${ab.highest}</span>`;
+    diceHtml+=`<span style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:${ocColor};margin-left:4px">${ab.outcomeClass==='success'?'FULL SUCCESS':ab.outcomeClass==='partial'?'MIXED':'FAILURE'}</span>`;
+    diceHtml+=`</div>`;
+  }
+
+  // Damage display
+  let dmgHtml='';
+  if(ab.damageDie&&ab.damageRoll){
+    dmgHtml=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 12px;background:var(--surf2);border-radius:4px;border:1px solid var(--harm)40">
+      <span style="font-size:11px;color:var(--dim)">Damage ${ab.damageDie}</span>
+      <span style="font-family:'Cinzel Decorative',serif;font-size:22px;color:var(--harm)">${ab.damageRoll}</span>
+    </div>`;
+  }
+
+  // DM action detection — look for keywords in outcome text that require DM action
+  const outcomeText=ab.outcomeText||'';
+  const dmReqs=[];
+  if(/deal damage|damage at|roll damage/i.test(outcomeText))
+    dmReqs.push({icon:'⚔',label:'Apply Harm',text:`Apply ${ab.damageRoll||'damage'} harm to the target (use Resolve button below to set condition).`});
+  if(/heal|remove.*condition|recover/i.test(outcomeText))
+    dmReqs.push({icon:'✦',label:'Apply Healing',text:'One or more conditions should be removed or healed — check the outcome and apply to the relevant character.'});
+  if(/hold\s+\d+/i.test(outcomeText))
+    dmReqs.push({icon:'📌',label:'Hold Tokens',text:`Player holds ${(outcomeText.match(/hold\s+(\d+)/i)||[])[1]||'?'} — remind them to spend before end of scene.`});
+  if(/choose/i.test(outcomeText))
+    dmReqs.push({icon:'📋',label:'Player Must Choose',text:'The outcome requires the player to make a choice. Prompt them now.'});
+  if(/once per scene/i.test(outcomeText))
+    dmReqs.push({icon:'🔒',label:'Mark As Used',text:'This ability has a once-per-scene clause. Note that it has been used.'});
+  if(/keeper/i.test(outcomeText))
+    dmReqs.push({icon:'🎲',label:'Keeper Response Required',text:'The outcome asks the Keeper to provide information, make a choice, or describe something. See full text below.'});
+
+  const dmReqHtml=dmReqs.length?`
+    <div class="acard-dmreq">
+      <div class="acard-dmreq-title">⚠ Weaver Action Required</div>
+      <div class="acard-dmreq-body">${dmReqs.map(r=>`<div style="margin-bottom:8px"><strong>${r.icon} ${r.label}:</strong> ${r.text}</div>`).join('')}</div>
+    </div>`:'';
+
+  // Harm resolution form (if damage was dealt)
+  const hasHarmTarget=ab.damageRoll&&rawAction.target_id&&rawAction.target_type==='pc';
+  const harmForm=hasHarmTarget?`
+    <div class="cond-form" style="margin-top:10px">
+      <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--success);margin-bottom:8px">APPLY CONDITION TO ${(rawAction.target_name||'TARGET').toUpperCase()}</div>
+      <div class="cond-form-row">
+        <input type="text" id="cond-label-input" placeholder="e.g. Scorched" value="${ab.name} — ${ab.outcomeClass}">
+        <input type="number" id="cond-harm-input" value="${ab.damageRoll}" min="1" max="99">
+        <button class="unstable-toggle" id="unstable-toggle-btn" onclick="toggleCondUnstable(this)">Stable</button>
+      </div>
+      <button class="btn green" onclick="resolveWithCondition('${rawAction.target_id}','${rawAction.target_name||'target'}','')" style="width:100%">✓ Apply & Resolve</button>
+    </div>`:`<button class="btn sm green" onclick="resolveAction()" style="margin-top:10px">✓ Resolve & Continue</button>`;
+
+  area.innerHTML=`<div class="acard" style="background:${bgColor};border:1px solid ${ocColor}40">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;color:${p.acc};text-transform:uppercase">${p.name}</span>
+      <span style="font-size:10px;color:var(--dim)">·</span>
+      <span style="font-size:10px;color:var(--dim);font-family:'Cinzel',serif;font-weight:700;letter-spacing:2px">DIVINE ABILITY</span>
+    </div>
+    <div class="acard-name" style="color:${p.acc}">${ab.name}</div>
+    <div class="acard-meta">${ab.meta||''}</div>
+    ${ab.roll?`<div style="font-size:11px;color:var(--dim);margin-bottom:10px;font-style:italic">${ab.roll}</div>`:''}
+    ${diceHtml}
+    ${dmgHtml}
+    <div class="acard-outcome ${ab.outcomeClass}">
+      <div class="acard-outcome-lbl">${ab.outcomeLabel||''}</div>
+      ${ab.outcomeText||''}
+    </div>
+    ${dmReqHtml}
     ${harmForm}
   </div>`;
 }

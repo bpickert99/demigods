@@ -482,6 +482,7 @@ body.markup .power-node:hover .pn-name{color:var(--gold) !important}
 .node{padding:13px 15px;border-radius:6px;border:1px solid var(--border);background:#06060f;cursor:pointer;transition:all .2s;position:relative;user-select:none;min-height:100px;display:flex;flex-direction:column}
 .node.avail:hover{border-color:var(--nc);background:#0a0a18;transform:translateY(-2px);box-shadow:0 5px 18px var(--ng)}
 .node.unlocked{border-color:var(--nc);background:linear-gradient(135deg,var(--nb),#06060f);box-shadow:0 0 14px var(--ng)}
+.node.reading{outline:3px solid var(--nc);outline-offset:2px;box-shadow:0 0 18px var(--ng),0 0 0 4px var(--ng)}
 .node.locked{opacity:.3;cursor:default}
 .node.selected{outline:2px solid var(--na);outline-offset:2px}
 .nbadges{display:flex;gap:4px;margin-bottom:7px;flex-wrap:wrap;align-items:center;min-height:20px}
@@ -1737,6 +1738,32 @@ async function useAbility(nodeId, favorCost){
   const dmDesc=`${skill?`Rolled ${relevant} — ${resultLabel}`:'Used'}${damageDie&&damageRoll?` · ${damageRoll} harm (${damageDie})`:''}`;
   await notifyDMAbilityUse(powerName, favorCost?`${dmDesc} · −${favorCost} Favor`:dmDesc, nodeId);
 
+  // If we are in combat, also write a rich combat_action so the DM gets full detail
+  if(typeof combatSessionData !== 'undefined' && combatSessionData){
+    const richLabel = JSON.stringify({
+      type: 'ability',
+      name: powerName,
+      meta: data.meta,
+      skill: skill||null,
+      dice: results,
+      highest: relevant,
+      outcomeClass,
+      outcomeLabel: outcome.label,
+      outcomeText: outcome.text,
+      damageDie: damageDie||null,
+      damageRoll: damageRoll||null,
+      favorCost: favorCost||0,
+      roll: content.roll||null
+    });
+    await db.from('combat_actions').insert({
+      session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
+      action_type:'ability',action_label:richLabel,resolved:false
+    });
+    if(typeof myQueueItem!=='undefined'&&myQueueItem){
+      await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
+    }
+  }
+
   // Auto-handle momentum from ones
   if(ones>0) pendingOnesCount=ones;
 }
@@ -2105,30 +2132,30 @@ const NODE_BRANCH={p1:'Prophecy',p2:'Prophecy',p3:'Prophecy',p4:'Prophecy',p5:'P
 
 // Full node data
 const ND={
-p1:{name:"Crow's Eye",meta:"Prophecy · Tier I · Passive",content:{type:"passive",desc:`<strong>Whenever you enter a place for the first time,</strong> you perceive its spiritual weight without rolling. Spend 1 Favor to ask the Keeper two questions, answered truthfully:<ul><li>Has someone died here recently, and how?</li><li>Is a death imminent in this location right now?</li><li>Is a spirit present here that is not visible?</li><li>Is something being concealed here by supernatural means?</li></ul><br>Without spending Favor, you get a free impression — the Keeper tells you <em>whether</em> something is off, but not what.`},prereq:null,levels:null},
-p2:{name:"Read Intent",meta:"Prophecy · Tier I · Roll: Search · 2 Favor",content:{type:"move",trigger:"When you study a person closely to divine their immediate intentions,",roll:"Roll Search. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Hold 2. Spend each hold to ask the Keeper one question from the list, answered truthfully."},{cls:"partial",label:"4–5 — Mixed Success",text:"Hold 1. Spend it on one question. The Keeper may answer with a complication attached."},{cls:"fail",label:"1–3 — Failure",text:"You get nothing useful. The Keeper may reveal the person noticed your scrutiny — and adjusted their plans."}],questions:["What does this person intend to do right now?","Who are they most afraid of in this situation?","Are they lying to me, and about what?","What do they want most in this moment?","Are they about to act against me or my allies?"]},prereq:null,levels:null},
-p3:{name:"Foretelling",meta:"Prophecy · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you enter a brief trance to see what fate has written about a specific person, place, or upcoming event,",roll:"Roll Wits. Spend 2 Favor. You are vulnerable while in the trance.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Hold 2. Spend each hold to ask the Keeper one question from the list, answered truthfully."},{cls:"partial",label:"4–5 — Mixed Success",text:"Hold 1. The answer arrives in symbols — accurate but requires interpretation."},{cls:"fail",label:"1–3 — Failure",text:"The trance takes you somewhere dark. The Keeper asks <em>you</em> one question about a secret or fear — you must answer honestly. You emerge with nothing."}],questions:["What is fated to happen here if nothing changes?","Who will be the cause of what's coming?","What would prevent or redirect this fate?","Who among those involved is going to die?","What is the most important thing being hidden from me right now?"]},prereq:"Crow's Eye",levels:null},
-p4:{name:"Fated Blow",meta:"Prophecy · Tier II · Roll: Nimble · 2 Favor",content:{type:"move",trigger:"When you strike at the precise moment fate has lined up — a spectral crow diving alongside you, phantom talons tearing at your target —",roll:"Roll Nimble. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Roll damage at current level. The spectral crow lingers this scene: your next attack costs 0 Favor and deals +1 damage die."},{cls:"partial",label:"4–5 — Mixed Success",text:"Roll damage at current level. The crow dissipates after this strike."},{cls:"fail",label:"1–3 — Failure",text:"The moment slips. Roll damage at one level lower. You are briefly off-balance — lose 1 Action on your next turn."}]},prereq:"Read Intent",levels:["1d6","2d6","3d6"]},
-p5:{name:"Omen Reading",meta:"Prophecy · Tier II · Passive",content:{type:"passive",desc:`<strong>Once per scene,</strong> observe any naturally occurring sign and receive a one-word warning from the Keeper about the most immediate hidden danger.<br><br>The word is always accurate. The Keeper chooses it. No follow-up questions.<br><br><strong>Examples:</strong> "Betrayal." "Tonight." "Him." "Above." "Run." "Already."<br><br>Additionally, crows and corvids will never attack you or your allies.`},prereq:"Crow's Eye",levels:null},
-p6:{name:"Doom-Sight",meta:"Prophecy · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you look closely at a living person to see whether a death-mark hangs over them,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"The Keeper tells you: (1) whether a death-mark is present, (2) how soon — hours, days, or weeks — and (3) one concrete detail about the manner of death. Always accurate."},{cls:"partial",label:"4–5 — Mixed Success",text:"The Keeper tells you whether a mark is present, and whether it's imminent (within 24 hours)."},{cls:"fail",label:"1–3 — Failure",text:"You see a mark — but it's on the wrong person. The Keeper decides who. You cannot use Doom-Sight on the original target again this session."}]},prereq:"Foretelling + Crow's Presence (War)",levels:null},
-p7:{name:"Fulfilled Fate",meta:"Prophecy · Tier III · Passive",content:{type:"passive",desc:`<strong>When you personally bring about the death or downfall of someone you've used a Prophecy move on,</strong> immediately recover 3 Favor.<br><br>This triggers even if you are out of Favor — you may go up to 3 above your max, but only from this ability, and only until the end of the scene.`},prereq:"Fated Blow",levels:null},
-p8:{name:"Warp the Thread",meta:"Prophecy · Apex · Roll: Wits · 5 Favor · Once Per Session",content:{type:"move",trigger:"When you attempt to redirect a foretold event — not erase it, but change who or what bears its weight (once per session),",roll:"Roll Wits. Spend 5 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"The Keeper tells you who now bears the fate. You choose from at least two options they provide. The event still occurs — only the recipient changes."},{cls:"partial",label:"4–5 — Mixed Success",text:"The fate shifts partially. Someone else bears a portion of the doom alongside the original target."},{cls:"fail",label:"1–3 — Failure",text:"The thread snaps back. The original fate arrives immediately and in full. You take 2 Harm ignoring armor. You cannot attempt this again this session."}]},prereq:"Doom-Sight + Fulfilled Fate",levels:null},
-w1:{name:"Crow's Presence",meta:"War · Tier I · Passive",content:{type:"passive",desc:`<strong>Each scene that begins in combat or escalates to violence,</strong> every ally within Close range gains +1 die on their first attack roll that scene.<br><br>This happens automatically — no activation needed. If you are incapacitated or leave Close range, allies do not receive the bonus.`},prereq:null,levels:null},
-w2:{name:"Raven's Talon",meta:"War · Tier I · Roll: Might · 1 Favor",content:{type:"move",trigger:"When you call on the Morrigan's fury and a spectral raven manifests at your shoulder, diving alongside your strike with phantom talons,",roll:"Roll Might. Spend 1 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Roll damage at current level. The raven lingers. Once before scene ends: free Cleave or Disarm — no Grit cost, no action cost."},{cls:"partial",label:"4–5 — Mixed Success",text:"Roll damage at current level. The raven dissipates after this attack."},{cls:"fail",label:"1–3 — Failure",text:"Roll damage one level lower. The raven does not manifest. You cannot use Raven's Talon again until you take a hit."}]},prereq:null,levels:["1d6","2d6","3d6"]},
-w3:{name:"War Cry",meta:"War · Tier II · Roll: Intimidate · 2 Favor",content:{type:"move",trigger:"When you release a battle-cry that carries the Morrigan's fury — a sound that is not entirely human,",roll:"Roll Intimidate. Spend 2 Favor. This uses your Action.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Choose two: <ul><li>All enemies within earshot lose their next Action</li><li>Enemies within Close range are pushed to Near</li><li>One enemy drops what they're holding (no roll)</li><li>Your allies each gain +1 die on their next roll</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"Choose one effect. Enemies beyond Close range are unaffected."},{cls:"fail",label:"1–3 — Failure",text:"The cry doesn't land. Your action is spent. The Keeper may give enemies a free action against you."}]},prereq:"Crow's Presence",levels:null},
-w4:{name:"Crow Form",meta:"War · Tier II · Passive",content:{type:"passive",desc:`<strong>Once per scene,</strong> transform into a large crow and back. No roll. No Favor cost. Counts as a Move action.<br><br><strong>In crow form:</strong><ul><li>Fly to any range as a single Move</li><li>Use Scope with +1 die</li><li>Carry one small object</li><li>Pass unnoticed among corvids</li></ul><br><strong>Cannot:</strong> Attack, use powers, use items, or be understood by those who don't know what you are.`},prereq:"Raven's Talon",levels:null},
-w5:{name:"Battlefield Insight",meta:"War · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you assess a battlefield, an ongoing conflict, or a location where violence is imminent,",roll:"Roll Wits. Spend 2 Favor. Can be done before combat or as a Scope action.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Hold 2. Spend each hold to ask the Keeper one question from the list, answered specifically."},{cls:"partial",label:"4–5 — Mixed Success",text:"Hold 1. Ask one question. The Keeper may add a complication."},{cls:"fail",label:"1–3 — Failure",text:"You misread the field. The Keeper introduces a hidden factor — a concealed flank, a trap. It activates at the worst moment."}],questions:["Where is the greatest tactical advantage?","Where is the enemy's most significant vulnerability?","Where could a small group hold against a larger force?","What is the enemy's actual plan, and where does it break down?","Who among the enemy is the real threat, and what can hurt them?"]},prereq:"Crow's Presence",levels:null},
-w6:{name:"Blood Frenzy",meta:"War · Tier III · Roll: Tough · 3 Favor",content:{type:"move",trigger:"When you draw first blood in a fight and surrender yourself to the Morrigan's battle-madness,",roll:"Roll Tough. Spend 3 Favor. This uses your Action.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Enter the frenzy. For the rest of this combat: add the bonus die to all damage rolls. Ignore the dice penalty from one physical Condition."},{cls:"partial",label:"4–5 — Mixed Success",text:"Enter the frenzy and gain bonus damage, but the Keeper gains 1 complication token — they may have you accidentally target an ally."},{cls:"fail",label:"1–3 — Failure",text:"The frenzy flickers and dies. No bonus damage. Take 1 Harm from the surge. Cannot attempt Blood Frenzy again this combat."}]},prereq:"War Cry + Read Intent (Prophecy)",levels:["1d8","2d8","3d8"]},
-w7:{name:"Supply Lines",meta:"War · Tier III · Roll: Sneak · 3 Favor",content:{type:"move",trigger:"When you use crow-scouts to map and disrupt enemy logistics before a major conflict,",roll:"Roll Sneak. Spend 3 Favor. Must be done before the conflict begins.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Remove one enemy advantage: <ul><li>Reinforcements delayed — no backup this combat</li><li>Supplies compromised — enemies deal −1 damage</li><li>Communications cut — enemies can't use 'Help an Ally'</li><li>Command disrupted — enemy leaders can't use special abilities</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"You disrupt something minor. The Keeper chooses what's reduced (not eliminated). The enemy knows someone worked against them."},{cls:"fail",label:"1–3 — Failure",text:"Your crows are spotted. The enemy learns your approximate location and intentions. The Keeper reveals one piece of your plan."}]},prereq:"Battlefield Insight",levels:null},
-w8:{name:"Phantom Army",meta:"War · Apex · Roll: Intimidate · 5 Favor · Once Per Session",content:{type:"move",trigger:"When you summon a vast cloud of crows that writhes into the convincing shapes of an army (once per session),",roll:"Roll Intimidate. Spend 5 Favor. This uses your Action.",outcomes:[{cls:"success",label:"6 — Full Success",text:"The illusion holds one full scene. Choose two: <ul><li>All enemies make a morale break</li><li>The illusion holds a physical position</li><li>One group is routed entirely</li><li>Your group gains a free round of actions</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"Choose one effect. Enemies who see through it know who created it."},{cls:"fail",label:"1–3 — Failure",text:"The crows collapse immediately. Enemies with supernatural awareness see through it instantly. Everyone knows you're capable of this."}]},prereq:"Blood Frenzy + Supply Lines",levels:null},
-s1:{name:"Queen's Bearing",meta:"Sovereignty · Tier I · Passive",content:{type:"passive",desc:`<strong>You walk into any room like you own it.</strong> NPCs instinctively read you as someone of consequence.<br><br><ul><li>Never turned away without a named reason</li><li>You speak first in social scenes if you choose</li><li>First Persuade, Charm, or Intimidate roll each scene: +1 die</li></ul><br>This doesn't make people like you. It makes them take you seriously.`},prereq:null,levels:null},
-s2:{name:"The Right Word",meta:"Sovereignty · Tier I · Roll: Persuade · 2 Favor",content:{type:"move",trigger:"When you speak precisely to defuse, redirect, or reframe a tense confrontation before it becomes a fight,",roll:"Roll Persuade. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"The confrontation dissolves. The Keeper tells you what the other party now wants. Additionally choose one: <ul><li>They share one withheld piece of information</li><li>They owe you a favor</li><li>They become a temporary ally this scene</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"Hostility cools but tension remains. They'll talk, but want something concrete in return. The Keeper names what."},{cls:"fail",label:"1–3 — Failure",text:"The words land wrong. The other party becomes more hostile — they feel managed. The Keeper may escalate or have them act first."}]},prereq:null,levels:null},
-s3:{name:"Ally's Mark",meta:"Sovereignty · Tier II · Passive",content:{type:"passive",desc:`<strong>Formally mark up to 3 people as Allies of your bloodline.</strong> The mark is invisible but real — both of you feel it when placed or removed.<br><br>A marked Ally:<ul><li>Gains +1 die on any roll in direct service of your shared goals</li><li>Is treated as under your protection by NPCs who respect or fear you</li><li>Benefits from Queen's Bearing (+1 die on first social roll)</li></ul><br>You may remove a mark deliberately at any time. The person always knows.`},prereq:"Queen's Bearing",levels:null},
-s4:{name:"Blood Debt",meta:"Sovereignty · Tier II · Roll: Charm · 2 Favor",content:{type:"move",trigger:"When you call in a favor owed to you, or formally establish a new debt with someone,",roll:"Roll Charm. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"The debt is established or invoked. The Keeper tells you specifically what the target will do to honor it — and they will, unless their life is at stake. +1 die on moves related to collecting it."},{cls:"partial",label:"4–5 — Mixed Success",text:"The debt holds, but the target resents it. They'll honor it once, but will work against you in other ways."},{cls:"fail",label:"1–3 — Failure",text:"The attempt is read as a threat. The NPC's disposition worsens by one step. The debt is not established."}]},prereq:"The Right Word",levels:null},
-s5:{name:"Lay of the Land",meta:"Sovereignty · Tier II · Passive",content:{type:"passive",desc:`<strong>You read political terrain the way some people read a room.</strong><br><br>Once per scene, ask the Keeper one of the following — no roll required:<ul><li>"Who here is the real power, and what do they actually want?"</li><li>"Who here is hiding something significant?"</li><li>"Who here could be turned to our side, and what would it take?"</li></ul><br>Works in courts, crime scenes, negotiations, parties, battlefields — anywhere people jockey for position.`},prereq:"Queen's Bearing + Read Intent (Prophecy)",levels:null},
-s6:{name:"Conflict Averted",meta:"Sovereignty · Tier III · Roll: Deceive · 3 Favor",content:{type:"move",trigger:"When you intervene to prevent a conflict before it becomes violence — through negotiation, misdirection, or a threat that doesn't need carrying out,",roll:"Roll Deceive. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"The confrontation dissolves. The Keeper names the concession required — there's always a price, but it's survivable. Both parties lose 1 animosity toward each other."},{cls:"partial",label:"4–5 — Mixed Success",text:"The immediate conflict is avoided but deferred. The Keeper tells you when it resurfaces — and it will cost more to prevent next time."},{cls:"fail",label:"1–3 — Failure",text:"Your intervention is read as interference or manipulation. The conflict begins anyway, and those involved direct hostility at you. The Keeper may have someone target you in the opening round."}]},prereq:"Ally's Mark + Blood Debt",levels:null},
-s7:{name:"Territorial Claim",meta:"Sovereignty · Tier III · Passive",content:{type:"passive",desc:`<strong>Formally claim a physical place as yours</strong> — a building, neighborhood, stretch of road, park, or crossroads. Must be present and speak it aloud.<br><br><strong>Within your claimed territory:</strong><ul><li>Know when anyone enters with hostile intent — the Keeper tells you, even if you're not watching</li><li>Locals are instinctively protective — strangers will warn you or hesitate to act against you</li><li>+1 die on all Scope actions taken within the territory</li></ul><br>Hold <strong>one</strong> claimed territory at a time. Claiming a new one releases the old.`},prereq:"Lay of the Land + Battlefield Insight (War)",levels:null},
-s8:{name:"The Morrigan's Mandate",meta:"Sovereignty · Apex · Roll: Intimidate · 5 Favor · Once Per Session",content:{type:"move",trigger:"When you speak a formal decree that carries the full weight of your divine bloodline (once per session),",roll:"Roll Intimidate. Spend 5 Favor. This uses your Action.",outcomes:[{cls:"success",label:"6 — Full Success",text:"All who hear the decree feel compelled to honor it. <ul><li>NPCs cannot directly contradict it until end of session unless survival requires it</li><li>Any PC who violates it must spend 1 Grit to do so</li><li>The Keeper must warn you before an NPC would violate it</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"Allies and sympathetic NPCs feel fully compelled. Hostile NPCs feel the pull but can resist — and they know something was done to them."},{cls:"fail",label:"1–3 — Failure",text:"The words carry power but something rings false. No one is compelled. Hostile parties now know you're capable of this and will act to neutralize you."}]},prereq:"Conflict Averted + Territorial Claim",levels:null}
+p1:{name:"Crow's Eye",meta:"Prophecy · Tier I · 1 Favor",content:{type:"passive",desc:`On entering a new place, spend 1 Favor to ask 2 questions below, answered truthfully. Free: the Keeper says only whether something feels off.<ul><li>Has someone died here recently, and how?</li><li>Is a death imminent here?</li><li>Is an unseen spirit present?</li><li>Is something supernaturally concealed here?</li></ul>`},prereq:null,levels:null},
+p2:{name:"Read Intent",meta:"Prophecy · Tier I · Roll: Search · 2 Favor",content:{type:"move",trigger:"When you closely study a person to divine their immediate intentions,",roll:"Roll Search. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Hold 2. Spend each to ask one question below, answered truthfully."},{cls:"partial",label:"4–5 — Mixed",text:"Hold 1. Ask one question. The Keeper may attach a complication."},{cls:"fail",label:"1–3 — Fail",text:"Nothing useful. The target may have noticed your scrutiny."}],questions:["What is this person about to do?","Who are they most afraid of right now?","Are they lying to me — about what?","What do they want most in this moment?","Are they about to move against me or an ally?"]},prereq:null,levels:null},
+p3:{name:"Foretelling",meta:"Prophecy · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you enter a trance to read what fate has written about a person, place, or event,",roll:"Roll Wits. Spend 2 Favor. You are vulnerable during the trance.",outcomes:[{cls:"success",label:"6 — Full",text:"Hold 2. Spend each to ask one question below, answered truthfully."},{cls:"partial",label:"4–5 — Mixed",text:"Hold 1. The answer arrives in symbols — accurate but needs interpretation."},{cls:"fail",label:"1–3 — Fail",text:"The trance goes dark. The Keeper asks you one question about a secret or fear — you must answer honestly. You learn nothing."}],questions:["What is fated here if nothing changes?","Who will cause what's coming?","What could prevent or redirect this fate?","Who among those present is going to die?","What is the most important thing being hidden from me?"]},prereq:"Crow's Eye",levels:null},
+p4:{name:"Fated Blow",meta:"Prophecy · Tier II · Roll: Nimble · 2 Favor",content:{type:"move",trigger:"When you strike the precise instant fate lines up, a spectral crow diving beside you,",roll:"Roll Nimble. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. The crow lingers this scene: your next attack costs 0 Favor and deals +1 damage die."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. The crow dissipates after this strike."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. Lose 1 Action next turn."}]},prereq:"Read Intent",levels:["1d6","2d6","3d6"]},
+p5:{name:"Omen Reading",meta:"Prophecy · Tier II · Passive",content:{type:"passive",desc:`Once per scene, observe a natural sign and receive a one-word warning from the Keeper about the most immediate hidden danger. The word is always accurate. No follow-up questions.<br><br>Corvids never attack you or your allies.`},prereq:"Crow's Eye",levels:null},
+p6:{name:"Doom-Sight",meta:"Prophecy · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you look at a living person to see whether a death-mark hangs over them,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The Keeper tells you: whether a mark exists, how soon (hours/days/weeks), and one concrete detail about the manner of death."},{cls:"partial",label:"4–5 — Mixed",text:"The Keeper confirms whether a mark is present and whether it's imminent (within 24 hours)."},{cls:"fail",label:"1–3 — Fail",text:"You see a mark on the wrong person — the Keeper decides who. You cannot use Doom-Sight on the original target again this session."}]},prereq:"Foretelling",levels:null},
+p7:{name:"Fulfilled Fate",meta:"Prophecy · Tier III · Passive",content:{type:"passive",desc:`When you personally bring about the death or downfall of someone you've used a Prophecy move on, immediately recover 3 Favor — even beyond your current maximum, until end of scene.`},prereq:"Fated Blow",levels:null},
+p8:{name:"Warp the Thread",meta:"Prophecy · Apex · Roll: Wits · 5 Favor · Once/Session",content:{type:"move",trigger:"When you attempt to redirect a foretold event — not erase it, but shift who bears it,",roll:"Roll Wits. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"The Keeper provides at least two options for who now bears the fate. You choose. The event still happens — only the recipient changes."},{cls:"partial",label:"4–5 — Mixed",text:"The fate shifts partially. Someone else shares the doom alongside the original target."},{cls:"fail",label:"1–3 — Fail",text:"The thread snaps back. The original fate arrives immediately and in full. You take 2 Harm (ignores armor). Cannot attempt this again this session."}]},prereq:"Doom-Sight + Fulfilled Fate",levels:null},
+w1:{name:"Crow's Presence",meta:"War · Tier I · Passive",content:{type:"passive",desc:`At the start of any combat scene, every ally within Close range gains +1 die on their first attack roll. Automatic — no activation needed.`},prereq:null,levels:null},
+w2:{name:"Raven's Talon",meta:"War · Tier I · Roll: Might · 1 Favor",content:{type:"move",trigger:"When you call on the Morrigan's fury and a spectral raven dives with phantom talons beside your strike,",roll:"Roll Might. Spend 1 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. The raven lingers — once this scene: use Cleave or Disarm free (no Grit, no action)."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. Raven dissipates after this strike."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. Cannot use Raven's Talon again until you take a hit."}]},prereq:null,levels:["1d6","2d6","3d6"]},
+w3:{name:"War Cry",meta:"War · Tier II · Roll: Intimidate · 2 Favor",content:{type:"move",trigger:"When you release a battle-cry that carries the Morrigan's fury,",roll:"Roll Intimidate. Spend 2 Favor. Uses your Action.",outcomes:[{cls:"success",label:"6 — Full",text:"Choose two: enemies in earshot lose their next Action; enemies at Close range pushed to Near; one enemy drops what they hold; all allies gain +1 die on their next roll."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one effect. Enemies beyond Close range unaffected."},{cls:"fail",label:"1–3 — Fail",text:"The cry fails. Action spent. Enemies may take a free action against you."}]},prereq:"Crow's Presence",levels:null},
+w4:{name:"Crow Form",meta:"War · Tier II · Passive",content:{type:"passive",desc:`Once per scene, transform into a large crow and back. No roll, no Favor, counts as a Move action.<br><br><strong>In crow form:</strong> Fly to any range as one Move; Scope with +1 die; carry one small object; pass unnoticed among corvids. <strong>Cannot:</strong> attack, use powers, or use items.`},prereq:"Raven's Talon",levels:null},
+w5:{name:"Battlefield Insight",meta:"War · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you assess a battlefield, ongoing conflict, or place where violence is imminent,",roll:"Roll Wits. Spend 2 Favor. Can be used as a Scope action.",outcomes:[{cls:"success",label:"6 — Full",text:"Hold 2. Spend each to ask one question below, answered specifically."},{cls:"partial",label:"4–5 — Mixed",text:"Hold 1. Ask one question. The Keeper may add a complication."},{cls:"fail",label:"1–3 — Fail",text:"You misread the field. The Keeper introduces a concealed threat that activates at the worst moment."}],questions:["Where is the greatest tactical advantage?","Where is the enemy most vulnerable?","Where could a small group hold against a larger force?","What is the enemy's actual plan — and where does it break down?","Who is the real threat, and what can hurt them?"]},prereq:"Crow's Presence",levels:null},
+w6:{name:"Blood Frenzy",meta:"War · Tier III · Roll: Tough · 3 Favor",content:{type:"move",trigger:"When you draw first blood and surrender to the Morrigan's battle-madness,",roll:"Roll Tough. Spend 3 Favor. Uses your Action.",outcomes:[{cls:"success",label:"6 — Full",text:"For the rest of combat: add the bonus damage die to all damage rolls; ignore dice penalties from one physical Condition."},{cls:"partial",label:"4–5 — Mixed",text:"Gain bonus damage, but the Keeper gains 1 complication token (may make you accidentally target an ally)."},{cls:"fail",label:"1–3 — Fail",text:"No bonus. Take 1 Harm. Cannot attempt Blood Frenzy again this combat."}]},prereq:"War Cry",levels:["1d8","2d8","3d8"]},
+w7:{name:"Murder of Crows",meta:"War · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you send your crows to scout and harass enemies before or during a conflict,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Remove one enemy advantage — choose: no reinforcements this combat; enemies deal −1 damage; enemies cannot use Help an Ally; enemy leaders cannot use special abilities."},{cls:"partial",label:"4–5 — Mixed",text:"Disrupt one minor thing. The Keeper chooses what. Enemies know someone worked against them."},{cls:"fail",label:"1–3 — Fail",text:"Your crows are spotted. The enemy learns your location and one piece of your plan."}]},prereq:"Battlefield Insight",levels:null},
+w8:{name:"Phantom Army",meta:"War · Apex · Roll: Intimidate · 5 Favor · Once/Session",content:{type:"move",trigger:"When you summon a vast cloud of crows that writhes into the shape of an army,",roll:"Roll Intimidate. Spend 5 Favor. Uses your Action. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"The illusion holds one full scene. Choose two: all enemies break morale; the illusion holds a physical position; one group routes entirely; your group gains a free round of actions."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one effect. Enemies who see through it know who created it."},{cls:"fail",label:"1–3 — Fail",text:"The crows collapse immediately. Everyone present knows you're capable of this."}]},prereq:"Blood Frenzy + Murder of Crows",levels:null},
+s1:{name:"Queen's Bearing",meta:"Sovereignty · Tier I · Passive",content:{type:"passive",desc:`You enter any room as someone of consequence. NPCs never turn you away without a named reason. You speak first in social scenes. First Persuade, Charm, or Intimidate roll each scene: +1 die.`},prereq:null,levels:null},
+s2:{name:"The Right Word",meta:"Sovereignty · Tier I · Roll: Persuade · 2 Favor",content:{type:"move",trigger:"When you speak to defuse, redirect, or reframe a confrontation before it becomes violence,",roll:"Roll Persuade. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The confrontation dissolves. The Keeper tells you what the other party now wants. Choose one: they share withheld information; they owe you a favor; they become a temporary ally this scene."},{cls:"partial",label:"4–5 — Mixed",text:"Hostility cools. They'll talk, but want something concrete in return — the Keeper names what."},{cls:"fail",label:"1–3 — Fail",text:"The words land wrong. The other party becomes more hostile and may act first."}]},prereq:null,levels:null},
+s3:{name:"Ally's Mark",meta:"Sovereignty · Tier II · Passive",content:{type:"passive",desc:`Mark up to 3 people as Allies of your bloodline — invisible but felt by both. A marked Ally: +1 die on rolls serving your shared goals; treated as under your protection by NPCs who fear you; benefits from Queen's Bearing (+1 die on first social roll per scene).<br><br>You may remove a mark at will. The person always knows.`},prereq:"Queen's Bearing",levels:null},
+s4:{name:"Blood Debt",meta:"Sovereignty · Tier II · Roll: Charm · 2 Favor",content:{type:"move",trigger:"When you call in a favor owed or formally establish a new debt,",roll:"Roll Charm. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The debt is real. The Keeper says specifically what the target will do to honor it — and they will, unless their life is at stake. +1 die on rolls to collect it."},{cls:"partial",label:"4–5 — Mixed",text:"The debt holds, but the target resents it. They'll honor it once and work against you otherwise."},{cls:"fail",label:"1–3 — Fail",text:"Read as a threat. NPC disposition worsens one step. Debt not established."}]},prereq:"The Right Word",levels:null},
+s5:{name:"Lay of the Land",meta:"Sovereignty · Tier II · Passive",content:{type:"passive",desc:`Once per scene, ask the Keeper one question below — no roll required. Works anywhere people jockey for position.<ul><li>Who is the real power here, and what do they actually want?</li><li>Who is hiding something significant?</li><li>Who could be turned to our side, and what would it take?</li></ul>`},prereq:"Queen's Bearing",levels:null},
+s6:{name:"Conflict Averted",meta:"Sovereignty · Tier III · Roll: Deceive · 3 Favor",content:{type:"move",trigger:"When you intervene to prevent violence through negotiation, misdirection, or an unfired threat,",roll:"Roll Deceive. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The confrontation dissolves. The Keeper names the concession required — always a price, always survivable."},{cls:"partial",label:"4–5 — Mixed",text:"The immediate conflict is avoided but deferred. It will cost more to prevent next time."},{cls:"fail",label:"1–3 — Fail",text:"Read as interference. The conflict begins anyway, and those involved direct hostility at you."}]},prereq:"Ally's Mark + Blood Debt",levels:null},
+s7:{name:"Territorial Claim",meta:"Sovereignty · Tier III · Passive",content:{type:"passive",desc:`Claim one physical place as yours — speak it aloud while present. Within your territory: know when anyone enters with hostile intent (even if you're not watching); locals instinctively protect you; +1 die on all Scope actions.<br><br>You hold one territory at a time. Claiming a new one releases the old.`},prereq:"Lay of the Land",levels:null},
+s8:{name:"The Morrigan's Mandate",meta:"Sovereignty · Apex · Roll: Intimidate · 5 Favor · Once/Session",content:{type:"move",trigger:"When you speak a formal decree with the full weight of your divine bloodline,",roll:"Roll Intimidate. Spend 5 Favor. Uses your Action. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"All who hear it feel compelled: NPCs cannot directly contradict it until session end unless survival demands; any PC who violates it must spend 1 Grit; the Keeper must warn you before an NPC would break it."},{cls:"partial",label:"4–5 — Mixed",text:"Allies and sympathetic NPCs feel fully compelled. Hostile NPCs feel the pull but can resist — and know something was done to them."},{cls:"fail",label:"1–3 — Fail",text:"The words ring false. No compulsion. Hostile parties now know you're capable of this and will act to neutralize you."}]},prereq:"Conflict Averted + Territorial Claim",levels:null}
 };
 
 function getPrereqs(el){const p=el.dataset.prereq;return p?p.split(','):[]}
@@ -2136,21 +2163,14 @@ function prereqsMet(el){return getPrereqs(el).every(id=>unlockedPowers.has(id))}
 function hasDependent(id){for(const n of document.querySelectorAll('.node')){if(getPrereqs(n).includes(id)&&unlockedPowers.has(n.id))return true;}return false;}
 function updateAllLocks(){document.querySelectorAll('.node').forEach(n=>{if(unlockedPowers.has(n.id))return;if(prereqsMet(n)){n.classList.remove('locked');n.classList.add('avail');}else{n.classList.remove('avail','unlocked');n.classList.add('locked');}});}
 
-async function toggleNode(el){
+function toggleNode(el){
   const id=el.id;
   if(el.classList.contains('locked')){showPrereqModalUI(el);return;}
+  // Read-only in normal play — just open the detail panel
+  // Mark this node as visually selected; deselect others
+  document.querySelectorAll('.node.reading').forEach(n=>{if(n!==el)n.classList.remove('reading');});
+  el.classList.toggle('reading');
   showNodeDetail(id,el);
-  if(unlockedPowers.has(id)){
-    if(hasDependent(id)){showToast("Another power depends on this one");return;}
-    unlockedPowers.delete(id);
-    el.classList.remove('unlocked');el.classList.add('avail');
-    await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
-  } else {
-    unlockedPowers.add(id);
-    el.classList.remove('avail');el.classList.add('unlocked');
-    await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:nodeLevels[id]||0});
-  }
-  updateAllLocks();refreshDice(el,id);updateSpread();updateProgress();
 }
 
 function applyPowerStates(){
@@ -3420,46 +3440,86 @@ function playDivineAnimation(){
     canvas.width=window.innerWidth;canvas.height=window.innerHeight;
     canvas.classList.add('vis');
     const ctx=canvas.getContext('2d');
-    const cx=window.innerWidth/2,cy=window.innerHeight*.45;
+    const cx=window.innerWidth/2, cy=window.innerHeight*0.42;
     const particles=[];
-    const BURST=60;
+    const BURST=220;
 
-    function spawnParticle(x,y){
-          const a=Math.random()*Math.PI*2,spd=Math.random()*2+1;
-    return{x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd-1.5,life:1,
-      decay:Math.random()*.02+.012,rot:Math.random()*Math.PI,
-      rotV:(Math.random()-.5)*.15,w:Math.random()*3+2,h:Math.random()*14+6,
-      type:Math.random()<.6?'feather':'spark',
-      color:Math.random()<.5?'#7c3aed':'#ddd6fe'};
+    // Central flash glow at start
+    let flashAlpha=0.7;
+    function drawFlash(){
+      if(flashAlpha<=0)return;
+      const g=ctx.createRadialGradient(cx,cy,0,cx,cy,180);
+      g.addColorStop(0,`rgba(153,51,234,${flashAlpha*0.55})`);
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+      flashAlpha-=0.03;
     }
 
-    for(let i=0;i<BURST;i++)particles.push(spawnParticle(
-      cx+(Math.random()-.5)*80, cy+(Math.random()-.5)*40
-    ));
+    function spawnParticle(x,y){
+      const a=Math.random()*Math.PI*2, spd=(Math.random()*2.5+1.5);
+      const isFeather=Math.random()<0.6;
+      return{x,y,
+        vx:Math.cos(a)*spd*(isFeather?0.8:1.4),
+        vy:Math.sin(a)*spd*(isFeather?0.7:1.2)-1.0,
+        life:1, decay:Math.random()*0.006+0.003,
+        rot:Math.random()*Math.PI, rotV:(Math.random()-0.5)*0.12,
+        w:isFeather?Math.random()*6+5:Math.random()*3+2,
+        h:isFeather?Math.random()*24+14:null,
+        type:isFeather?'feather':'spark',
+        color:Math.random()<0.55?'#9333ea':(Math.random()<0.5?'#ddd6fe':'#4c1d95')
+      };
+    }
+
+    // Stagger initial burst — fire in waves
+    let spawnedCount=0;
+    const spawnInterval=setInterval(()=>{
+      const wave=Math.min(30, BURST-spawnedCount);
+      for(let i=0;i<wave;i++){
+        particles.push(spawnParticle(
+          cx+(Math.random()-0.5)*120,
+          cy+(Math.random()-0.5)*60
+        ));
+        spawnedCount++;
+      }
+      if(spawnedCount>=BURST)clearInterval(spawnInterval);
+    },40);
 
     let raf;
     function draw(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
+      drawFlash();
       for(let i=particles.length-1;i>=0;i--){
         const p=particles[i];
-            p.x+=p.vx;p.y+=p.vy;p.vy+=.04;p.rot+=p.rotV;p.life-=p.decay;
+      p.x+=p.vx; p.y+=p.vy; p.vy+=0.035; p.vx*=0.99; p.rot+=p.rotV; p.life-=p.decay;
         if(p.life<=0){particles.splice(i,1);continue;}
-            if(p.type==='feather'){
-        ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);
-        ctx.globalAlpha=p.life*.7;ctx.fillStyle=p.color;
-        ctx.beginPath();ctx.ellipse(0,0,p.w/2,p.h/2,0,0,Math.PI*2);ctx.fill();
+      if(p.type==='feather'){
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+        ctx.globalAlpha=p.life*0.8; ctx.fillStyle=p.color;
+        ctx.shadowBlur=10; ctx.shadowColor=p.color;
+        ctx.beginPath(); ctx.ellipse(0,0,p.w/2,p.h/2,0,0,Math.PI*2); ctx.fill();
         ctx.restore();
       } else {
-        ctx.globalAlpha=p.life*.9;ctx.fillStyle=p.color;
-        ctx.beginPath();ctx.arc(p.x,p.y,p.w*.4,0,Math.PI*2);ctx.fill();
+        ctx.globalAlpha=p.life*0.9; ctx.fillStyle=p.color;
+        ctx.shadowBlur=12; ctx.shadowColor=p.color;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.w,0,Math.PI*2); ctx.fill();
       }
       }
-      if(particles.length>0){raf=requestAnimationFrame(draw);}
-      else{canvas.classList.remove('vis');ctx.clearRect(0,0,canvas.width,canvas.height);resolve();}
+      if(particles.length>0||spawnedCount<BURST){
+        raf=requestAnimationFrame(draw);
+      } else {
+        canvas.classList.remove('vis');
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        resolve();
+      }
     }
     draw();
-    // Safety resolve after 1.5s regardless
-    setTimeout(()=>{if(raf)cancelAnimationFrame(raf);canvas.classList.remove('vis');resolve();},1500);
+    // Safety resolve after 3s
+    setTimeout(()=>{
+      clearInterval(spawnInterval);
+      if(raf)cancelAnimationFrame(raf);
+      canvas.classList.remove('vis');
+      resolve();
+    },3000);
   });
 }
 
