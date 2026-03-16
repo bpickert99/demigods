@@ -147,22 +147,41 @@ let allNotes=[],activeNote=null,connected=false;
 loadNotes();
 
 async function loadNotes(){
-  setStatus(false,'Connecting…');
-  document.getElementById('note-list').innerHTML='<div class="empty-sidebar" style="color:var(--dim)">⧳ Loading…</div>';
+  setStatus(false,'Connecting\u2026');
+  document.getElementById('note-list').innerHTML='<div class="empty-sidebar" style="color:var(--dim)">\u29f3 Loading\u2026</div>';
   try{
-    const h={'Content-Type':'application/json'};
-    if(API_KEY)h['Authorization']='Bearer '+API_KEY;
-    const res=await fetch(OBSIDIAN_URL+'/search/',{
-      method:'POST',
-      headers:Object.assign(h,{'Content-Type':'application/vnd.olrapi.dataview.dql+txt'}),
-      body:'LIST FROM #'+TAG
-    });
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const raw=await res.json();
-    // Response is {results:[{filename,result},...]} or array depending on version
-    const rows=Array.isArray(raw)?raw:(raw.results||raw.data||[]);
-    allNotes=rows.map(r=>({filename:r.filename||r.file||r,tags:[TAG]})).filter(n=>n.filename&&typeof n.filename==='string').sort((a,b)=>getTitle(a.filename).localeCompare(getTitle(b.filename)));
-    connected=true;setStatus(true,'Connected');
+    const h={'Authorization':'Bearer '+API_KEY};
+
+    // Step 1: list all files in vault
+    const listRes=await fetch(OBSIDIAN_URL+'/vault/',{headers:h});
+    if(!listRes.ok)throw new Error('HTTP '+listRes.status);
+    const listData=await listRes.json();
+    const allFiles=(listData.files||[]).filter(f=>f.endsWith('.md'));
+
+    // Step 2: fetch metadata for each file in parallel (batches of 10)
+    const tagged=[];
+    const BATCH=10;
+    for(let i=0;i<allFiles.length;i+=BATCH){
+      const batch=allFiles.slice(i,i+BATCH);
+      const results=await Promise.all(batch.map(async fname=>{
+        try{
+          const r=await fetch(OBSIDIAN_URL+'/vault/'+encodeURIComponent(fname),{
+            headers:Object.assign({'Accept':'application/vnd.olrapi.note+json'},h)
+          });
+          if(!r.ok)return null;
+          const d=await r.json();
+          const tags=(d.tags||d.frontmatter?.tags||[]).map(t=>t.replace(/^#/,''));
+          if(tags.includes(TAG))return{filename:fname,tags};
+          // Also check raw content for inline tag
+          if((d.content||'').includes('#'+TAG))return{filename:fname,tags:[TAG,...tags]};
+          return null;
+        }catch(e){return null;}
+      }));
+      results.filter(Boolean).forEach(n=>tagged.push(n));
+    }
+
+    allNotes=tagged.sort((a,b)=>getTitle(a.filename).localeCompare(getTitle(b.filename)));
+    connected=true;setStatus(true,'Connected \u2014 '+allNotes.length+' entries');
     renderNoteList(allNotes);
     if(allNotes.length===0)showEmpty();
     else if(activeNote){
