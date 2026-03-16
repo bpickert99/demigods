@@ -523,6 +523,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
       Harm <span class="harm-num" id="header-harm">0</span>
       / <span class="mortality-num" id="header-mortality">—</span> Mortality
       <span class="sync-dot off" id="sync-dot" title="Syncing..."></span>
+      <span style="font-family:\'Cinzel\',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5;margin-left:6px">v3.1</span>
     </div>
     <div class="mortality-display" style="font-size:10px;margin-top:2px">
       Favor <span style="color:var(--fc);font-family:'Cinzel Decorative',serif;font-size:16px" id="header-favor">0</span>
@@ -2745,8 +2746,8 @@ async function updateJuryOverlay(){
   } else if(voted){
     btnsEl.innerHTML='<div style="font-size:13px;color:var(--success)">✓ Vote recorded — waiting for others.</div>';
   } else {
-    btnsEl.innerHTML='<button onclick="castJuryVote(\''+item.id+'\',true)" style="padding:10px 24px;border-radius:6px;border:1px solid var(--success);background:transparent;color:var(--success);font-family:'Cinzel',serif;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s" onmouseover="this.style.background='#22c55e20'" onmouseout="this.style.background='transparent'">✓ Yes</button>'
-      +'<button onclick="castJuryVote(\''+item.id+'\',false)" style="padding:10px 24px;border-radius:6px;border:1px solid var(--fail);background:transparent;color:var(--fail);font-family:'Cinzel',serif;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s" onmouseover="this.style.background='#ef444420'" onmouseout="this.style.background='transparent'">✕ No</button>';
+    btnsEl.innerHTML='<button onclick="castJuryVote(\''+item.id+'\',true)" style="padding:10px 24px;border-radius:6px;border:1px solid var(--success);background:transparent;color:var(--success);font-family:Cinzel,serif;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s" onmouseover="this.style.background=\'#22c55e20\'" onmouseout="this.style.background=\'transparent\'">✓ Yes</button>'
+      +'<button onclick="castJuryVote(\''+item.id+'\',false)" style="padding:10px 24px;border-radius:6px;border:1px solid var(--fail);background:transparent;color:var(--fail);font-family:Cinzel,serif;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s" onmouseover="this.style.background=\'#ef444420\'" onmouseout="this.style.background=\'transparent\'">✕ No</button>';
   }
   overlay.style.display='flex';
 }
