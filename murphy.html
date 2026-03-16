@@ -788,6 +788,14 @@ body.markup .hadv-remove-btn{display:flex}
 .hadv-browse-desc{font-size:11px;color:var(--muted);line-height:1.5}
 .hadv-browse-need{font-size:10px;color:var(--fail);margin-top:3px}
 
+/* Hero Ability browse modal override */
+.hadv-browse-modal .modal-box{max-width:680px !important;width:95% !important}
+/* Equipped names strip */
+.hadv-names-strip{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.hadv-name-tag{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:10px;background:var(--surf2);border:1px solid var(--border2);color:var(--muted);white-space:nowrap}
+.hadv-name-tag.combat{color:#f87171;border-color:#f8717140;background:#f871710a}
+.hadv-name-tag.narrative{color:#60a5fa;border-color:#60a5fa40;background:#60a5fa0a}
+
 </style>
 </head>
 <body>
@@ -1115,11 +1123,12 @@ body.markup .hadv-remove-btn{display:flex}
 
   <!-- HERO ADVANCEMENTS -->
   <div class="section" id="hero-adv-section">
-    <div class="section-title">💪 Hero Advancements</div>
+    <div class="section-title">💪 Hero Abilities</div>
     <div class="hadv-pool-row">
       <span class="hadv-pool-badge">Pool: <span id="hero-adv-pool">0</span> pt</span>
-      <span style="font-size:11px;color:var(--dim)">Spend advancement points to equip abilities. Buy new or swap anytime.</span>
+      <span style="font-size:11px;color:var(--dim)">Spend points to equip. Swap anytime.</span>
     </div>
+    <div class="hadv-names-strip" id="hadv-names-strip"></div>
     <div class="hadv-grid" id="hero-adv-grid"></div>
   </div>
 
@@ -1453,7 +1462,7 @@ const SKILLS=['Notice','Persuade','Search','Wits','Might','Nimble','Sneak','Toug
 
 // ── COMPUTED ──
 function getTotalDice(){return SKILLS.reduce((s,sk)=>s+(skillData[sk]||0),0);}
-function getMortality(){return getTotalDice();}
+function getMortality(){return getTotalDice()+getHeroMortalityBonus();}
 function getTotalHarm(){return conditions.reduce((s,c)=>s+c.harm,0);}
 
 // ── INIT ──
@@ -1477,6 +1486,13 @@ async function init(){
   subscribeNotifications();
   setSyncDot(true);
   startCanvas();
+  // Re-open advance modal if there were pending advances at time of page load/refresh
+  const pending=charData.pending_advances||0;
+  if(pending>0){
+    _pendingAdvTotal=pending;
+    _pendingAdvDone=0;
+    showAdvanceModal();
+  }
 }
 
 // ── SUPABASE LOAD ──
@@ -1641,13 +1657,27 @@ function updateMortalityDisplay(){
 }
 
 // ── STAT PIPS ──
+// Return extra track slots from hero abilities
+function getHeroTrackBonus(track){
+  const equippedIds=Object.values(heroSlots||{}).filter(Boolean);
+  let bonus=0;
+  if(track==='grit'&&equippedIds.includes('gritty')) bonus+=1;
+  return bonus;
+}
+// Return extra mortality from hero abilities
+function getHeroMortalityBonus(){
+  const equippedIds=Object.values(heroSlots||{}).filter(Boolean);
+  return equippedIds.includes('unkillable')?3:0;
+}
+
 function buildStatPips(){
   ['wisdom','grit','bond'].forEach(track=>{
     const container=document.getElementById(`${track}-pips`);
     if(!container) return;
     container.innerHTML='';
     const val=charData[track]||0;
-    for(let i=1;i<=4;i++){
+    const maxSlots=4+getHeroTrackBonus(track);
+    for(let i=1;i<=maxSlots;i++){
       const pip=document.createElement('div');
       pip.className=`stat-pip${i<=val?' on '+track:''}`;
       if(markupMode){
@@ -2263,7 +2293,7 @@ async function logMomentumChange(track,oldVal,newVal,desc){
   });
 }
 
-function closeRollModal(){document.getElementById('roll-modal').classList.remove('vis');}
+function closeRollModal(){const m=document.getElementById('roll-modal');m.classList.remove('vis','hadv-browse-modal');}
 async function logRoll(skill,diceRolled,results,highest,outcome,ones,modifier){
   const outcomeKey=outcome.includes('Full')?'success':outcome.includes('Mixed')?'mixed':'fail';
   await db.from('roll_log').insert({character_id:CHAR_ID,skill,dice_rolled:diceRolled,results,highest,outcome:outcomeKey,ones_count:ones,modifier});
@@ -2875,7 +2905,7 @@ function showAdvanceModal(){
     +'<div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px">Choose one advancement:</div>'
     +'<div class="advance-option" onclick="advanceSkill()"><h4>📈 New Skill Point</h4><p>Add one check to any skill — increases your dice pool, Mortality, and Favor max.</p></div>'
     +'<div class="advance-option" onclick="showAdvanceFeats()"><h4>⚔ New Combat or Defense Feat</h4><p>Unlock one feat you don\'t yet have.</p></div>'
-    +'<div class="advance-option" onclick="showAdvancePowers()"><h4>✨ New Divine Power</h4><p>Unlock a power in your playbook, or level up an existing one.</p></div>'+'<div class="advance-option" onclick="advanceHeroPool()"><h4>💪 Hero Pool +1</h4><p>Bank this point to buy or upgrade a Hero Advancement anytime.</p></div>';
+    +'<div class="advance-option" onclick="showAdvancePowers()"><h4>✨ New Power</h4><p>Unlock a power in your divine playbook, or level up an existing one.</p></div>'+'<div class="advance-option" onclick="advanceHeroPool()"><h4>💪 Hero Ability (Bank +1)</h4><p>Add a point to your pool — spend it to buy or swap a Hero Ability anytime.</p></div>';
   modal.classList.add('vis');
 }
 function closeAdvanceModal(){
@@ -2983,7 +3013,7 @@ function showAdvancePowers(){
     return;
   }
   content.innerHTML=`
-    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Choose a Divine Power</div>
+    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Choose a Power</div>
     <div class="advance-power-list">
       ${available.map(p=>`
         <div class="advance-power-item" onclick="advancePower('${p.id}','${p.action}')">
@@ -4335,6 +4365,18 @@ function renderHeroAdvancements(){
   heroPool=charData.hero_adv_pool||0;
   if(poolEl) poolEl.textContent=heroPool;
 
+  // Update equipped names strip
+  const namesStrip=document.getElementById('hadv-names-strip');
+  if(namesStrip){
+    const equipped=Object.values(heroSlots).filter(Boolean)
+      .map(id=>HERO_ADVANCES.find(a=>a.id===id)).filter(Boolean);
+    if(equipped.length){
+      namesStrip.innerHTML=equipped.map(a=>'<span class="hadv-name-tag '+a.cat+'">'+a.name+'</span>').join('');
+    } else {
+      namesStrip.innerHTML='<span style="font-size:11px;color:var(--dim);font-style:italic">No abilities equipped</span>';
+    }
+  }
+
   grid.innerHTML='';
   for(let slot=0;slot<8;slot++){
     const advId=heroSlots[slot]||null;
@@ -4396,6 +4438,7 @@ function renderHeroAdvancements(){
 function browseHeroAdvancements(targetSlot){
   const modal=document.getElementById('roll-modal');
   const content=document.getElementById('roll-modal-content');
+  modal.classList.add('hadv-browse-modal');
   heroPool=charData.hero_adv_pool||0;
 
   // Group by category

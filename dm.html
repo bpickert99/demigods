@@ -200,6 +200,13 @@ select.inp{cursor:pointer}
 /* Ability notification banner */
 .ability-notif{position:fixed;top:0;left:0;right:0;z-index:500;padding:0;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:8px}
 .ability-notif-card{background:linear-gradient(135deg,#13132a,#07070e);border:1px solid var(--gold);border-radius:8px;padding:12px 20px;box-shadow:0 4px 24px var(--gold2);min-width:280px;max-width:500px;pointer-events:auto;animation:slideDown .3s ease;display:flex;align-items:center;gap:12px}
+.ability-notif-card.anc-wide{flex-direction:column;align-items:stretch;max-width:540px;gap:0;padding:16px 20px}
+.anc-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.anc-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:10px;padding:8px 12px;background:rgba(255,255,255,.04);border-radius:4px;border-left:3px solid var(--gold)}
+.anc-prompt{padding:10px 12px;background:#1a000a;border:1px solid var(--fail)40;border-left:3px solid var(--fail);border-radius:4px;font-size:12px;color:var(--text);line-height:1.5;margin-bottom:10px}
+.anc-prompt-lbl{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--fail);display:block;margin-bottom:4px}
+.anc-dismiss{align-self:flex-end;padding:5px 14px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s}
+.anc-dismiss:hover{border-color:var(--text);color:var(--text)}
 @keyframes slideDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-20px)}}
 .ability-notif-card.hiding{animation:slideUp .3s ease forwards}
@@ -1699,10 +1706,11 @@ async function executeWipe(id, name){
     await db.from('unlocked_feats').delete().eq('character_id', id);
     await db.from('traits_drives').delete().eq('character_id', id);
     await db.from('pending_rolls').delete().eq('character_id', id);
+    await db.from('hero_advancements').delete().eq('character_id', id);
     await db.from('advancement').update({xp_current:0, total_advances:0, pending_advances:0, updated_at:new Date().toISOString()}).eq('character_id', id);
-    // Reset character stats
+    // Reset character stats including hero ability pool
     await db.from('characters').update({
-      favor_current:0, wisdom:0, grit:0, bond:0,
+      favor_current:0, wisdom:0, grit:0, bond:0, hero_adv_pool:0,
       updated_at: new Date().toISOString()
     }).eq('id', id);
     await logChange(id, 'wipe', `Full sheet wipe by Weaver`, null, null);
@@ -1805,11 +1813,61 @@ function startCanvas(){
 function showAbilityNotification(entry){
   const p=PLAYERS.find(pl=>pl.id===entry.character_id)||{name:entry.character_id,acc:'var(--gold)'};
   const container=document.getElementById('ability-notif');if(!container)return;
-  const card=document.createElement('div');card.className='ability-notif-card';
-  card.innerHTML=`<div class="anc-player" style="color:${p.acc}">${p.name}</div><div style="flex:1"><div class="anc-ability">${entry.ability_name}</div><div class="anc-meta">${entry.ability_meta||''}</div></div><div class="anc-cost">${entry.cost_str||''}</div>`;
+
+  // Try to parse cost_str for embedded description (hero abilities embed desc there sometimes)
+  // The main upgrade: show a full card with description if the meta contains useful info
+  const isHeroAbility=(entry.ability_meta||'').includes('Hero Advancement')||
+                       (entry.ability_meta||'').includes('Hero Ability');
+  const hasDmInfo=isHeroAbility; // hero abilities always need DM info displayed prominently
+
+  const card=document.createElement('div');
+  card.className='ability-notif-card'+(hasDmInfo?' anc-wide':'');
+
+  if(hasDmInfo){
+    // Find the HERO_ADVANCES data embedded in the notification
+    // cost_str format: "-1 bond" or "Free" — desc is in ability_meta field
+    const dmPromptHtml=HERO_ADV_PROMPTS[entry.ability_name]
+      ?`<div class="anc-prompt"><span class="anc-prompt-lbl">⚠ Weaver:</span> ${HERO_ADV_PROMPTS[entry.ability_name]}</div>`:'';
+    const descHtml=HERO_ADV_DESCS[entry.ability_name]
+      ?`<div class="anc-desc">${HERO_ADV_DESCS[entry.ability_name]}</div>`:'';
+    card.innerHTML=
+      `<div class="anc-header">`
+      +`<span class="anc-player" style="color:${p.acc}">${p.name}</span>`
+      +`<span class="anc-ability">${entry.ability_name}</span>`
+      +`<span class="anc-cost">${entry.cost_str||''}</span>`
+      +`</div>`
+      +descHtml
+      +dmPromptHtml
+      +`<button class="anc-dismiss" onclick="this.closest('.ability-notif-card').remove()">Dismiss</button>`;
+  } else {
+    card.innerHTML=`<div class="anc-player" style="color:${p.acc}">${p.name}</div><div style="flex:1"><div class="anc-ability">${entry.ability_name}</div><div class="anc-meta">${entry.ability_meta||''}</div></div><div class="anc-cost">${entry.cost_str||''}</div>`;
+  }
+
   container.appendChild(card);
-  setTimeout(()=>{card.classList.add('hiding');setTimeout(()=>card.remove(),300);},5000);
+  // Wide cards stay longer; slim cards auto-dismiss
+  const ttl=hasDmInfo?18000:5000;
+  setTimeout(()=>{card.classList.add('hiding');setTimeout(()=>card.remove(),300);},ttl);
 }
+
+// Lookup tables so DM card doesn't need to re-parse JS
+const HERO_ADV_DESCS={
+  "Body Language":"Spend 1 Bond to sense whether someone is lying or glimpse their concealed emotions and motivations.",
+  "Study":"In a library, archive, or place of knowledge, spend 1 Bond to ask the Weaver one yes/no question.",
+  "Resourceful":"Once per scene, declare you have one mundane item you could have reasonably prepared for this situation.",
+  "Read the Room":"Once per scene, ask the Weaver: What does this group want most right now? No roll required.",
+  "Silver Tongue":"Once per scene, spend 1 Wisdom to reroll one failed Persuade or Charm roll.",
+  "Quick Learner":"Once per session, spend 1 Wisdom to ask the Weaver to confirm or deny one assumption.",
+  "Analytical":"Study a target on your turn — learn one tactical fact (weakness, plan, or vulnerability).",
+};
+const HERO_ADV_PROMPTS={
+  "Body Language":"Tell this player honestly: is the target lying? What emotion is underneath? What do they actually want?",
+  "Study":"Answer their yes/no question honestly based on what could be found in this place.",
+  "Resourceful":"Confirm if the item they declare is plausible given the situation. If yes, they have it.",
+  "Read the Room":"Answer: what does this group want most right now? Be specific and honest.",
+  "Silver Tongue":"Player will reroll their Persuade or Charm — let them proceed.",
+  "Quick Learner":"Player will state an assumption — answer true or false?",
+  "Analytical":"Tell this player one useful tactical fact about the target: a weakness, their plan this round, or something that can hurt them.",
+};
 
 // ── DM MODAL SYSTEM ──
 function dmModal(html){document.getElementById('dm-mbox').innerHTML=html;document.getElementById('dm-modal').classList.add('vis');}
