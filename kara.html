@@ -2857,23 +2857,23 @@ function restoreAdvanceModal(){
 
 function advanceSkill(){
   const content=document.getElementById('advance-modal-content');
-  const SKILL_LABELS={Notice:'Notice',Persuade:'Persuade',Search:'Search',Wits:'Wits',Might:'Might',Nimble:'Nimble',Sneak:'Sneak',Tough:'Tough',Care:'Care',Charm:'Charm',Deceive:'Deceive',Intimidate:'Intimidate'};
-  content.innerHTML=`
-    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Choose a Skill to Increase</div>
-    <div class="advance-power-list">
-      ${SKILLS.map(sk=>{
-        const cur=skillData[sk]||0;
-        const maxed=cur>=4;
-        return `<div class="advance-option${maxed?' advance-option-disabled':''}" style="${maxed?'opacity:.35;cursor:default':''}" onclick="${maxed?'':'pickSkillAdvance(''+sk+'')'}">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <h4 style="margin:0">${sk}</h4>
-            <span style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold)">${cur}/4</span>
-          </div>
-          ${maxed?'<p style="margin:4px 0 0;font-size:11px;color:var(--dim)">Already at maximum</p>':'<p style="margin:4px 0 0">+1 die · currently '+cur+'d6 → '+(cur+1)+'d6</p>'}
-        </div>`;
-      }).join('')}
-    </div>
-    <button class="advance-back-btn" onclick="showAdvanceModal()">← Back</button>`;
+  const skillRows=SKILLS.map(sk=>{
+    const cur=skillData[sk]||0;
+    const maxed=cur>=4;
+    const onclk=maxed?'':'onclick="pickSkillAdvance(\'' +sk+ '\')"';
+    const dimStyle=maxed?'style="opacity:.35;cursor:default"':'';
+    const body=maxed
+      ?'<p style="margin:4px 0 0;font-size:11px;color:#606080">Already at maximum</p>'
+      :'<p style="margin:4px 0 0">+1 die &middot; '+cur+'d6 &rarr; '+(cur+1)+'d6</p>';
+    return '<div class="advance-option'+(maxed?' advance-option-disabled':'')+'" '+dimStyle+' '+onclk+'>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+      +'<h4 style="margin:0">'+sk+'</h4>'
+      +'<span style="font-size:12px;color:#d4a84b;font-weight:700">'+cur+'/4</span>'
+      +'</div>'+body+'</div>';
+  }).join('');
+  content.innerHTML='<div style="font-family:Cinzel,serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#606080;margin-bottom:10px">Choose a Skill to Increase</div>'
+    +'<div class="advance-power-list">'+skillRows+'</div>'
+    +'<button class="advance-back-btn" onclick="showAdvanceModal()">← Back</button>';
 }
 async function pickSkillAdvance(skill){
   const cur=skillData[skill]||0;
@@ -3686,7 +3686,7 @@ function showAbilityTargetPicker(nodeId, cost, btn){
     otherBtn.style.display='none';
     const inp=document.createElement('input');
     inp.className='cap-other-input';
-    inp.placeholder='Describe what you're targeting…';
+    inp.placeholder="Describe what you're targeting…";
     inp.autofocus=true;
     const confirm=document.createElement('button');
     confirm.className='cap-other-confirm';

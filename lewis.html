@@ -2200,7 +2200,7 @@ s1:{name:"Queen's Bearing",meta:"Sovereignty · Tier I · Passive",content:{type
 s2:{name:"The Right Word",meta:"Sovereignty · Tier I · Roll: Persuade · 2 Favor",content:{type:"move",trigger:"When you speak to defuse, redirect, or reframe a confrontation before it becomes violence,",roll:"Roll Persuade. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The confrontation dissolves. The Keeper tells you what the other party now wants. Choose one: they share withheld information; they owe you a favor; they become a temporary ally this scene."},{cls:"partial",label:"4–5 — Mixed",text:"Hostility cools. They'll talk, but want something concrete in return — the Keeper names what."},{cls:"fail",label:"1–3 — Fail",text:"The words land wrong. The other party becomes more hostile and may act first."}]},prereq:null,levels:null},
 s3:{name:"Ally's Mark",meta:"Sovereignty · Tier II · Passive",content:{type:"passive",desc:`Mark up to 3 people as Allies of your bloodline — invisible but felt by both. A marked Ally: +1 die on rolls serving your shared goals; treated as under your protection by NPCs who fear you; benefits from Queen's Bearing (+1 die on first social roll per scene).<br><br>You may remove a mark at will. The person always knows.`},prereq:"Queen's Bearing",levels:null,passive_prompt:"Lewis marks someone as an Ally of their bloodline. That person gains +1 die on rolls serving shared goals, and benefits from Queen\'s Bearing."},
 s4:{name:"Blood Debt",meta:"Sovereignty · Tier II · Roll: Charm · 2 Favor",content:{type:"move",trigger:"When you call in a favor owed or formally establish a new debt,",roll:"Roll Charm. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The debt is real. The Keeper says specifically what the target will do to honor it — and they will, unless their life is at stake. +1 die on rolls to collect it."},{cls:"partial",label:"4–5 — Mixed",text:"The debt holds, but the target resents it. They'll honor it once and work against you otherwise."},{cls:"fail",label:"1–3 — Fail",text:"Read as a threat. NPC disposition worsens one step. Debt not established."}]},prereq:"The Right Word",levels:null},
-s5:{name:"Lay of the Land",meta:"Sovereignty · Tier II · Passive",content:{type:"passive",desc:`Once per scene, ask the Keeper one question below — no roll required. Works anywhere people jockey for position.<ul><li>Who is the real power here, and what do they actually want?</li><li>Who is hiding something significant?</li><li>Who could be turned to our side, and what would it take?</li></ul>`},prereq:"Queen's Bearing",levels:null,passive_prompt:"Lewis asks: "Who here is the real power / hiding something / could be turned?" Answer one — no roll required."},
+s5:{name:"Lay of the Land",meta:"Sovereignty · Tier II · Passive",content:{type:"passive",desc:`Once per scene, ask the Keeper one question below — no roll required. Works anywhere people jockey for position.<ul><li>Who is the real power here, and what do they actually want?</li><li>Who is hiding something significant?</li><li>Who could be turned to our side, and what would it take?</li></ul>`},prereq:"Queen's Bearing",levels:null,passive_prompt:"Lewis asks one: Who is the real power here and what do they want? Who is hiding something? Who could be turned and what would it take? Answer one — no roll required."},
 s6:{name:"Conflict Averted",meta:"Sovereignty · Tier III · Roll: Deceive · 3 Favor",content:{type:"move",trigger:"When you intervene to prevent violence through negotiation, misdirection, or an unfired threat,",roll:"Roll Deceive. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The confrontation dissolves. The Keeper names the concession required — always a price, always survivable."},{cls:"partial",label:"4–5 — Mixed",text:"The immediate conflict is avoided but deferred. It will cost more to prevent next time."},{cls:"fail",label:"1–3 — Fail",text:"Read as interference. The conflict begins anyway, and those involved direct hostility at you."}]},prereq:"Ally's Mark + Blood Debt",levels:null},
 s7:{name:"Territorial Claim",meta:"Sovereignty · Tier III · Passive",content:{type:"passive",desc:`Claim one physical place as yours — speak it aloud while present. Within your territory: know when anyone enters with hostile intent (even if you're not watching); locals instinctively protect you; +1 die on all Scope actions.<br><br>You hold one territory at a time. Claiming a new one releases the old.`},prereq:"Lay of the Land",levels:null,passive_prompt:"Lewis has claimed this location. You must alert them when anyone enters with hostile intent."},
 s8:{name:"The Morrigan's Mandate",meta:"Sovereignty · Apex · Roll: Intimidate · 5 Favor · Once/Session",content:{type:"move",trigger:"When you speak a formal decree with the full weight of your divine bloodline,",roll:"Roll Intimidate. Spend 5 Favor. Uses your Action. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"All who hear it feel compelled: NPCs cannot directly contradict it until session end unless survival demands; any PC who violates it must spend 1 Grit; the Keeper must warn you before an NPC would break it."},{cls:"partial",label:"4–5 — Mixed",text:"Allies and sympathetic NPCs feel fully compelled. Hostile NPCs feel the pull but can resist — and know something was done to them."},{cls:"fail",label:"1–3 — Fail",text:"The words ring false. No compulsion. Hostile parties now know you're capable of this and will act to neutralize you."}]},prereq:"Conflict Averted + Territorial Claim",levels:null}
@@ -2732,23 +2732,23 @@ function restoreAdvanceModal(){
 
 function advanceSkill(){
   const content=document.getElementById('advance-modal-content');
-  const SKILL_LABELS={Notice:'Notice',Persuade:'Persuade',Search:'Search',Wits:'Wits',Might:'Might',Nimble:'Nimble',Sneak:'Sneak',Tough:'Tough',Care:'Care',Charm:'Charm',Deceive:'Deceive',Intimidate:'Intimidate'};
-  content.innerHTML=`
-    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Choose a Skill to Increase</div>
-    <div class="advance-power-list">
-      ${SKILLS.map(sk=>{
-        const cur=skillData[sk]||0;
-        const maxed=cur>=4;
-        return `<div class="advance-option${maxed?' advance-option-disabled':''}" style="${maxed?'opacity:.35;cursor:default':''}" onclick="${maxed?'':'pickSkillAdvance(''+sk+'')'}">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <h4 style="margin:0">${sk}</h4>
-            <span style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold)">${cur}/4</span>
-          </div>
-          ${maxed?'<p style="margin:4px 0 0;font-size:11px;color:var(--dim)">Already at maximum</p>':'<p style="margin:4px 0 0">+1 die · currently '+cur+'d6 → '+(cur+1)+'d6</p>'}
-        </div>`;
-      }).join('')}
-    </div>
-    <button class="advance-back-btn" onclick="showAdvanceModal()">← Back</button>`;
+  const skillRows=SKILLS.map(sk=>{
+    const cur=skillData[sk]||0;
+    const maxed=cur>=4;
+    const onclk=maxed?'':'onclick="pickSkillAdvance(\'' +sk+ '\')"';
+    const dimStyle=maxed?'style="opacity:.35;cursor:default"':'';
+    const body=maxed
+      ?'<p style="margin:4px 0 0;font-size:11px;color:#606080">Already at maximum</p>'
+      :'<p style="margin:4px 0 0">+1 die &middot; '+cur+'d6 &rarr; '+(cur+1)+'d6</p>';
+    return '<div class="advance-option'+(maxed?' advance-option-disabled':'')+'" '+dimStyle+' '+onclk+'>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+      +'<h4 style="margin:0">'+sk+'</h4>'
+      +'<span style="font-size:12px;color:#d4a84b;font-weight:700">'+cur+'/4</span>'
+      +'</div>'+body+'</div>';
+  }).join('');
+  content.innerHTML='<div style="font-family:Cinzel,serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#606080;margin-bottom:10px">Choose a Skill to Increase</div>'
+    +'<div class="advance-power-list">'+skillRows+'</div>'
+    +'<button class="advance-back-btn" onclick="showAdvanceModal()">← Back</button>';
 }
 async function pickSkillAdvance(skill){
   const cur=skillData[skill]||0;
@@ -3563,7 +3563,7 @@ function showAbilityTargetPicker(nodeId, cost, btn){
     otherBtn.style.display='none';
     const inp=document.createElement('input');
     inp.className='cap-other-input';
-    inp.placeholder='Describe what you're targeting…';
+    inp.placeholder="Describe what you're targeting…";
     inp.autofocus=true;
     const confirm=document.createElement('button');
     confirm.className='cap-other-confirm';
