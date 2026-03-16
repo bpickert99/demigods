@@ -902,8 +902,7 @@ function renderCombatants(){
   // Populate NPC queue selector
   const npcQSel=document.getElementById('npc-queue-sel');
   if(npcQSel){
-    const sceneNPCs=npcData.filter(n=>n.in_scene);
-    npcQSel.innerHTML=sceneNPCs.map(n=>`<option value="${n.id}">${n.name}</option>`).join('')||'<option>No NPCs in scene</option>';
+    npcQSel.innerHTML=npcData.map(n=>`<option value="${n.id}">${n.name}${n.in_scene?' ★':''}</option>`).join('')||'<option>No NPCs yet</option>';
   }
   combatParts.filter(c=>c.is_active).forEach(p=>{
     const done=p.actions_used>=p.actions_max;
@@ -952,9 +951,17 @@ async function addNPCToQueue(){
   if(!combatSess)return;
   const sel=document.getElementById('npc-queue-sel');if(!sel||!sel.value)return;
   const npc=npcData.find(n=>n.id===sel.value);if(!npc)return;
-  const{data}=await db.from('combat_queue').insert({session_id:combatSess.id,character_id:npc.id,character_name:npc.name,status:'waiting',position:combatQ.length+1}).select().single();
+  // Use npc.name as character_id to avoid FK constraint on characters table
+  const{data,error}=await db.from('combat_queue').insert({
+    session_id:combatSess.id,
+    character_id:npc.name,
+    character_name:npc.name,
+    status:'waiting',
+    position:combatQ.length+1
+  }).select().single();
+  if(error){showToast('Queue error: '+error.message);console.error('addNPCToQueue error:',error);return;}
   if(data){combatQ.push(data);renderCombatQueue();}
-  showToast(`${npc.name} added to queue`);
+  showToast(npc.name+' added to queue');
 }
 async function toggleAction(partId,idx){
   const p=combatParts.find(c=>c.id===partId);if(!p)return;
