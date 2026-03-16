@@ -16,7 +16,7 @@
   --war:#b91c1c;--war-acc:#fecaca;--war-glow:#ef444455;--war-bg:#7f1d1d18;
   --sovereignty:#047857;--sovereignty-acc:#a7f3d0;--sovereignty-glow:#10b98155;--sovereignty-bg:#06402418;
   --success:#22c55e;--partial:#f59e0b;--fail:#ef4444;
-  --rc:#fbbf24;--fc:#e879f9;--gc:#34d399;
+  --rc:#fbbf24;--fc:#f59e0b;--gc:#34d399;
   --harm:#ef4444;--unstable:#f97316;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -376,8 +376,8 @@ body.markup .power-node:hover .pn-name{color:var(--gold) !important}
 .refill-btn{padding:6px 14px;border-radius:4px;border:1px solid var(--fc)60;background:transparent;color:var(--fc);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap}
 .refill-btn:hover{background:var(--fc)20;border-color:var(--fc)}
 .favor-tokens{display:flex;flex-wrap:wrap;gap:4px}
-.ftok{width:18px;height:18px;border-radius:50%;border:1px solid var(--fc)40;background:var(--surf2);cursor:pointer;transition:all .18s;flex-shrink:0}
-.ftok.on{background:var(--fc)20;border-color:var(--fc);box-shadow:0 0 6px var(--fc)77}
+.ftok{width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);cursor:pointer;transition:all .18s;flex-shrink:0}
+.ftok.on{background:var(--fc);border-color:var(--fc);box-shadow:0 0 8px var(--fc)99}
 .ftok:hover{transform:scale(1.3)}
 
 /* ── INVENTORY ── */
@@ -756,6 +756,38 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 /* Divine particle canvas */
 #ability-anim-canvas{position:fixed;inset:0;pointer-events:none;z-index:600;display:none}
 #ability-anim-canvas.vis{display:block}
+/* ── HERO ADVANCEMENTS ── */
+.hadv-pool-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.hadv-pool-badge{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--gold);background:var(--gold2);border:1px solid var(--gold);border-radius:12px;padding:3px 10px}
+.hadv-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:600px){.hadv-grid{grid-template-columns:repeat(4,1fr)}}
+.hadv-card{border-radius:6px;border:1px solid var(--border);background:var(--surf);padding:10px;min-height:80px;display:flex;flex-direction:column;gap:6px;transition:all .2s;position:relative}
+.hadv-filled{border-color:var(--border2);background:var(--surf2)}
+.hadv-header{display:flex;align-items:flex-start;gap:5px}
+.hadv-icon{font-size:13px;flex-shrink:0;margin-top:1px}
+.hadv-name{font-family:'Cinzel',serif;font-size:11px;font-weight:700;flex:1;line-height:1.3}
+.hadv-cost{font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:var(--gold2);border:1px solid var(--gold)60;color:var(--gold);flex-shrink:0;white-space:nowrap}
+.hadv-desc{font-size:11px;color:var(--dim);line-height:1.5;flex:1}
+.hadv-use-btn{padding:5px 8px;border-radius:4px;border:1px solid var(--kara);background:transparent;color:var(--kara-acc);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .18s;margin-top:auto}
+.hadv-use-btn:hover{background:var(--kara-glow)}
+.hadv-remove-btn{position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:3px;border:none;background:transparent;color:var(--dim);cursor:pointer;font-size:12px;display:none;align-items:center;justify-content:center;transition:color .18s}
+body.markup .hadv-remove-btn{display:flex}
+.hadv-remove-btn:hover{color:var(--fail)}
+.hadv-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;height:100%;min-height:70px;border-radius:4px;border:1px dashed var(--border2);transition:all .18s;padding:8px}
+.hadv-empty:hover{border-color:var(--gold);background:var(--gold2)}
+.hadv-empty-icon{font-size:20px;color:var(--dim)}
+.hadv-empty-label{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--dim);text-transform:uppercase;text-align:center}
+/* Browse modal */
+.hadv-browse-group{margin-bottom:14px}
+.hadv-browse-label{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.hadv-browse-item{padding:9px 12px;background:var(--surf2);border:1px solid var(--border);border-radius:5px;margin-bottom:5px;cursor:pointer;transition:all .18s}
+.hadv-browse-item:hover:not(.hadv-browse-dim){border-color:var(--gold);background:var(--gold2)}
+.hadv-browse-dim{opacity:.45;cursor:not-allowed}
+.hadv-browse-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px}
+.hadv-browse-name{font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:var(--text)}
+.hadv-browse-desc{font-size:11px;color:var(--muted);line-height:1.5}
+.hadv-browse-need{font-size:10px;color:var(--fail);margin-top:3px}
+
 </style>
 </head>
 <body>
@@ -1079,6 +1111,17 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
     <div class="section-title">⚔ Combat Feats</div>
     <div class="feats-grid" id="feats-grid"></div>
     <div class="feats-note">Click a feat to unlock it. Each feat costs 1 Grit to use in combat.</div>
+  </div>
+
+
+  <!-- HERO ADVANCEMENTS -->
+  <div class="section" id="hero-adv-section">
+    <div class="section-title">💪 Hero Advancements</div>
+    <div class="hadv-pool-row">
+      <span class="hadv-pool-badge">Pool: <span id="hero-adv-pool">0</span> pt</span>
+      <span style="font-size:11px;color:var(--dim)">Spend advancement points to equip abilities. Buy new or swap anytime.</span>
+    </div>
+    <div class="hadv-grid" id="hero-adv-grid"></div>
   </div>
 
   <!-- TRAITS & DRIVES -->
@@ -1426,8 +1469,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 <!-- ADVANCE MODAL -->
 <div id="advance-modal" class="modal-overlay advance-modal">
   <div class="modal-box" style="position:relative">
-    <button class="modal-close" onclick="closeAdvanceModal()">✕</button>
-    <button style="position:absolute;top:12px;right:46px;background:transparent;border:none;color:var(--dim);font-size:16px;cursor:pointer;transition:color .18s;line-height:1" title="Minimize" onclick="minimizeAdvanceModal()">—</button>
+    <button style="position:absolute;top:12px;right:16px;background:transparent;border:none;color:var(--dim);font-size:18px;cursor:pointer;transition:color .18s;line-height:1;padding:2px 6px" title="Minimize" onclick="minimizeAdvanceModal()">—</button>
     <div id="advance-modal-content"></div>
   </div>
 </div>
@@ -2379,8 +2421,16 @@ function updateAllLocks(){document.querySelectorAll('.node').forEach(n=>{if(unlo
 
 function toggleNode(el){
   const id=el.id;
-  if(el.classList.contains('locked')){showPrereqModalUI(el);return;}
-  // Read-only — just show the detail panel, mark as selected
+  if(el.classList.contains('locked')){
+    if(markupMode){cycleNodeInMarkup(id,el);}
+    else{showPrereqModalUI(el);}
+    return;
+  }
+  if(markupMode){
+    cycleNodeInMarkup(id,el);
+    return;
+  }
+  // Normal play — read-only, just open detail panel
   document.querySelectorAll('.node.reading').forEach(n=>{if(n!==el)n.classList.remove('reading');});
   el.classList.toggle('reading');
   showNodeDetail(id,el);
@@ -2436,7 +2486,7 @@ async function cycleNodeInMarkup(id,el){
   const lvl=nodeLevels[id]||0;
 
   if(!isUnlocked){
-    // Unlock it at level 0
+    // In markup mode: unlock regardless of prereqs
     unlockedPowers.add(id);
     nodeLevels[id]=0;
     el.classList.remove('avail','locked');el.classList.add('unlocked');
@@ -2709,8 +2759,9 @@ function setMarkupMode(on){
   document.body.classList.toggle('markup', on);
   const banner = document.getElementById('markup-banner');
   if(banner) banner.classList.toggle('vis', on);
-  // Rebuild skill grid so boxes pick up / lose markup click handlers
-  buildSkillsGrid();
+  buildSkillsGrid();       // skill boxes pick up / lose markup click handlers
+  buildStatPips();          // momentum track pips pick up / lose markup handlers
+  applyPowerStates();       // node badges pick up / lose markup click handlers
 }
 
 
@@ -2904,7 +2955,7 @@ function showAdvanceModal(){
     +'<div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px">Choose one advancement:</div>'
     +'<div class="advance-option" onclick="advanceSkill()"><h4>📈 New Skill Point</h4><p>Add one check to any skill — increases your dice pool, Mortality, and Favor max.</p></div>'
     +'<div class="advance-option" onclick="showAdvanceFeats()"><h4>⚔ New Combat or Defense Feat</h4><p>Unlock one feat you don\'t yet have.</p></div>'
-    +'<div class="advance-option" onclick="showAdvancePowers()"><h4>✨ New Divine Power</h4><p>Unlock a power in your playbook, or level up an existing one.</p></div>';
+    +'<div class="advance-option" onclick="showAdvancePowers()"><h4>✨ New Divine Power</h4><p>Unlock a power in your playbook, or level up an existing one.</p></div>'+'<div class="advance-option" onclick="advanceHeroPool()"><h4>💪 Hero Pool +1</h4><p>Bank this point to buy or upgrade a Hero Advancement anytime.</p></div>';
   modal.classList.add('vis');
 }
 function closeAdvanceModal(){
@@ -3209,7 +3260,8 @@ async function loadExtended(){
     loadFeats(),
     loadTraitsAndDrives(),
     loadAdvancement(),
-    loadJurySession()
+    loadJurySession(),
+    loadHeroAdvancements()
   ]);
 }
 
@@ -4470,6 +4522,249 @@ async function castJuryVote(queueItemId,vote){
   showToast(vote?'Voted Yes':'Voted No');
   await updateJuryOverlay();
 }
+
+// ── HERO ADVANCEMENTS ──
+const HERO_ADVANCES=[
+  // COMBAT
+  {id:'tough_hide',    name:'Tough Hide',        cost:1, cat:'combat',    type:'passive', desc:'Permanent +3 Armor.'},
+  {id:'iron_skin',     name:'Iron Skin',          cost:2, cat:'combat',    type:'passive', desc:'Permanent +5 Armor.'},
+  {id:'gritty',        name:'Gritty',             cost:1, cat:'combat',    type:'passive', desc:'Add one permanent slot to your Grit track.'},
+  {id:'prepared',      name:'Prepared',           cost:1, cat:'combat',    type:'passive', desc:'Advantage on first-round initiative rolls.'},
+  {id:'hard_headed',   name:'Hard-Headed',        cost:2, cat:'combat',    type:'passive', desc:'Once per scene: when you would drop to 0 HP, stay at 1 HP instead.'},
+  {id:'tough_act',     name:'Tough',              cost:2, cat:'combat',    type:'passive', desc:'Spend 2 Grit to gain an extra Action in combat.'},
+  {id:'active',        name:'Active',             cost:3, cat:'combat',    type:'passive', desc:'Spend 2 Grit for an additional Action each combat round.'},
+  {id:'support',       name:'Support',            cost:2, cat:'combat',    type:'passive', desc:'When helping an ally in combat, spend 2 Bond to grant +2 dice instead of +1.'},
+  {id:'allies_arms',   name:'Allies in Arms',     cost:2, cat:'combat',    type:'passive', desc:'Freely give your Grit points to allies.'},
+  {id:'pack_tactics',  name:'Pack Tactics',       cost:2, cat:'combat',    type:'passive', desc:'When 2+ allies attack the same target, each gets +1 die.'},
+  {id:'natural_leader',name:'Natural Leader',     cost:3, cat:'combat',    type:'passive', desc:'Allies who can hear you gain +1 die on their first roll each scene.'},
+  {id:'unkillable',    name:'Unkillable',         cost:3, cat:'combat',    type:'passive', desc:'Your Mortality increases by 3 permanently.'},
+  {id:'practicing',    name:"I've Been Practicing",cost:1,cat:'combat',   type:'passive', desc:'Spend 2 Wisdom instead of 1 Grit to use a Combat Feat.'},
+  {id:'intercept_ha',  name:'Intercept',          cost:2, cat:'combat',    type:'passive', desc:'Gain Combat Feat "Intercept" — take all harm meant for a nearby ally.'},
+  {id:'riposte_ha',    name:'Riposte',            cost:2, cat:'combat',    type:'passive', desc:'After a successful Parry, immediately counterattack for half Harm as a free Defense Feat.'},
+  {id:'analytical',    name:'Analytical',         cost:2, cat:'combat',    type:'active',  resource:null, desc:'Gain Combat Action "Analyze Enemy." On your turn, study a target to learn one tactical fact (weakness, plan, or vulnerability) — no roll.', dm_prompt:'Player is analyzing an enemy. Tell them one useful tactical fact: a weakness, what the enemy is planning this round, or something that can hurt them.'},
+  {id:'allies_act',    name:'Allies',             cost:3, cat:'combat',    type:'passive', desc:'At the start of a combat round, give one of your Actions to another player. This is not itself an Action.'},
+  // NARRATIVE
+  {id:'body_language', name:'Body Language',      cost:1, cat:'narrative', type:'active',  resource:'bond', resource_cost:1, desc:'Spend 1 Bond to sense whether someone is lying or glimpse their concealed emotions and motivations.', dm_prompt:'Player is reading this person. Tell them honestly: are they lying? What emotion is underneath? What do they actually want?'},
+  {id:'study',         name:'Study',              cost:1, cat:'narrative', type:'active',  resource:'bond', resource_cost:1, desc:'In a library, archive, or place of knowledge, spend 1 Bond to ask the Weaver one yes/no question.', dm_prompt:'Player is researching. Answer their yes/no question honestly based on what could be found here.'},
+  {id:'eagle_eyes',    name:'Eagle Eyes',         cost:1, cat:'narrative', type:'passive', desc:'+1 Search die (max 5) when looking for hidden things, clues, or visual details.'},
+  {id:'intimidating',  name:'Intimidating',       cost:1, cat:'narrative', type:'passive', desc:'+1 Intimidate die (max 5) when threatening, dominating, or facing someone down.'},
+  {id:'under_radar',   name:'Under the Radar',    cost:1, cat:'narrative', type:'passive', desc:'When using a disguise or cover identity, +1 die to Sneak and Persuade rolls.'},
+  {id:'resourceful',   name:'Resourceful',        cost:1, cat:'narrative', type:'active',  resource:null, desc:'Once per scene, declare you have one mundane item you could have reasonably prepared for this situation. The Weaver confirms it.', dm_prompt:'Player declares they prepared a mundane item. Confirm if it is plausible given the situation — if yes, they have it.'},
+  {id:'read_room',     name:'Read the Room',      cost:2, cat:'narrative', type:'active',  resource:null, desc:'Once per scene, ask the Weaver: "What does this group want most right now?" No roll required.', dm_prompt:'Player is reading the group. Answer: what does this group want most right now? Be honest and specific.'},
+  {id:'silver_tongue', name:'Silver Tongue',      cost:2, cat:'narrative', type:'active',  resource:'wisdom', resource_cost:1, desc:'Once per scene, spend 1 Wisdom to reroll one failed Persuade or Charm roll.', dm_prompt:'Player is invoking Silver Tongue. They will reroll their Persuade or Charm — let them proceed.'},
+  {id:'street_smart',  name:'Street Smart',       cost:2, cat:'narrative', type:'passive', desc:'In urban environments: +1 die to Sneak, Deceive, and Notice rolls.'},
+  {id:'quick_learner', name:'Quick Learner',      cost:2, cat:'narrative', type:'active',  resource:'wisdom', resource_cost:1, desc:'Once per session, spend 1 Wisdom to ask the Weaver to confirm or deny one assumption you have about the current situation.', dm_prompt:'Player is using Quick Learner. They will state an assumption — answer honestly: true or false?'},
+];
+
+let heroSlots={};    // slot index (0-7) -> advancement_id or null
+let heroPool=0;      // unspent pool points
+
+async function loadHeroAdvancements(){
+  const{data}=await db.from('hero_advancements').select('*').eq('character_id',CHAR_ID);
+  heroSlots={};
+  if(data) data.forEach(r=>{heroSlots[r.slot]=r.advancement_id;});
+  heroPool=charData.hero_adv_pool||0;
+  renderHeroAdvancements();
+}
+
+function renderHeroAdvancements(){
+  const grid=document.getElementById('hero-adv-grid');
+  const poolEl=document.getElementById('hero-adv-pool');
+  if(!grid) return;
+  heroPool=charData.hero_adv_pool||0;
+  if(poolEl) poolEl.textContent=heroPool;
+
+  grid.innerHTML='';
+  for(let slot=0;slot<8;slot++){
+    const advId=heroSlots[slot]||null;
+    const adv=advId?HERO_ADVANCES.find(a=>a.id===advId):null;
+    const card=document.createElement('div');
+    card.className='hadv-card'+(adv?' hadv-filled':'');
+
+    if(adv){
+      const typeIcon=adv.type==='passive'?'&#9733;':'&#9654;';
+      const catColor=adv.cat==='combat'?'#f87171':'#60a5fa';
+      const costStr=adv.cost+'pt';
+      card.innerHTML=
+        '<div class="hadv-header">'
+        +'<span class="hadv-icon" style="color:'+catColor+'">'+typeIcon+'</span>'
+        +'<span class="hadv-name">'+adv.name+'</span>'
+        +'<span class="hadv-cost">'+costStr+'</span>'
+        +(markupMode?'<button class="hadv-remove-btn" title="Remove">&#10005;</button>':'')
+        +'</div>'
+        +'<div class="hadv-desc">'+adv.desc+'</div>'
+        +(adv.type==='active'
+          ?('<div class="hadv-use-row"><button class="hadv-use-btn">&#9654; Use'
+            +(adv.resource&&adv.resource_cost?' \u2014 '+adv.resource_cost+' '+adv.resource.charAt(0).toUpperCase()+adv.resource.slice(1):'')
+            +'</button></div>')
+          :'');
+
+      // Attach events after innerHTML
+      if(adv.type==='active'){
+        const useBtn=card.querySelector('.hadv-use-btn');
+        if(useBtn){
+          const capturedId=adv.id;
+          const capturedSlot=slot;
+          useBtn.onclick=function(){useHeroAdvancement(capturedId,capturedSlot);};
+        }
+      }
+      if(markupMode){
+        const remBtn=card.querySelector('.hadv-remove-btn');
+        if(remBtn){
+          const capturedSlot=slot;
+          remBtn.onclick=function(e){e.stopPropagation();removeHeroAdvancement(capturedSlot);};
+        }
+      }
+    } else {
+      const canBrowse=heroPool>0||markupMode;
+      const emptyDiv=document.createElement('div');
+      emptyDiv.className='hadv-empty';
+      emptyDiv.innerHTML='<span class="hadv-empty-icon">+</span><span class="hadv-empty-label">'+(canBrowse?'Browse':'Empty Slot')+'</span>';
+      if(canBrowse){
+        const capturedSlot=slot;
+        emptyDiv.onclick=function(){browseHeroAdvancements(capturedSlot);};
+      } else {
+        emptyDiv.onclick=function(){showToast('Add points to Hero Pool first');};
+      }
+      card.appendChild(emptyDiv);
+    }
+    grid.appendChild(card);
+  }
+}
+
+function browseHeroAdvancements(targetSlot){
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  heroPool=charData.hero_adv_pool||0;
+
+  // Group by category
+  const taken=new Set(Object.values(heroSlots).filter(Boolean));
+  const combat=HERO_ADVANCES.filter(a=>a.cat==='combat'&&!taken.has(a.id));
+  const narrative=HERO_ADVANCES.filter(a=>a.cat==='narrative'&&!taken.has(a.id));
+
+  function renderGroup(label, items){
+    if(!items.length) return '';
+    return '<div class="hadv-browse-group">'
+      +'<div class="hadv-browse-label">'+label+'</div>'
+      +items.map(a=>{
+        const canAfford=heroPool>=a.cost||markupMode;
+        return '<div class="hadv-browse-item'+(canAfford?'':' hadv-browse-dim')+'" onclick="'+(canAfford?`buyHeroAdvancement('${a.id}',${targetSlot})`:`showToast('Need ${a.cost} pool points — have ${heroPool}')`)+'">'
+          +'<div class="hadv-browse-row">'
+          +'<span class="hadv-browse-name">'+a.name+'</span>'
+          +'<span class="hadv-browse-cost hadv-cost">'+a.cost+'pt</span>'
+          +'</div>'
+          +'<div class="hadv-browse-desc">'+a.desc+'</div>'
+          +(canAfford?'':'<div class="hadv-browse-need">Need '+a.cost+' pts — have '+heroPool+'</div>')
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }
+
+  content.innerHTML=
+    '<div style="font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:4px">Hero Advancement</div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pool: <strong style="color:var(--gold)">'+heroPool+' pt'+(heroPool!==1?'s':'')+'</strong> available</div>'
+    +'<div style="max-height:420px;overflow-y:auto">'
+    +renderGroup('⚔ Combat',combat)
+    +renderGroup('◈ Narrative',narrative)
+    +'</div>'
+    +'<button class="add-cond-btn" style="margin-top:10px" onclick="closeRollModal()">Cancel</button>';
+  modal.classList.add('vis');
+}
+
+async function buyHeroAdvancement(advId, slot){
+  heroPool=charData.hero_adv_pool||0;
+  const adv=HERO_ADVANCES.find(a=>a.id===advId);
+  if(!adv){showToast('Advancement not found');return;}
+  if(!markupMode&&heroPool<adv.cost){showToast('Not enough Hero Pool points');return;}
+
+  // Remove any existing advancement in this slot
+  const existing=heroSlots[slot];
+  if(existing){
+    await db.from('hero_advancements').delete().eq('character_id',CHAR_ID).eq('slot',slot);
+  }
+
+  // Upsert new advancement
+  await db.from('hero_advancements').upsert({character_id:CHAR_ID,slot,advancement_id:advId,updated_at:new Date().toISOString()});
+  heroSlots[slot]=advId;
+
+  // Deduct from pool (skip deduction in markup mode)
+  if(!markupMode){
+    const newPool=Math.max(0,heroPool-adv.cost);
+    charData.hero_adv_pool=newPool;
+    await db.from('characters').update({hero_adv_pool:newPool,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+  }
+
+  closeRollModal();
+  renderHeroAdvancements();
+  showToast(adv.name+' equipped!');
+}
+
+async function removeHeroAdvancement(slot){
+  const advId=heroSlots[slot];
+  if(!advId) return;
+  await db.from('hero_advancements').delete().eq('character_id',CHAR_ID).eq('slot',slot);
+  heroSlots[slot]=null;
+  renderHeroAdvancements();
+  showToast('Advancement removed.');
+}
+
+async function useHeroAdvancement(advId, slot){
+  const adv=HERO_ADVANCES.find(a=>a.id===advId);
+  if(!adv||adv.type!=='active') return;
+
+  // Deduct resource if any
+  if(adv.resource&&adv.resource_cost){
+    const track=adv.resource;
+    const cur=charData[track]||0;
+    if(cur<adv.resource_cost){showToast('Not enough '+track);return;}
+    const newVal=cur-adv.resource_cost;
+    charData[track]=newVal;
+    buildStatPips();
+    await db.from('characters').update({[track]:newVal,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+    await logMomentumChange(track,cur,newVal,track+' spent for '+adv.name);
+  }
+
+  // Notify DM
+  await db.from('ability_log').insert({
+    character_id:CHAR_ID,
+    ability_name:adv.name,
+    ability_meta:'Hero Advancement · '+(adv.cat==='combat'?'Combat':'Narrative'),
+    cost_str:adv.resource&&adv.resource_cost?('-'+adv.resource_cost+' '+adv.resource):'Free',
+    created_at:new Date().toISOString()
+  });
+
+  // If in combat, write a DM-facing action card with the dm_prompt
+  if(typeof combatSessionData!=='undefined'&&combatSessionData&&adv.dm_prompt){
+    const richLabel=JSON.stringify({
+      type:'ability',
+      name:adv.name,
+      meta:'Hero Advancement · '+(adv.cat==='combat'?'Combat':'Narrative'),
+      skill:null, dice:[], highest:null,
+      outcomeClass:'success', outcomeLabel:'Used',
+      outcomeText:adv.desc,
+      damageDie:null, damageRoll:null, favorCost:0, roll:null,
+      passive_prompt:adv.dm_prompt, isPassive:true
+    });
+    await db.from('combat_actions').insert({
+      session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
+      action_type:'ability',action_label:richLabel,resolved:false
+    });
+  }
+
+  showToast(adv.name+' — Weaver notified');
+}
+
+async function advanceHeroPool(){
+  // Bank an advancement point into the Hero Pool
+  heroPool=(charData.hero_adv_pool||0)+1;
+  charData.hero_adv_pool=heroPool;
+  await db.from('characters').update({hero_adv_pool:heroPool,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+  closeAdvanceModal();
+  completeAdvance();
+  renderHeroAdvancements();
+  showToast('Hero Pool: +1 point (now '+heroPool+')');
+}
+
 // ── BOOT ──
 init().catch(e=>{console.error(e);setSyncDot(false);});
 </script>
