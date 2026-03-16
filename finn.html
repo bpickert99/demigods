@@ -158,6 +158,15 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .co-target-btn{width:100%;padding:8px 12px;border-radius:4px;border:1px solid #c4a87a;background:rgba(255,248,235,.8);color:#2c1a08;font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;transition:all .18s;text-align:left;margin-bottom:4px}
 .co-target-btn:hover{border-color:#8b4513;background:#fdf6e8}
 .co-rushed-warning{padding:7px 10px;background:#8b251015;border:1px solid #8b250040;border-radius:4px;font-size:11px;color:#c0392b;margin-bottom:8px;text-align:center}
+.co-ability-list{display:flex;flex-direction:column;gap:7px;max-height:340px;overflow-y:auto;padding-right:2px;margin-top:4px}
+.co-ability-card{width:100%;padding:10px 12px;border-radius:6px;border:1px solid #c4a87a;background:rgba(255,248,235,.85);color:#2c1a08;text-align:left;cursor:pointer;transition:all .18s}
+.co-ability-card:hover:not([disabled]){border-color:#8b4513;background:#fdf6e8;transform:translateY(-1px)}
+.co-ability-card[disabled]{opacity:.4;cursor:not-allowed;transform:none}
+.co-ab-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;gap:8px}
+.co-ab-name{font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:#5c2d0a;flex:1}
+.co-ab-cost{font-size:9px;padding:1px 7px;border-radius:8px;background:#d4a84b20;border:1px solid #d4a84b60;color:#8b6340;white-space:nowrap;flex-shrink:0}
+.co-ab-meta{font-size:9px;color:#7a5c2e;margin-bottom:4px;letter-spacing:.3px}
+.co-ab-preview{font-size:10px;color:#5c4020;font-family:'Crimson Pro',serif;font-style:italic;line-height:1.4}
 
 /* ── REACTION POPUP ── */
 .co-reaction-popup{display:none;position:absolute;inset:0;z-index:10;background:rgba(4,3,2,.88);backdrop-filter:blur(2px);align-items:center;justify-content:center;border-radius:10px}
@@ -632,7 +641,7 @@ body.markup .power-node:hover .pn-name{color:var(--gold) !important}
 footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:4px}
 
 /* ── COMBAT OVERLAY ── */
-.combat-overlay{display:none;position:fixed;inset:0;z-index:150;background:rgba(4,3,2,.82);backdrop-filter:blur(4px);flex-direction:column;align-items:center;justify-content:flex-start;padding:20px 12px;overflow-y:auto}
+.combat-overlay{display:none;position:fixed;inset:0;z-index:150;background:rgba(4,3,2,.82);backdrop-filter:blur(4px);flex-direction:column;align-items:flex-start;justify-content:flex-start;padding:20px 12px;overflow-y:auto}
 .combat-overlay.vis{display:flex}
 .combat-overlay.minimized{display:block;position:fixed;inset:auto;bottom:0;right:0;width:0;height:0;background:transparent;backdrop-filter:none;overflow:visible;padding:0}
 .combat-overlay.minimized .co-box{display:none}
@@ -640,7 +649,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 .co-minimized-bar{display:none;position:fixed;bottom:16px;right:16px;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(135deg,#fdf6e8,#f5e6c8);border:2px solid #8b6340;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5);cursor:pointer;z-index:151}
 .co-minimized-label{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:#2c1a08;text-transform:uppercase}
 .co-minimized-badge{background:#ef4444;color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 6px;font-family:'Cinzel',serif}
-.co-box{width:100%;max-width:800px;background:linear-gradient(160deg,#fdf6e8,#f5e6c8);border:2px solid #8b6340;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:hidden}
+.co-box{width:100%;max-width:800px;background:linear-gradient(160deg,#fdf6e8,#f5e6c8);border:2px solid #8b6340;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:visible;margin:0 auto}
 .co-header{display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(135deg,#8b4513,#5c2d0a);border-bottom:2px solid #c4a87a}
 .co-title{font-family:'Cinzel Decorative',serif;font-size:17px;color:#fef3c7;letter-spacing:2px}
 .co-round{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;color:#d4b896;text-transform:uppercase;margin-left:auto}
@@ -3021,6 +3030,7 @@ let myQueueItem=null;
 let combatQueueData=[];
 let combatParticipantsAll=[];
 let gritResultShowing=false; // true for 3.2s after rolling initiative — prevents premature hide
+let actionSubmittedThisTurn=false; // true after player locks in action — hides panel until next turn
 
 async function loadCombatState(){
   const{data:_dsRows}=await db.from('dm_settings').select('combat_active,combat_session_id').eq('id',1).limit(1);
@@ -3077,7 +3087,7 @@ function updateCombatOverlay(){
     // Pre-roll state: show dice count, hide any previous result
     const grit=charData.grit||0;
     const dc=document.getElementById('co-grit-dice-display');
-    if(dc) dc.textContent=`${grit}d6`;
+    if(dc) dc.textContent=grit===0?'2d6 — take lower':`${grit}d6`;
     document.getElementById('co-grit-roll-result').style.display='none';
   }
 
@@ -3131,10 +3141,14 @@ function updateCombatOverlay(){
   const actionPanel=document.getElementById('co-action-panel');
   if(actionPanel){
     const noActions=combatParticipantData&&combatParticipantData.actions_used>=combatParticipantData.actions_max;
-    // Block action panel while init result is still showing, even if gritRolled flipped
     const waitingForInit=(isRound1&&!gritRolled)||gritResultShowing;
-    actionPanel.style.display=(isMyTurn&&!noActions&&!waitingForInit)?'block':'none';
-    if(isMyTurn&&!noActions&&!waitingForInit) buildCombatActionGrid();
+    // Reset submit lock when it's no longer this player's turn
+    if(!isMyTurn) actionSubmittedThisTurn=false;
+    const showActions=isMyTurn&&!noActions&&!waitingForInit&&!actionSubmittedThisTurn;
+    // Only rebuild the grid when transitioning from hidden → shown (avoids resetting subpanels on every subscription fire)
+    const wasHidden=actionPanel.style.display==='none';
+    actionPanel.style.display=showActions?'block':'none';
+    if(showActions&&wasHidden) buildCombatActionGrid();
   }
 
   // Join button
@@ -3203,13 +3217,17 @@ function renderCombatInventory(){
   });
 }
 async function rollGritInitiative(){
-  const grit=Math.max(1,charData.grit||0);
-  const dice=Array.from({length:grit},()=>Math.ceil(Math.random()*6));
-  const highest=Math.max(...dice);
-  let actions=highest>=6?3:highest>=4?2:1;
-  const outcome=highest>=6?'Success — 3 Actions!':highest>=4?'Mixed — 2 Actions':'Fail — 1 Action';
+  const grit=charData.grit||0;
+  const isZeroGrit=grit===0;
+  // 0 Grit: roll 2d6 take lower. Otherwise roll Grit dice take highest.
+  const diceCount=isZeroGrit?2:grit;
+  const dice=Array.from({length:diceCount},()=>Math.ceil(Math.random()*6));
+  const relevant=isZeroGrit?Math.min(...dice):Math.max(...dice);
+  let actions=relevant>=6?3:relevant>=4?2:1;
+  const outcome=relevant>=6?'Success — 3 Actions!':relevant>=4?'Mixed — 2 Actions':'Fail — 1 Action';
   const resEl=document.getElementById('co-grit-roll-result');
-  resEl.textContent=`${dice.join(', ')} → ${outcome}`;
+  const rollLabel=isZeroGrit?`${dice.join(', ')} (lower) → ${outcome}`:`${dice.join(', ')} → ${outcome}`;
+  resEl.textContent=rollLabel;
   resEl.style.display='block';
   // Update participant row
   if(combatParticipantData){
@@ -3254,29 +3272,31 @@ function buildCombatActionGrid(){
   const hasClose=tags.some(t=>t.includes('close'));
   const hasFar=tags.some(t=>t.includes('far'));
   const hasIntimate=tags.some(t=>t.includes('intimate'));
-  const hasReach=tags.some(t=>t.includes('reach'));
   const attackCount=(combatParticipantData?.actions_used||0);
   const hasMultipleWeapons=inventoryData.filter(i=>i.is_weapon).length>1;
+  const grit=charData.grit||0;
+
+  // Range-eligible combat feats (hidden entirely if weapon doesn't qualify)
+  const eligibleFeats=FEATS.filter(f=>{
+    if(!f.type==='combat'||!unlockedFeats.has(f.id)) return false;
+    if(f.id==='cleave') return hasClose;
+    if(f.id==='cover_shot') return hasFar;
+    if(f.id==='disarm') return hasClose||hasIntimate;
+    if(f.id==='stun') return hasClose;
+    return true;
+  });
 
   const actions=[
-    {icon:'⚔',label:'Attack',desc:'Roll weapon damage',cost:attackCount>0?'Rushed (Disadvantage)':'',onclick:()=>showAttackFlow(attackCount>0)},
+    {icon:'⚔',label:'Attack',desc:equipped?`${equipped.name}${attackCount>0?' — Rushed':''}`:`Unarmed (1d4 harm)${attackCount>0?' — Rushed':''}`,cost:attackCount>0?'Disadvantage':'',onclick:()=>showAttackFlow(attackCount>0)},
     {icon:'🏃',label:'Move',desc:'Reposition in scene',cost:'',onclick:()=>showMoveFlow()},
     {icon:'🔍',label:'Scope',desc:'Investigate surroundings',cost:'',onclick:()=>submitCombatAction('scope','Scope the surroundings')},
     {icon:'🎒',label:'Use Item',desc:'Use inventory item or interact with scene object',cost:'',onclick:()=>showItemFlow()},
-    {icon:'✨',label:'Use Ability',desc:'Hero or divine ability',cost:'Uses Favor for divine',onclick:()=>submitCombatAction('ability','Use ability — switching to playbook tab')},
+    {icon:'✨',label:'Use Ability',desc:'Trigger a divine or hero power',cost:'',onclick:()=>showAbilityFlow()},
   ];
   if(hasMultipleWeapons) actions.push({icon:'🔄',label:'Swap Weapon',desc:'Switch equipped weapon',cost:'',onclick:()=>showSwapWeaponFlow()});
-
-  // Combat feats (filtered by range)
-  FEATS.filter(f=>f.type==='combat'&&unlockedFeats.has(f.id)).forEach(f=>{
-    let available=true;
-    if(f.id==='cleave'&&!hasClose) available=false;
-    if(f.id==='cover_shot'&&!hasFar) available=false;
-    if(f.id==='disarm'&&!hasClose&&!hasIntimate) available=false;
-    if(f.id==='stun'&&!hasClose) available=false;
-    const grit=charData.grit||0;
-    actions.push({icon:'⚡',label:f.name,desc:f.desc,cost:'1 Grit',disabled:!available||(grit<=0),onclick:()=>showFeatFlow(f)});
-  });
+  if(eligibleFeats.length){
+    actions.push({icon:'⚡',label:'Combat Feat',desc:`${eligibleFeats.length} available`,cost:'1 Grit each',disabled:grit<=0,onclick:()=>showFeatSubPanel()});
+  }
 
   actions.forEach(a=>{
     const btn=document.createElement('button');
@@ -3298,8 +3318,8 @@ function showAttackFlow(isRushed){
 }
 async function executeAttack(targetId,targetType,targetName,isRushed){
   const equipped=getEquippedWeapon();
-  if(!equipped){showToast('No weapon equipped');return;}
-  const harmTag=(equipped.tags||[]).find(t=>/\dd\d|\d+harm/i.test(t))||'1d6';
+  const weaponName=equipped?equipped.name:'Unarmed';
+  const harmTag=equipped?(equipped.tags||[]).find(t=>/\dd\d|\d+harm/i.test(t))||'1d6':'1d4';
   const dieMatch=harmTag.match(/(\d+)d(\d+)/i);
   let result;
   if(dieMatch){
@@ -3315,10 +3335,11 @@ async function executeAttack(targetId,targetType,targetName,isRushed){
   }
   await db.from('combat_actions').insert({
     session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-    action_type:'attack',action_label:`Attacks ${targetName} with ${equipped.name}`,
+    action_type:'attack',action_label:`Attacks ${targetName} with ${weaponName}`,
     target_id:targetId,target_type:targetType,target_name:targetName,
     harm_dealt:result,resolved:false
   });
+  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast(`Attack on ${targetName}: ${result} harm — waiting for DM`);
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3334,6 +3355,7 @@ function showMoveFlow(){
 async function submitMoveAction(){
   const desc=document.getElementById('co-move-desc')?.value||'Moving';
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'move',action_label:desc,resolved:false});
+  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast('Move submitted');
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3352,6 +3374,7 @@ function showItemFlow(){
 async function submitSceneInteract(){
   const obj=document.getElementById('co-scene-obj')?.value||'Scene object';
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'item',action_label:`Interacts with: ${obj}`,resolved:false});
+  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast('Interaction submitted');
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3370,11 +3393,105 @@ async function swapWeapon(itemId){
     w.equipped=w.id===itemId;
   }
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'swap_weapon',action_label:`Swapped weapon`,resolved:false});
+  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   renderInventory();renderCombatWeapon();
   showToast('Weapon swapped');
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
 }
+// ── ABILITY SUBPANEL ──
+function showAbilityFlow(){
+  const inner=document.getElementById('co-action-panel-inner');if(!inner)return;
+  const favor=charData.favor_current||0;
+  const entries=[...unlockedPowers].map(id=>{
+    const nd=ND[id];if(!nd)return null;
+    const costMatch=nd.meta.match(/(\d+)\s+Favor/);
+    const cost=costMatch?parseInt(costMatch[1]):0;
+    return{id,nd,cost};
+  }).filter(Boolean).sort((a,b)=>a.nd.meta.localeCompare(b.nd.meta));
+
+  if(!entries.length){
+    inner.innerHTML=`<button class="co-action-back" onclick="buildCombatActionGrid()">← Back</button><div class="co-action-title">✨ Use Ability</div><div style="color:#7a5c2e;font-size:12px;font-style:italic;padding:8px">No abilities unlocked yet.</div>`;
+    return;
+  }
+
+  const cards=entries.map(({id,nd,cost})=>{
+    const canAfford=favor>=cost||cost===0;
+    const isPassive=nd.content.type==='passive';
+    const trigger=nd.content.trigger||'';
+    const desc=nd.content.desc||'';
+    const preview=(trigger||desc).replace(/<[^>]+>/g,'').slice(0,90).trim();
+    const costBadge=cost?`<span class="co-ab-cost">${cost} Favor</span>`:isPassive?`<span class="co-ab-cost" style="background:transparent;border-color:#7a5c2e60;color:#7a5c2e">Passive</span>`:'';
+    const noFavorHint=(!canAfford&&cost>0)?`<div style="font-size:9px;color:#c0392b;margin-top:3px">Need ${cost} Favor (have ${favor})</div>`:'';
+    return `<button class="co-ability-card" ${(!canAfford&&cost>0)?'disabled':''} onclick="useCombatAbility('${id}',${cost})">
+      <div class="co-ab-header"><span class="co-ab-name">${nd.name}</span>${costBadge}</div>
+      <div class="co-ab-meta">${nd.meta}</div>
+      ${preview?`<div class="co-ab-preview">${preview}…</div>`:''}
+      ${noFavorHint}
+    </button>`;
+  }).join('');
+
+  inner.innerHTML=`
+    <button class="co-action-back" onclick="buildCombatActionGrid()">← Back</button>
+    <div class="co-action-title">✨ Use Ability <span style="font-size:10px;color:#7a5c2e;font-family:'Inter',sans-serif;font-weight:400">${favor} Favor remaining</span></div>
+    <div class="co-ability-list">${cards}</div>`;
+}
+
+async function useCombatAbility(nodeId,cost){
+  await useFavor(cost,nodeId);
+  const powerName=ND[nodeId]?.name||nodeId;
+  if(combatSessionData){
+    await db.from('combat_actions').insert({
+      session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
+      action_type:'ability',action_label:`Used: ${powerName}`,resolved:false
+    });
+    if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
+  }
+  actionSubmittedThisTurn=true;
+  actionSubmittedThisTurn=true;
+  document.getElementById('co-action-panel').style.display='none';
+}
+
+// ── FEAT SUBPANEL ──
+function showFeatSubPanel(){
+  const inner=document.getElementById('co-action-panel-inner');if(!inner)return;
+  const equipped=getEquippedWeapon();
+  const tags=equipped?(equipped.tags||[]).map(t=>t.toLowerCase()):[];
+  const hasClose=tags.some(t=>t.includes('close'));
+  const hasFar=tags.some(t=>t.includes('far'));
+  const hasIntimate=tags.some(t=>t.includes('intimate'));
+  const grit=charData.grit||0;
+  const targets=combatParticipantsAll.filter(p=>p.participant_id!==CHAR_ID&&p.is_active&&!p.is_dead);
+
+  const feats=FEATS.filter(f=>f.type==='combat'&&unlockedFeats.has(f.id)).filter(f=>{
+    if(f.id==='cleave') return hasClose;
+    if(f.id==='cover_shot') return hasFar;
+    if(f.id==='disarm') return hasClose||hasIntimate;
+    if(f.id==='stun') return hasClose;
+    return true;
+  });
+
+  if(!feats.length){
+    inner.innerHTML=`<button class="co-action-back" onclick="buildCombatActionGrid()">← Back</button><div class="co-action-title">⚡ Combat Feats</div><div style="color:#7a5c2e;font-size:12px;font-style:italic;padding:8px">No feats available with your current weapon.</div>`;
+    return;
+  }
+
+  const noGrit=grit<=0;
+  const tgtBtns=(featId,featName)=>targets.map(t=>`<button class="co-target-btn" style="font-size:11px;padding:5px 10px;margin:2px" onclick="executeFeat('${featId}','${featName}','${t.participant_id}','${t.participant_type}','${t.participant_name}')">${t.participant_type==='npc'?'👹':'🧑'} ${t.participant_name}</button>`).join('');
+
+  const cards=feats.map(f=>`
+    <div class="co-ability-card" style="${noGrit?'opacity:.45;pointer-events:none':''}">
+      <div class="co-ab-header"><span class="co-ab-name">${f.name}</span><span class="co-ab-cost">1 Grit</span></div>
+      <div class="co-ab-meta" style="margin-bottom:6px">${f.desc}</div>
+      ${noGrit?'<div style="font-size:9px;color:#c0392b">No Grit remaining</div>':`<div style="display:flex;flex-wrap:wrap;gap:4px">${tgtBtns(f.id,f.name)}</div>`}
+    </div>`).join('');
+
+  inner.innerHTML=`
+    <button class="co-action-back" onclick="buildCombatActionGrid()">← Back</button>
+    <div class="co-action-title">⚡ Combat Feats <span style="font-size:10px;color:#7a5c2e;font-family:'Inter',sans-serif;font-weight:400">${grit} Grit remaining</span></div>
+    <div class="co-ability-list">${cards}</div>`;
+}
+
 function showFeatFlow(feat){
   const inner=document.getElementById('co-action-panel-inner');if(!inner)return;
   // Feats that need a target
@@ -3410,6 +3527,7 @@ async function executeFeat(featId,featName,targetId,targetType,targetName){
   } else {
     await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'feat',action_label:`${featName} on ${targetName}${extraLabel}`,target_id:targetId,target_type:targetType,target_name:targetName,harm_dealt:harm||null,resolved:false});
   }
+  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast(`${featName} on ${targetName} — waiting for DM`);
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3417,6 +3535,7 @@ async function executeFeat(featId,featName,targetId,targetType,targetName){
 async function submitCombatAction(type,label){
   if(!combatSessionData)return;
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:type,action_label:label,resolved:false});
+  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast(`Action submitted: ${label}`);
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
