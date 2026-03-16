@@ -1230,18 +1230,8 @@ async function loadKaraReveal(){
   if(data) applyAutomatonReveal(data.kara_revealed||false);
 }
 
-function applyAutomatonReveal(revealed){
-  karaRevealed=revealed;
-  const tab=document.getElementById('automaton-tab');
-  const locked=document.getElementById('automaton-locked-msg');
-  const content=document.getElementById('automaton-content');
-  if(tab){tab.style.opacity=revealed?'1':'0.3';tab.style.pointerEvents=revealed?'auto':'none';}
-  if(locked)locked.style.display=revealed?'none':'block';
-  if(content)content.style.display=revealed?'block':'none';
-}
-
 function subscribeKaraReveal(){
-  db.channel('kara-dm-settings').on('postgres_changes',{event:'UPDATE',schema:'public',table:'dm_settings',filter:'id=eq.1'},payload=>{
+  db.channel('kara-reveal-settings').on('postgres_changes',{event:'UPDATE',schema:'public',table:'dm_settings',filter:'id=eq.1'},payload=>{
     const revealed=payload.new?.kara_revealed||false;
     const wasRevealed=karaRevealed;
     applyAutomatonReveal(revealed);
