@@ -339,23 +339,51 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
     <!-- Incoming action card -->
     <div id="action-card-area"></div>
 
-    <!-- NPC attack panel -->
-    <div id="npc-turn-panel" style="display:none;padding:14px 16px;background:linear-gradient(135deg,#1a0808,#0a0404);border:2px solid var(--harm);border-radius:8px;margin-bottom:14px">
-      <div style="font-family:'Cinzel Decorative',serif;font-size:13px;color:var(--harm);margin-bottom:10px;display:flex;align-items:center;gap:8px">
-        <span id="npc-turn-name">NPC</span>
-        <span style="font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;color:var(--muted);margin-left:auto">NPC TURN</span>
+    <!-- NPC Action Modal -->
+<div id="npc-action-modal" style="display:none;position:fixed;inset:0;z-index:400;background:#000000bb;backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div style="background:linear-gradient(135deg,#1a0808,#0a0404);border:2px solid var(--harm);border-radius:10px;padding:24px 28px;max-width:500px;width:92%;box-shadow:0 0 60px #ef444430;animation:fadeUp .2s ease">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+      <span style="font-size:20px">👹</span>
+      <div>
+        <div style="font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--harm)" id="npc-modal-name">NPC</div>
+        <div style="font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;color:var(--dim);text-transform:uppercase">NPC Action</div>
       </div>
-      <div class="row" style="margin-bottom:10px;gap:10px;flex-wrap:wrap">
-        <div class="col" style="flex:1;min-width:110px"><label class="lbl">Attacker</label><select class="inp sm" id="npc-atk-sel" onchange="populateWeaponSel()"></select></div>
-        <div class="col" style="flex:1;min-width:110px"><label class="lbl">Weapon</label><select class="inp sm" id="npc-wpn-sel"></select></div>
-        <div class="col" style="flex:1;min-width:110px"><label class="lbl">Target</label><select class="inp sm" id="npc-tgt-sel"></select></div>
+      <button onclick="closeNPCModal()" style="margin-left:auto;background:transparent;border:none;color:var(--dim);font-size:20px;cursor:pointer;line-height:1">✕</button>
+    </div>
+
+    <!-- Tab buttons -->
+    <div style="display:flex;gap:0;border:1px solid var(--border2);border-radius:4px;overflow:hidden;margin-bottom:16px">
+      <button id="npc-tab-atk" onclick="switchNPCTab('attack')" style="flex:1;padding:9px;border:none;background:var(--harm);color:#fff;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer">⚔ Attack</button>
+      <button id="npc-tab-oth" onclick="switchNPCTab('other')" style="flex:1;padding:9px;border:none;background:var(--surf2);color:var(--muted);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer">✦ Other Action</button>
+    </div>
+
+    <!-- Attack tab -->
+    <div id="npc-modal-attack">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div><label class="lbl">Weapon</label><select class="inp sm" id="npc-wpn-sel" style="width:100%"></select></div>
+        <div><label class="lbl">Target</label><select class="inp sm" id="npc-tgt-sel" style="width:100%"></select></div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn gold" onclick="executeNPCAttack()">⚔ Attack → Trigger Reaction</button>
-        <button class="btn gold sm" onclick="executeNPCAttackDirect()">⚔ Attack → Auto-Apply (No Reaction)</button>
-        <button class="btn sm" onclick="npcSkipTurn()">⏭ Skip / Pass</button>
+        <button class="btn gold" onclick="executeNPCAttack()" style="flex:1">⚔ Attack + Trigger Reaction</button>
+        <button class="btn gold sm" onclick="executeNPCAttackDirect()" style="flex:1">⚔ Auto-Apply Harm</button>
       </div>
     </div>
+
+    <!-- Other tab -->
+    <div id="npc-modal-other" style="display:none">
+      <div style="margin-bottom:12px">
+        <label class="lbl">Describe the action</label>
+        <input id="npc-other-desc" class="inp" placeholder="e.g. moves behind cover, searches the room…" style="width:100%">
+      </div>
+      <button class="btn gold" onclick="executeNPCOther()" style="width:100%">✦ Log & Complete</button>
+    </div>
+
+    <button class="btn sm" onclick="npcSkipTurn()" style="width:100%;margin-top:10px">⏭ Skip / Pass Turn</button>
+
+    <!-- Hidden selects kept for compatibility with existing functions -->
+    <select id="npc-atk-sel" style="display:none"></select>
+  </div>
+</div>
 
     <!-- Main grid -->
     <div class="cmb-grid">
@@ -1034,9 +1062,8 @@ async function callNextInQueue(){
 
   // If NPC: open the NPC action panel pre-populated with their weapons
   if(partType==='npc'){
-    const npcPanel=document.getElementById('npc-turn-panel');
-    if(npcPanel)npcPanel.style.display='block';
-    document.getElementById('npc-turn-name').textContent=charName;
+    const npcPart2=combatParts.find(cp=>cp.participant_name===charName);
+    openNPCActionModal(npcPart2?.participant_id||charName,charName);
     populateNPCAttackPanel();
     const sel=document.getElementById('npc-atk-sel');
     if(sel){
@@ -1070,8 +1097,7 @@ function populateWeaponSel(){
 }
 function updateDMTurnBanner(){
   const banner=document.getElementById('dm-turn-banner');
-  const npcPanel=document.getElementById('npc-turn-panel');
-  if(!banner||!combatSess){if(banner)banner.style.display='none';if(npcPanel)npcPanel.style.display='none';return;}
+  if(!banner||!combatSess){if(banner)banner.style.display='none';closeNPCModal();return;}
   const tid=combatSess.current_turn_id;
   const ttype=combatSess.current_turn_type;
   if(!tid){banner.style.display='none';if(npcPanel)npcPanel.style.display='none';return;}
@@ -1083,7 +1109,7 @@ function updateDMTurnBanner(){
     document.getElementById('dm-turn-banner-text').style.color=p?p.acc:'var(--gold)';
     document.getElementById('dm-turn-banner-text').textContent=`${p?p.emoji+' ':''} ${p?p.name:tid} — AWAITING ACTION`;
     document.getElementById('dm-turn-banner-sub').textContent='Waiting for player…';
-    if(npcPanel)npcPanel.style.display='none';
+    closeNPCModal();
   } else {
     const npcPart=combatParts.find(cp=>cp.participant_id===tid);
     const name=npcPart?.participant_name||tid;
@@ -1092,15 +1118,64 @@ function updateDMTurnBanner(){
     document.getElementById('dm-turn-banner-text').style.color='var(--harm)';
     document.getElementById('dm-turn-banner-text').textContent=`👹 ${name} — NPC TURN`;
     document.getElementById('dm-turn-banner-sub').textContent='Choose an action below';
-    if(npcPanel){npcPanel.style.display='block';document.getElementById('npc-turn-name').textContent=name;}
-    populateNPCAttackPanel();
-    const sel=document.getElementById('npc-atk-sel');
-    if(sel){const opt=[...sel.options].find(o=>o.value===tid);if(opt)sel.value=opt.value;populateWeaponSel();}
+    openNPCActionModal(tid,name);
   }
 }
 async function npcSkipTurn(){
+  closeNPCModal();
+  const npcId=document.getElementById('npc-atk-sel')?.value;
+  if(npcId&&combatSess){
+    const part=combatParts.find(cp=>cp.participant_id===npcId&&cp.participant_type==='npc');
+    if(part)await toggleAction(part.id,part.actions_used+1);
+  }
   showToast('NPC passed their turn');
-  const npcPanel=document.getElementById('npc-turn-panel');if(npcPanel)npcPanel.style.display='none';
+}
+function openNPCActionModal(npcId,name){
+  const modal=document.getElementById('npc-action-modal');if(!modal)return;
+  document.getElementById('npc-modal-name').textContent=name;
+  // Populate selects
+  populateNPCAttackPanel();
+  const atkSel=document.getElementById('npc-atk-sel');
+  if(atkSel){const opt=[...atkSel.options].find(o=>o.value===npcId);if(opt){atkSel.value=opt.value;}populateWeaponSel();}
+  switchNPCTab('attack');
+  modal.style.display='flex';
+}
+function closeNPCModal(){
+  const modal=document.getElementById('npc-action-modal');
+  if(modal)modal.style.display='none';
+}
+function switchNPCTab(tab){
+  const atkTab=document.getElementById('npc-tab-atk');
+  const othTab=document.getElementById('npc-tab-oth');
+  const atkPane=document.getElementById('npc-modal-attack');
+  const othPane=document.getElementById('npc-modal-other');
+  if(!atkTab||!othTab||!atkPane||!othPane)return;
+  const isAtk=tab==='attack';
+  atkTab.style.background=isAtk?'var(--harm)':'var(--surf2)';
+  atkTab.style.color=isAtk?'#fff':'var(--muted)';
+  othTab.style.background=isAtk?'var(--surf2)':'var(--gold2)';
+  othTab.style.color=isAtk?'var(--muted)':'var(--gold)';
+  othTab.style.borderColor=isAtk?'':' var(--gold)';
+  atkPane.style.display=isAtk?'block':'none';
+  othPane.style.display=isAtk?'none':'block';
+}
+async function executeNPCOther(){
+  const desc=document.getElementById('npc-other-desc')?.value.trim();
+  if(!desc){showToast('Describe the action first');return;}
+  const npcId=document.getElementById('npc-atk-sel')?.value;
+  const npc=npcData.find(n=>n.id===npcId);
+  const name=npc?.name||document.getElementById('npc-modal-name').textContent||'NPC';
+  if(combatSess){
+    await db.from('combat_actions').insert({
+      session_id:combatSess.id,actor_id:npcId||name,actor_type:'npc',actor_name:name,
+      action_type:'npc_other',action_label:desc,resolved:true
+    });
+    const part=combatParts.find(cp=>cp.participant_id===npcId&&cp.participant_type==='npc');
+    if(part)await toggleAction(part.id,part.actions_used+1);
+  }
+  document.getElementById('npc-other-desc').value='';
+  closeNPCModal();
+  showToast(name+': '+desc);
 }
 async function executeNPCAttack(){
   // Triggers reaction popup on target before applying harm
@@ -1149,6 +1224,7 @@ async function executeNPCAttack(){
     showActionCard({actor_name:npc.name,action_label:`Attacks ${tgtName} — ${wpnName}`,harm_dealt:harm});
     const part=combatParts.find(c=>c.participant_id===npcId&&c.participant_type==='npc');
     if(part)await toggleAction(part.id,part.actions_used+1);
+    closeNPCModal();
     showToast(`${npc.name} → ${harm} harm to ${tgtName}`);
   }, 8000);
 }
@@ -1165,10 +1241,11 @@ async function executeNPCAttackDirect(){
     await loadChars();renderPartyGrid();
   } else {await adjustNPCHarm(tgtId,harm);}
   await db.from('combat_actions').insert({session_id:combatSess.id,actor_id:npcId,actor_type:'npc',actor_name:npc.name,action_type:'npc_attack',action_label:`Attacks ${tgtName} with ${wpnName}`,target_id:tgtId,target_type:tgtType,target_name:tgtName,harm_dealt:harm,resolved:true});
-  showActionCard({actor_name:npc.name,action_label:`Attacks ${tgtName} — ${wpnName}`,harm_dealt:harm});
+  showActionCard({actor_name:npc.name,action_label:'Attacks '+tgtName+' — '+wpnName,harm_dealt:harm});
   const part=combatParts.find(c=>c.participant_id===npcId&&c.participant_type==='npc');
   if(part)await toggleAction(part.id,part.actions_used+1);
-  showToast(`${npc.name} → ${harm} harm to ${tgtName}`);
+  closeNPCModal();
+  showToast(npc.name+' → '+harm+' harm to '+tgtName);
 }
 function rollDie(s){const f=parseInt(s);if(!isNaN(f)&&!s.includes('d'))return f;const m=s.match(/(\d+)d(\d+)/i);if(!m)return 1;let t=0;for(let i=0;i<parseInt(m[1]);i++)t+=Math.ceil(Math.random()*parseInt(m[2]));return t;}
 function showActionCard(a){
