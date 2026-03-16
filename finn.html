@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Finn — Demigods Campaign · v3.10</title>
+<title>Finn — Demigods Campaign · v3.19</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -21,7 +21,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.6;min-height:100vh;overflow-x:hidden;width:100%}
 #bg-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.4}
 .wrap{position:relative;z-index:2;max-width:1000px;margin:0 auto;padding:0 16px 80px}
 
@@ -213,7 +213,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 
 
 /* ── MARKUP MODE ── */
-#markup-banner{display:none;position:sticky;top:0;z-index:100;padding:10px 18px;background:linear-gradient(90deg,#22c55e18,#22c55e08);border-bottom:2px solid #22c55e60;text-align:center;font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#22c55e;animation:slideDown .3s ease}
+#markup-banner{display:none;position:relative;z-index:10;padding:10px 18px;background:linear-gradient(90deg,#22c55e18,#22c55e08);border-bottom:2px solid #22c55e60;text-align:center;font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#22c55e;animation:slideDown .3s ease}
 #markup-banner.vis{display:block}
 /* In markup mode: unlock skill boxes */
 body.markup .sbox{cursor:pointer !important}
@@ -691,9 +691,15 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
+<div class="wrap">
 <div id="markup-banner">✏ Markup Mode Active — You may freely edit your sheet</div>
 
-<div class="wrap">
+<!-- COMBAT CINEMATIC -->
+<div id="combat-cinematic" style="display:none;position:fixed;inset:0;z-index:500;pointer-events:none">
+  <div class="cine-word" id="cine-word" style="color:var(--gold)">⚔ Combat Begins</div>
+  <div class="cine-sub" id="cine-sub">Prepare yourselves</div>
+</div>
+<canvas id="ember-canvas" style="display:none;position:fixed;inset:0;pointer-events:none;z-index:149"></canvas>
 
 <!-- HEADER -->
 <div class="char-header">
@@ -707,7 +713,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
       Harm <span class="harm-num" id="header-harm">0</span>
       / <span class="mortality-num" id="header-mortality">—</span> Mortality
       <span class="sync-dot off" id="sync-dot" title="Syncing..."></span>
-      <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.10</span>
+      <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.19</span>
     </div>
     <div class="mortality-display" style="font-size:10px;margin-top:2px">
       Favor <span style="color:var(--fc);font-family:'Cinzel Decorative',serif;font-size:16px" id="header-favor">0</span>
@@ -873,8 +879,6 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
     </div>
 
   </div>
-</div>
-
 </div>
 
 <!-- JURY OVERLAY (full screen) -->
@@ -1302,7 +1306,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 const SUPABASE_URL='https://hcrfqtwpraerheiuirem.supabase.co';
 const SUPABASE_KEY='sb_publishable_C3dTYXnpaYOg1QCBgXMcBQ_V9cE4Na1';
 const {createClient}=supabase;
-const db=createClient(SUPABASE_URL,SUPABASE_KEY);
+const db=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionFromUrl:false}});
 const CHAR_ID='finn';
 
 // ── STATE ──
@@ -1351,7 +1355,8 @@ async function init(){
 
 // ── SUPABASE LOAD ──
 async function loadCharacter(){
-  const{data}=await db.from('characters').select('*').eq('id',CHAR_ID).single();
+  const{data:_cRows}=await db.from('characters').select('*').eq('id',CHAR_ID).limit(1);
+  const data=_cRows?.[0]||null;
   if(data){charData=data;applyCharData();}
 }
 async function loadSkills(){
@@ -1433,15 +1438,16 @@ function buildSkillsGrid(){
 }
 
 async function saveSkillMarkup(skill, newVal){
-  const existing = skillsData.find(s=>s.skill_name===skill);
-  if(existing){
-    existing.dice_count = newVal;
-    await db.from('character_skills').update({dice_count:newVal, updated_at:new Date().toISOString()}).eq('id', existing.id);
+  // character_skills uses columns: skill, dice (not skill_name / dice_count)
+  skillData[skill] = newVal;
+  const{data:existing} = await db.from('character_skills').select('id').eq('character_id',CHAR_ID).eq('skill',skill).limit(1);
+  if(existing&&existing.length){
+    await db.from('character_skills').update({dice:newVal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('skill',skill);
   } else {
-    const{data}=await db.from('character_skills').insert({character_id:CHAR_ID, skill_name:skill, dice_count:newVal}).select().single();
-    if(data) skillsData.push(data);
+    await db.from('character_skills').insert({character_id:CHAR_ID,skill,dice:newVal});
   }
   buildSkillBoxes(skill, newVal);
+  updateMortalityDisplay();
 }
 
 function buildSkillBoxes(skill,checked){
@@ -2517,17 +2523,16 @@ function animateDiceRoll(resultsArr, container){
 let markupMode = false;
 
 async function loadMarkupMode(){
-  const{data}=await db.from('dm_settings').select('markup_mode').eq('id',1).single();
-  setMarkupMode(!!(data?.markup_mode));
+  const{data:_mmRows}=await db.from('dm_settings').select('markup_mode').eq('id',1).limit(1);
+  setMarkupMode(!!(_mmRows?.[0]?.markup_mode));
 }
 function setMarkupMode(on){
   markupMode = on;
   document.body.classList.toggle('markup', on);
   const banner = document.getElementById('markup-banner');
   if(banner) banner.classList.toggle('vis', on);
-  // Rebuild skill boxes with/without click
-  if(typeof buildAllSkillBoxes === 'function') buildAllSkillBoxes();
-  else if(typeof renderSkills === 'function') renderSkills();
+  // Rebuild skill grid so boxes pick up / lose markup click handlers
+  buildSkillsGrid();
 }
 
 
@@ -2681,7 +2686,7 @@ async function deleteTD(id,type){
 
 // ── XP & ADVANCEMENT ──
 async function loadAdvancement(){
-  const{data}=await db.from('advancement').select('*').eq('character_id',CHAR_ID).single();
+  const{data:_advRows}=await db.from('advancement').select('*').eq('character_id',CHAR_ID).limit(1);const data=_advRows?.[0]||null;
   if(data) advancementData=data;
   renderXP();
 }
@@ -3017,11 +3022,14 @@ let combatQueueData=[];
 let combatParticipantsAll=[];
 
 async function loadCombatState(){
-  const{data}=await db.from('dm_settings').select('combat_active,combat_session_id,current_round').eq('id',1).single();
+  const{data:_dsRows}=await db.from('dm_settings').select('combat_active,combat_session_id').eq('id',1).limit(1);
+  const data=_dsRows?.[0]||null;
+  if(!data){hideCombatOverlay();return;}
+  console.log('[Combat] dm_settings: active='+data.combat_active+' session='+data.combat_session_id);
   if(data?.combat_active&&data?.combat_session_id){
-    const{data:sess}=await db.from('combat_sessions').select('*').eq('id',data.combat_session_id).single();
+    const{data:_sessRows}=await db.from('combat_sessions').select('*').eq('id',data.combat_session_id).limit(1);const sess=_sessRows?.[0]||null;
     combatSessionData=sess;
-    const{data:part}=await db.from('combat_participants').select('*').eq('session_id',data.combat_session_id).eq('participant_id',CHAR_ID).single();
+    const{data:_partRows}=await db.from('combat_participants').select('*').eq('session_id',data.combat_session_id).eq('participant_id',CHAR_ID).limit(1);const part=_partRows?.[0]||null;
     combatParticipantData=part||null;
     const{data:allParts}=await db.from('combat_participants').select('*').eq('session_id',data.combat_session_id).order('position');
     combatParticipantsAll=allParts||[];
@@ -3601,40 +3609,55 @@ function subscribeNotifications(){
       if(ev.rest_type==='long'){await loadConditions();renderConditions();}
     }
   }).subscribe();
-  // Combat session changes
+  // ── dm_settings changes: combat start/end and markup mode toggle
   db.channel(CHAR_ID+'-dm-settings').on('postgres_changes',{event:'*',schema:'public',table:'dm_settings'},async()=>{
     await loadCombatState();
     await loadMarkupMode();
   }).subscribe();
-  // Combat session updates (round changes, turn changes)
+
+  // ── Combat session updates: round advances, turn changes, reaction_pending
   db.channel(`${CHAR_ID}-combat-sess`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'combat_sessions'},async(payload)=>{
     if(combatSessionData&&payload.new?.id===combatSessionData.id){
-      combatSessionData=payload.new;updateCombatOverlay();
+      combatSessionData=payload.new;
+      updateCombatOverlay();
     }
   }).subscribe();
-  // My participant row
+
+  // ── My participant row: actions_used, grit_rolled, is_dead
   db.channel(`${CHAR_ID}-combat-part`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'combat_participants'},async(payload)=>{
-    if(payload.new?.participant_id===CHAR_ID){combatParticipantData=payload.new;updateCombatOverlay();}
+    if(payload.new?.participant_id===CHAR_ID){
+      combatParticipantData=payload.new;
+      updateCombatOverlay();
+    }
   }).subscribe();
-  // Combat queue
+
+  // ── All participants: any change refreshes the combatants strip
   db.channel(`${CHAR_ID}-combat-allparts`).on('postgres_changes',{event:'*',schema:'public',table:'combat_participants'},async()=>{
     if(!combatSessionData)return;
     const{data}=await db.from('combat_participants').select('*').eq('session_id',combatSessionData.id).order('position');
     combatParticipantsAll=data||[];
     const myRow=data?.find(p=>p.participant_id===CHAR_ID)||null;
-    if(myRow) combatParticipantData=myRow;
-    renderCombatantsStrip();updateCombatOverlay();
+    if(myRow)combatParticipantData=myRow;
+    renderCombatantsStrip();
+    updateCombatOverlay();
   }).subscribe();
-  db.channel(`${CHAR_ID}-combat-q`).on('postgres_changes',{event:'*',schema:'public',table:'combat_queue'},async(payload)=>{
+
+  // ── Combat queue changes
+  db.channel(`${CHAR_ID}-combat-q`).on('postgres_changes',{event:'*',schema:'public',table:'combat_queue'},async()=>{
     if(!combatSessionData)return;
     const{data}=await db.from('combat_queue').select('*').eq('session_id',combatSessionData.id).in('status',['waiting','active']).order('created_at');
     combatQueueData=data||[];
     myQueueItem=combatQueueData.find(q=>q.character_id===CHAR_ID)||null;
-    renderCombatQueue();updateCombatOverlay();
+    renderCombatQueue();
+    updateCombatOverlay();
   }).subscribe();
-  // Advancement — pending_advances field
+
+  // ── Advancement grant from DM
   db.channel(`${CHAR_ID}-advance-check`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'characters'},async(payload)=>{
-    if(payload.new?.id===CHAR_ID){const pending=payload.new?.pending_advances||0;if(pending>0) showAdvanceModal();}
+    if(payload.new?.id===CHAR_ID){
+      const pending=payload.new?.pending_advances||0;
+      if(pending>0)showAdvanceModal();
+    }
   }).subscribe();
 }
 
@@ -3721,17 +3744,6 @@ async function castJuryVote(queueItemId,vote){
 }
 // ── BOOT ──
 init().catch(e=>{console.error(e);setSyncDot(false);});
-
-function minimizeCombat(){
-  const ov=document.getElementById('combat-overlay');if(!ov)return;
-  ov.classList.add('minimized');
-  document.body.style.overflow='';
-}
-function restoreCombat(){
-  const ov=document.getElementById('combat-overlay');if(!ov)return;
-  ov.classList.remove('minimized');
-  document.body.style.overflow='hidden';
-}
 </script>
 </body>
 </html>

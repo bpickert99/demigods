@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Weaver Screen — Demigods · v3.10</title>
+<title>Weaver Screen — Demigods · v3.19</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -240,7 +240,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
     <button class="btn sm gold" onclick="promptShortRest()">☽ Short Rest</button>
     <button class="btn sm gold" onclick="promptLongRest()">☀ Long Rest</button>
     <span class="sync off" id="sync-dot"></span>
-    <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.10</span>
+    <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.19</span>
   </div>
 </div>
 
@@ -509,7 +509,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 const SB_URL='https://hcrfqtwpraerheiuirem.supabase.co';
 const SB_KEY='sb_publishable_C3dTYXnpaYOg1QCBgXMcBQ_V9cE4Na1';
 const{createClient}=supabase;
-const db=createClient(SB_URL,SB_KEY);
+const db=createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionFromUrl:false}});
 
 const FINN_FORMS={stallion:{emoji:'🐴',name:'Stallion'},hare:{emoji:'🐇',name:'Hare'},goat:{emoji:'🐐',name:'Goat'},cow:{emoji:'🐄',name:'Cow'},magpie:{emoji:'🐦',name:'Magpie'},salmon:{emoji:'🐟',name:'Salmon'},wolf:{emoji:'🐺',name:'Wolf'},bear:{emoji:'🐻',name:'Bear'}};
 
@@ -576,7 +576,7 @@ async function loadChars(){
   skillData={};if(sk.data)sk.data.forEach(r=>{if(!skillData[r.character_id])skillData[r.character_id]={};skillData[r.character_id][r.skill]=r.dice;});
   powerData={};if(pw.data)pw.data.forEach(r=>{if(!powerData[r.character_id])powerData[r.character_id]=[];powerData[r.character_id].push(r);});
 }
-async function loadDMSettings(){const{data}=await db.from('dm_settings').select('*').eq('id',1).single();if(data){dmSettings=data;markupMode=!!data.markup_mode;updateMarkupBtn();}}
+async function loadDMSettings(){const{data:_rows}=await db.from('dm_settings').select('*').eq('id',1).limit(1);const data=_rows?.[0]||null;if(data){dmSettings=data;markupMode=!!data.markup_mode;updateMarkupBtn();}}
 async function loadPendingRolls(){const{data}=await db.from('pending_rolls').select('*').eq('status','waiting').order('created_at');pendingRolls=data||[];}
 async function loadRollLog(){const{data}=await db.from('roll_log').select('*').order('created_at',{ascending:false}).limit(20);rollLogData=data||[];}
 async function loadNPCs(){
@@ -830,7 +830,21 @@ async function startCombat(){
   combatSess=sess;combatParts=[];
   const cbs=document.querySelectorAll('#cmb-pc-cbs input:checked,#cmb-npc-cbs input:checked');
   let pos=0;
-  for(const cb of cbs){const{data}=await db.from('combat_participants').insert({session_id:sess.id,participant_id:cb.value,participant_type:cb.dataset.type,participant_name:cb.dataset.name,actions_max:parseInt(cb.dataset.acts)||2,actions_used:0,position:pos++,is_active:true}).select().single();if(data)combatParts.push(data);}
+  for(const cb of cbs){
+    const{data}=await db.from('combat_participants').insert({
+      session_id:sess.id,
+      participant_id:cb.value,
+      participant_type:cb.dataset.type,
+      participant_name:cb.dataset.name,
+      actions_max:parseInt(cb.dataset.acts)||2,
+      actions_used:0,
+      position:pos++,
+      is_active:true,
+      grit_rolled:false,
+      is_dead:false
+    }).select().single();
+    if(data)combatParts.push(data);
+  }
   await db.from('dm_settings').update({combat_active:true,combat_session_id:sess.id,updated_at:new Date().toISOString()}).eq('id',1);
   document.getElementById('cmb-setup-modal').classList.remove('vis');
   playDMCombatCinematic('start');showActiveCombat();switchTab('combat');showToast('Combat started!');
@@ -976,16 +990,31 @@ async function executeNPCAttack(){
   };
   await db.from('combat_sessions').update({reaction_pending:reactionPayload,updated_at:new Date().toISOString()}).eq('id',combatSess.id);
   showToast(`Reaction prompt sent to ${tgtName} — waiting…`);
-  // After a short window, apply harm regardless (DM can resolve manually if needed)
+  // 8-second window for the player to choose a reaction on their screen.
+  // After that, harm is applied automatically regardless of response.
+  // If the player reacted first, reaction_pending will already be null — harm still applies
+  // (the reaction only modifies how it lands, not whether it does).
   setTimeout(async()=>{
+    if(!combatSess)return; // Combat ended while waiting — abort
     const harm=rollDie(harm_die);
     if(tgtType==='pc'){
-      const{data}=await db.from('conditions').insert({character_id:tgtId,label:`Hit by ${npc.name}`,harm,unstable:false,is_permanent:false}).select().single();
-      if(data){if(!condData[tgtId])condData[tgtId]=[];condData[tgtId].push(data);}
+      const{data}=await db.from('conditions').insert({
+        character_id:tgtId,label:`Hit by ${npc.name}`,harm,unstable:false,is_permanent:false
+      }).select().single();
+      if(data){
+        if(!condData[tgtId])condData[tgtId]=[];
+        condData[tgtId].push(data);
+      }
       await logChange(tgtId,'condition_add',`${npc.name} dealt ${harm} harm (${wpnName})`,null,{id:data?.id,label:`Hit by ${npc.name}`,harm});
       await loadChars();renderPartyGrid();
-    } else {await adjustNPCHarm(tgtId,harm);}
-    await db.from('combat_actions').insert({session_id:combatSess.id,actor_id:npcId,actor_type:'npc',actor_name:npc.name,action_type:'npc_attack',action_label:`Attacks ${tgtName} with ${wpnName}`,target_id:tgtId,target_type:tgtType,target_name:tgtName,harm_dealt:harm,resolved:true});
+    } else {
+      await adjustNPCHarm(tgtId,harm);
+    }
+    await db.from('combat_actions').insert({
+      session_id:combatSess.id,actor_id:npcId,actor_type:'npc',actor_name:npc.name,
+      action_type:'npc_attack',action_label:`Attacks ${tgtName} with ${wpnName}`,
+      target_id:tgtId,target_type:tgtType,target_name:tgtName,harm_dealt:harm,resolved:true
+    });
     await db.from('combat_sessions').update({reaction_pending:null,updated_at:new Date().toISOString()}).eq('id',combatSess.id);
     showActionCard({actor_name:npc.name,action_label:`Attacks ${tgtName} — ${wpnName}`,harm_dealt:harm});
     const part=combatParts.find(c=>c.participant_id===npcId&&c.participant_type==='npc');
@@ -1068,21 +1097,52 @@ function checkRoundEnd(){
 }
 async function skipRound(){
   if(!combatSess)return;
-  const nr=(combatSess.round||1)+1;combatSess.round=nr;
-  for(const p of combatParts){p.actions_used=0;await db.from('combat_participants').update({actions_used:0,updated_at:new Date().toISOString()}).eq('id',p.id);}
-  await db.from('combat_sessions').update({round:nr,current_turn_id:null,updated_at:new Date().toISOString()}).eq('id',combatSess.id);
+  const nr=(combatSess.round||1)+1;
+  combatSess.round=nr;
+  // Reset actions and clear grit_rolled so round-1 initiative gate doesn't persist
+  for(const p of combatParts){
+    p.actions_used=0;
+    await db.from('combat_participants').update({
+      actions_used:0,
+      grit_rolled:false,
+      updated_at:new Date().toISOString()
+    }).eq('id',p.id);
+  }
+  await db.from('combat_sessions').update({
+    round:nr,
+    current_turn_id:null,
+    reaction_pending:null,
+    updated_at:new Date().toISOString()
+  }).eq('id',combatSess.id);
   await db.from('combat_queue').update({status:'done'}).eq('session_id',combatSess.id);
-  combatQ=[];document.getElementById('round-lbl').textContent=`Round ${nr}`;document.getElementById('cmb-status').textContent='Combat in progress';document.getElementById('action-card-area').innerHTML='';
-  renderCombatants();renderCombatQueue();updateDMTurnBanner();showToast(`Round ${nr} begins`);
+  combatQ=[];
+  document.getElementById('round-lbl').textContent=`Round ${nr}`;
+  document.getElementById('cmb-status').textContent='Combat in progress';
+  document.getElementById('action-card-area').innerHTML='';
+  renderCombatants();renderCombatQueue();updateDMTurnBanner();
+  showToast(`Round ${nr} begins`);
 }
 function promptEndCombat(){
   dmModal('<h3>End Combat?</h3><div style="font-size:13px;color:var(--muted);margin-bottom:16px">This will dismiss the combat overlay for all players.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="closeDMModal();endCombat()">End Combat</button></div>');
 }
 async function endCombat(){
-  if(combatSess){await db.from('combat_sessions').update({status:'ended',updated_at:new Date().toISOString()}).eq('id',combatSess.id);await db.from('dm_settings').update({combat_active:false,combat_session_id:null,updated_at:new Date().toISOString()}).eq('id',1);}
+  if(combatSess){
+    await db.from('combat_sessions').update({
+      status:'ended',
+      current_turn_id:null,
+      reaction_pending:null,
+      updated_at:new Date().toISOString()
+    }).eq('id',combatSess.id);
+    await db.from('dm_settings').update({
+      combat_active:false,
+      combat_session_id:null,
+      updated_at:new Date().toISOString()
+    }).eq('id',1);
+  }
   combatSess=null;combatParts=[];combatQ=[];
   playDMCombatCinematic('end');
-  document.getElementById('combat-idle').style.display='block';document.getElementById('combat-active').style.display='none';
+  document.getElementById('combat-idle').style.display='block';
+  document.getElementById('combat-active').style.display='none';
   showToast('Combat ended');
 }
 
@@ -1430,9 +1490,22 @@ function subscribeAll(){
   db.channel('dm-jury-q').on('postgres_changes',{event:'*',schema:'public',table:'jury_queue'},async()=>{if(jurySess)await loadJuryQ();}).subscribe();
   db.channel('dm-jury-v').on('postgres_changes',{event:'*',schema:'public',table:'jury_votes'},async()=>{if(jurySess)await loadJuryQ();}).subscribe();
   db.channel('dm-jury-s').on('postgres_changes',{event:'*',schema:'public',table:'jury_sessions'},async()=>{await loadJury();}).subscribe();
-  db.channel('dm-cq').on('postgres_changes',{event:'*',schema:'public',table:'combat_queue'},async()=>{const{data}=await db.from('combat_queue').select('*').eq('session_id',combatSess?.id||'').in('status',['waiting','active']).order('created_at');combatQ=data||[];renderCombatQueue();}).subscribe();
-  db.channel('dm-ca').on('postgres_changes',{event:'*',schema:'public',table:'combat_actions'},async(pl)=>{if(pl.new&&!pl.new.resolved&&pl.new.actor_type==='pc')showActionCard(pl.new);}).subscribe();
-  db.channel('dm-cp').on('postgres_changes',{event:'*',schema:'public',table:'combat_participants'},async()=>{await loadCombatParts();renderCombatants();}).subscribe();
+  // ── Combat queue changes
+  db.channel('dm-cq').on('postgres_changes',{event:'*',schema:'public',table:'combat_queue'},async()=>{
+    if(!combatSess)return;
+    const{data}=await db.from('combat_queue').select('*').eq('session_id',combatSess.id).in('status',['waiting','active']).order('created_at');
+    combatQ=data||[];
+    renderCombatQueue();
+  }).subscribe();
+  // ── Incoming PC action cards
+  db.channel('dm-ca').on('postgres_changes',{event:'*',schema:'public',table:'combat_actions'},async(pl)=>{
+    if(pl.new&&!pl.new.resolved&&pl.new.actor_type==='pc')showActionCard(pl.new);
+  }).subscribe();
+  // ── Participant row changes (actions, death, grit_rolled)
+  db.channel('dm-cp').on('postgres_changes',{event:'*',schema:'public',table:'combat_participants'},async()=>{
+    await loadCombatParts();
+    renderCombatants();
+  }).subscribe();
   // Ability use notifications
   db.channel('dm-ability-log').on('postgres_changes',{event:'INSERT',schema:'public',table:'ability_log'},payload=>{
     if(payload.new) showAbilityNotification(payload.new);
