@@ -469,6 +469,11 @@ body.markup .power-node:hover .pn-name{color:var(--gold) !important}
 .node.avail:hover{border-color:var(--nc);background:#0a0a18;transform:translateY(-2px);box-shadow:0 5px 18px var(--ng)}
 .node.unlocked{border-color:var(--nc);background:linear-gradient(135deg,var(--nb),#06060f);box-shadow:0 0 14px var(--ng)}
 .node.reading{outline:3px solid var(--nc);outline-offset:2px;box-shadow:0 0 18px var(--ng),0 0 0 4px var(--ng)}
+/* Node unlock/level badge */
+.node-badge{position:absolute;top:8px;right:8px;font-size:9px;font-family:'Cinzel',serif;font-weight:700;letter-spacing:1px;padding:2px 6px;border-radius:8px;border:1px solid var(--border2);background:var(--surf2);color:var(--dim);pointer-events:none;transition:all .2s;user-select:none}
+.node.unlocked .node-badge{background:var(--nc);border-color:var(--nc);color:#000;pointer-events:none}
+.node-badge.markup-edit{pointer-events:auto;cursor:pointer}
+.node-badge.markup-edit:hover{transform:scale(1.15);box-shadow:0 0 8px var(--nc)}
 .node.locked{opacity:.3;cursor:default}
 .node.selected{outline:2px solid var(--na);outline-offset:2px}
 .nbadges{display:flex;gap:4px;margin-bottom:7px;flex-wrap:wrap;align-items:center;min-height:20px}
@@ -1582,7 +1587,13 @@ function buildSkillBoxes(skill,checked){
   for(let i=1;i<=4;i++){
     const box=document.createElement('div');
     box.className='sbox'+(i<=checked?' checked':'');
-    // read-only — no onclick
+    if(markupMode){
+      const iVal=i;
+      box.onclick=()=>{
+        const newVal=iVal<=checked?iVal-1:iVal;
+        saveSkillMarkup(skill,newVal);
+      };
+    }
     container.appendChild(box);
   }
 }
@@ -2346,8 +2357,71 @@ function applyPowerStates(){
     else if(prereqsMet(n)){n.classList.add('avail');n.classList.remove('unlocked','locked');}
     else{n.classList.add('locked');n.classList.remove('unlocked','avail');}
     refreshDice(n,id);
+    refreshNodeBadge(n,id);
   });
   updateSpread();updateProgress();
+}
+
+function refreshNodeBadge(el,id){
+  let badge=el.querySelector('.node-badge');
+  if(!badge){
+    badge=document.createElement('div');
+    badge.className='node-badge';
+    el.appendChild(badge);
+  }
+  const isUnlocked=unlockedPowers.has(id);
+  const levelsStr=el.dataset.levels;
+  const levelsArr=levelsStr?levelsStr.split(','):null;
+  const lvl=nodeLevels[id]||0;
+
+  if(isUnlocked){
+    badge.textContent=levelsArr?`Lv ${lvl+1}/${levelsArr.length}`:'✦';
+    badge.title=levelsArr?`Level ${lvl+1} of ${levelsArr.length} — click to change in markup`:'Unlocked';
+  } else {
+    badge.textContent='—';
+    badge.title='Not unlocked';
+  }
+
+  // Markup mode: make badge clickable to toggle/cycle
+  badge.className='node-badge'+(markupMode?' markup-edit':'');
+  badge.onclick=null;
+  if(markupMode){
+    badge.onclick=(e)=>{
+      e.stopPropagation();
+      cycleNodeInMarkup(id,el);
+    };
+  }
+}
+
+async function cycleNodeInMarkup(id,el){
+  const isUnlocked=unlockedPowers.has(id);
+  const levelsStr=el.dataset.levels;
+  const levelsArr=levelsStr?levelsStr.split(','):null;
+  const lvl=nodeLevels[id]||0;
+
+  if(!isUnlocked){
+    // Unlock it at level 0
+    unlockedPowers.add(id);
+    nodeLevels[id]=0;
+    el.classList.remove('avail','locked');el.classList.add('unlocked');
+    await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:0});
+    updateAllLocks();refreshDice(el,id);refreshNodeBadge(el,id);updateSpread();updateProgress();
+  } else if(levelsArr&&lvl<levelsArr.length-1){
+    // Level up
+    const next=lvl+1;
+    nodeLevels[id]=next;
+    refreshDice(el,id);refreshNodeBadge(el,id);
+    await db.from('unlocked_powers').update({level:next,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('power_id',id);
+  } else {
+    // Re-lock
+    if(hasDependent(id)){showToast('Another power depends on this one');return;}
+    unlockedPowers.delete(id);
+    delete nodeLevels[id];
+    el.classList.remove('unlocked');
+    el.classList.add(prereqsMet(el)?'avail':'locked');
+    await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
+    updateAllLocks();refreshDice(el,id);refreshNodeBadge(el,id);updateSpread();updateProgress();
+  }
 }
 
 function refreshDice(el,id){
@@ -2782,6 +2856,8 @@ let unlockedFeats=new Set();
 let traitsData=[];
 let drivesData=[];
 let advancementData={xp_current:0,total_advances:0};
+let _pendingAdvTotal=0;  // how many were granted this session
+let _pendingAdvDone=0;   // how many have been completed
 let jurySession=null;
 let juryQueue=[];
 let juryVotes=[];
@@ -2902,21 +2978,15 @@ async function awardXP(){
 function showAdvanceModal(){
   const modal=document.getElementById('advance-modal');
   const content=document.getElementById('advance-modal-content');
-  content.innerHTML=`
-    <div style="font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);margin-bottom:6px;text-align:center">✦ Advance ✦</div>
-    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px">Choose one advancement:</div>
-    <div class="advance-option" onclick="advanceSkill()">
-      <h4>📈 New Skill Point</h4>
-      <p>Add one check to any skill, increasing your dice pool for that skill by 1. Also increases your Mortality and Favor max.</p>
-    </div>
-    <div class="advance-option" onclick="showAdvanceFeats()">
-      <h4>⚔ New Combat or Defense Feat</h4>
-      <p>Unlock one feat you don't yet have.</p>
-    </div>
-    <div class="advance-option" onclick="showAdvancePowers()">
-      <h4>🔥 New Divine Power</h4>
-      <p>Unlock the next available power in your divine playbook, or level up an existing one.</p>
-    </div>`;
+  const countHtml=_pendingAdvTotal>1
+    ?'<div style="position:absolute;top:14px;right:52px;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--gold);background:var(--gold2);border:1px solid var(--gold);border-radius:12px;padding:2px 9px">#'+(_pendingAdvDone+1)+' / '+_pendingAdvTotal+'</div>'
+    :'';
+  content.innerHTML=countHtml
+    +'<div style="font-size:20px;color:var(--gold);margin-bottom:6px;text-align:center;font-weight:700">✦ Advance ✦</div>'
+    +'<div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px">Choose one advancement:</div>'
+    +'<div class="advance-option" onclick="advanceSkill()"><h4>📈 New Skill Point</h4><p>Add one check to any skill — increases your dice pool, Mortality, and Favor max.</p></div>'
+    +'<div class="advance-option" onclick="showAdvanceFeats()"><h4>⚔ New Combat or Defense Feat</h4><p>Unlock one feat you don\'t yet have.</p></div>'
+    +'<div class="advance-option" onclick="showAdvancePowers()"><h4>✨ New Divine Power</h4><p>Unlock a power in your playbook, or level up an existing one.</p></div>';
   modal.classList.add('vis');
 }
 function closeAdvanceModal(){
@@ -3067,9 +3137,27 @@ async function advancePower(id,action,animal){
   completeAdvance();
 }
 async function completeAdvance(){
-  advancementData.xp_current=0;advancementData.total_advances=(advancementData.total_advances||0)+1;
-  await db.from('advancement').update({xp_current:0,total_advances:advancementData.total_advances,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID);
+  const newTotal=(advancementData.total_advances||0)+1;
+  advancementData.xp_current=0;
+  advancementData.total_advances=newTotal;
+  await db.from('advancement').update({xp_current:0,total_advances:newTotal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID);
   renderXP();
+
+  // Decrement pending_advances on characters table
+  const remaining=Math.max(0,(charData.pending_advances||1)-1);
+  charData.pending_advances=remaining;
+  await db.from('characters').update({pending_advances:remaining,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+
+  _pendingAdvDone++;
+
+  if(_pendingAdvDone<_pendingAdvTotal){
+    showAdvanceModal();
+  } else {
+    _pendingAdvTotal=0;
+    _pendingAdvDone=0;
+    closeAdvanceModal();
+    showToast('All advancements applied!');
+  }
 }
 
 // ── JURY SYSTEM ──
@@ -4218,8 +4306,14 @@ function subscribeNotifications(){
   // ── Advancement grant from DM
   db.channel(`${CHAR_ID}-advance-check`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'characters'},async(payload)=>{
     if(payload.new?.id===CHAR_ID){
+      charData={...charData,...payload.new};
       const pending=payload.new?.pending_advances||0;
-      if(pending>0)showAdvanceModal();
+      if(pending>0){
+        // Fresh grant: set total from current pending count
+        _pendingAdvTotal=pending;
+        _pendingAdvDone=0;
+        showAdvanceModal();
+      }
     }
   }).subscribe();
 }
