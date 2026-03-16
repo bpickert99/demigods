@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kara — Demigods Campaign · v3.5</title>
+<title>Kara — Demigods Campaign · v3.4</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -47,6 +47,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .pb-panel{display:none}.pb-panel.active{display:block}
 
 /* ── COMBAT OVERLAY ── */
+.combat-overlay{display:none;position:fixed;inset:0;z-index:150;background:#050508;flex-direction:column;overflow-y:auto}
+.combat-overlay.vis{display:flex}
 .co-header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:linear-gradient(135deg,#1a0800,#080400);border-bottom:2px solid var(--gold)}
 .co-title{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);letter-spacing:2px}
 .co-round{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-left:auto}
@@ -579,7 +581,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
       Harm <span class="harm-num" id="header-harm">0</span>
       / <span class="mortality-num" id="header-mortality">—</span> Mortality
       <span class="sync-dot off" id="sync-dot" title="Syncing..."></span>
-      <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.5</span>
+      <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.4</span>
     </div>
     <div class="mortality-display" style="font-size:10px;margin-top:2px">
       Favor <span style="color:var(--fc);font-family:'Cinzel Decorative',serif;font-size:16px" id="header-favor">0</span>
@@ -3068,15 +3070,6 @@ async function castJuryVote(queueItemId,vote){
 }
 // ── BOOT ──
 init().catch(e=>{console.error(e);setSyncDot(false);});
-
-function minimizeCombat(){
-  const ov=document.getElementById('combat-overlay');if(!ov)return;
-  ov.classList.add('minimized');
-}
-function restoreCombat(){
-  const ov=document.getElementById('combat-overlay');if(!ov)return;
-  ov.classList.remove('minimized');
-}
 </script>
 </body>
 </html>
