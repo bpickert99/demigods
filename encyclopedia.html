@@ -152,10 +152,16 @@ async function loadNotes(){
   try{
     const h={'Content-Type':'application/json'};
     if(API_KEY)h['Authorization']='Bearer '+API_KEY;
-    const res=await fetch(OBSIDIAN_URL+'/search/simple/?query=tag%3A'+TAG+'&limit=200',{headers:h});
+    const res=await fetch(OBSIDIAN_URL+'/search/',{
+      method:'POST',
+      headers:Object.assign(h,{'Content-Type':'application/vnd.olrapi.dataview.dql+txt'}),
+      body:'LIST FROM #'+TAG
+    });
     if(!res.ok)throw new Error('HTTP '+res.status);
-    const results=await res.json();
-    allNotes=(results||[]).sort((a,b)=>getTitle(a.filename).localeCompare(getTitle(b.filename)));
+    const raw=await res.json();
+    // Response is {results:[{filename,result},...]} or array depending on version
+    const rows=Array.isArray(raw)?raw:(raw.results||raw.data||[]);
+    allNotes=rows.map(r=>({filename:r.filename||r.file||r,tags:[TAG]})).filter(n=>n.filename&&typeof n.filename==='string').sort((a,b)=>getTitle(a.filename).localeCompare(getTitle(b.filename)));
     connected=true;setStatus(true,'Connected');
     renderNoteList(allNotes);
     if(allNotes.length===0)showEmpty();
