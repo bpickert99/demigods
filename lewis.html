@@ -1075,11 +1075,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
       <div class="favor-lbl">Favor</div>
       <div class="favor-num-big" id="favor-num">0</div>
       <div class="favor-slash">/ <span id="fmax-disp">0</span></div>
-      <div class="favor-btns">
-        <button class="favor-btn" onclick="changeFavor(-1)">−</button>
-        <button class="favor-btn" onclick="changeFavor(1)">+</button>
-        <button class="refill-btn" onclick="refillFavor()">✦ Refill</button>
-      </div>
+      <!-- Favor adjusted only by spending abilities and resting -->
     </div>
     <div class="favor-tokens" id="favor-tokens"></div>
   </div>
@@ -1311,10 +1307,16 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 
 <!-- ADVANCE MODAL -->
 <div id="advance-modal" class="modal-overlay advance-modal">
-  <div class="modal-box">
+  <div class="modal-box" style="position:relative">
     <button class="modal-close" onclick="closeAdvanceModal()">✕</button>
+    <button style="position:absolute;top:12px;right:46px;background:transparent;border:none;color:var(--dim);font-size:16px;cursor:pointer;transition:color .18s;line-height:1" title="Minimize" onclick="minimizeAdvanceModal()">—</button>
     <div id="advance-modal-content"></div>
   </div>
+</div>
+<!-- Advance pill (minimized state) -->
+<div id="advance-pill" style="display:none;position:fixed;bottom:80px;right:16px;z-index:201;padding:10px 16px;background:linear-gradient(135deg,#1a1400,#0a0800);border:2px solid var(--gold);border-radius:30px;box-shadow:0 4px 20px var(--gold2);cursor:pointer;display:none;align-items:center;gap:8px" onclick="restoreAdvanceModal()">
+  <span style="font-size:18px">✦</span>
+  <span style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--gold)">ADVANCE PENDING</span>
 </div>
 
 <!-- PREREQ MODAL -->
@@ -1393,7 +1395,18 @@ async function init(){
 async function loadCharacter(){
   const{data:_cRows}=await db.from('characters').select('*').eq('id',CHAR_ID).limit(1);
   const data=_cRows?.[0]||null;
-  if(data){charData=data;applyCharData();}
+  if(data){
+    charData=data;
+    // If favor has never been set (0) but character has skills, start full
+    if((charData.favor_current===0||charData.favor_current===null)){
+      const mort=getMortality();
+      if(mort>0){
+        charData.favor_current=mort;
+        await db.from('characters').update({favor_current:mort,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+      }
+    }
+    applyCharData();
+  }
 }
 async function loadSkills(){
   const{data}=await db.from('character_skills').select('*').eq('character_id',CHAR_ID);
@@ -2027,6 +2040,22 @@ function fireRoll(rollData){
   pendingRollId=null;
 }
 
+
+// ── SKILL DESCRIPTIONS ──
+const SKILL_DESCS={
+  Notice:'Perceive hidden things — spot danger, read a room, notice what's off.',
+  Persuade:'Convince through honest appeal, argument, or emotion.',
+  Search:'Find information, clues, or hidden things through deliberate investigation.',
+  Wits:'Think fast, solve problems, outmaneuver, or understand complex situations.',
+  Might:'Use raw physical force — lift, break, overpower, or strike hard.',
+  Nimble:'Move with precision and speed — dodge, climb, maneuver in a fight.',
+  Sneak:'Move without being noticed or do something without being caught.',
+  Tough:'Endure pain, hardship, and physical punishment without giving in.',
+  Care:'Help, heal, support, or tend to someone with patience and skill.',
+  Charm:'Win people over through personality, wit, warmth, or magnetism.',
+  Deceive:'Mislead, lie, or manipulate without being caught.',
+  Intimidate:'Cow, threaten, or dominate through presence, words, or action.'
+};
 function showRollResult(skill,results,highest,outcome,outcomeClass,ones,modifier,isZeroSkill){
   const modal=document.getElementById('roll-modal');
   const content=document.getElementById('roll-modal-content');
@@ -2061,8 +2090,10 @@ function showRollResult(skill,results,highest,outcome,outcomeClass,ones,modifier
       </div>
     </div>`;
   }
+  const skillDesc=SKILL_DESCS[skill]||'';
   content.innerHTML=`
-    <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:4px;color:var(--muted);margin-bottom:6px;text-transform:uppercase">${skill}</div>
+    <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:4px;color:var(--muted);margin-bottom:2px;text-transform:uppercase">${skill}</div>
+    ${skillDesc?`<div style="font-size:11px;color:var(--dim);font-style:italic;margin-bottom:8px">${skillDesc}</div>`:''}
     ${modHtml}${zeroHtml}
     <div class="roll-dice-display">${diceHtml}</div>
     <div class="roll-outcome ${outcomeClass}">${outcome}</div>
@@ -2153,25 +2184,25 @@ p1:{name:"Crow's Eye",meta:"Prophecy · Tier I · 1 Favor",content:{type:"passiv
 p2:{name:"Read Intent",meta:"Prophecy · Tier I · Roll: Search · 2 Favor",content:{type:"move",trigger:"When you closely study a person to divine their immediate intentions,",roll:"Roll Search. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Hold 2. Spend each to ask one question below, answered truthfully."},{cls:"partial",label:"4–5 — Mixed",text:"Hold 1. Ask one question. The Keeper may attach a complication."},{cls:"fail",label:"1–3 — Fail",text:"Nothing useful. The target may have noticed your scrutiny."}],questions:["What is this person about to do?","Who are they most afraid of right now?","Are they lying to me — about what?","What do they want most in this moment?","Are they about to move against me or an ally?"]},prereq:null,levels:null},
 p3:{name:"Foretelling",meta:"Prophecy · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you enter a trance to read what fate has written about a person, place, or event,",roll:"Roll Wits. Spend 2 Favor. You are vulnerable during the trance.",outcomes:[{cls:"success",label:"6 — Full",text:"Hold 2. Spend each to ask one question below, answered truthfully."},{cls:"partial",label:"4–5 — Mixed",text:"Hold 1. The answer arrives in symbols — accurate but needs interpretation."},{cls:"fail",label:"1–3 — Fail",text:"The trance goes dark. The Keeper asks you one question about a secret or fear — you must answer honestly. You learn nothing."}],questions:["What is fated here if nothing changes?","Who will cause what's coming?","What could prevent or redirect this fate?","Who among those present is going to die?","What is the most important thing being hidden from me?"]},prereq:"Crow's Eye",levels:null},
 p4:{name:"Fated Blow",meta:"Prophecy · Tier II · Roll: Nimble · 2 Favor",content:{type:"move",trigger:"When you strike the precise instant fate lines up, a spectral crow diving beside you,",roll:"Roll Nimble. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. The crow lingers this scene: your next attack costs 0 Favor and deals +1 damage die."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. The crow dissipates after this strike."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. Lose 1 Action next turn."}]},prereq:"Read Intent",levels:["1d6","2d6","3d6"],targeted:true},
-p5:{name:"Omen Reading",meta:"Prophecy · Tier II · Passive",content:{type:"passive",desc:`Once per scene, observe a natural sign and receive a one-word warning from the Keeper about the most immediate hidden danger. The word is always accurate. No follow-up questions.<br><br>Corvids never attack you or your allies.`},prereq:"Crow's Eye",levels:null},
+p5:{name:"Omen Reading",meta:"Prophecy · Tier II · Passive",content:{type:"passive",desc:`Once per scene, observe a natural sign and receive a one-word warning from the Keeper about the most immediate hidden danger. The word is always accurate. No follow-up questions.<br><br>Corvids never attack you or your allies.`},prereq:"Crow's Eye",levels:null,passive_prompt:"Give Lewis a one-word warning about the most immediate hidden danger in this scene."},
 p6:{name:"Doom-Sight",meta:"Prophecy · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you look at a living person to see whether a death-mark hangs over them,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The Keeper tells you: whether a mark exists, how soon (hours/days/weeks), and one concrete detail about the manner of death."},{cls:"partial",label:"4–5 — Mixed",text:"The Keeper confirms whether a mark is present and whether it's imminent (within 24 hours)."},{cls:"fail",label:"1–3 — Fail",text:"You see a mark on the wrong person — the Keeper decides who. You cannot use Doom-Sight on the original target again this session."}]},prereq:"Foretelling",levels:null},
 p7:{name:"Fulfilled Fate",meta:"Prophecy · Tier III · Passive",content:{type:"passive",desc:`When you personally bring about the death or downfall of someone you've used a Prophecy move on, immediately recover 3 Favor — even beyond your current maximum, until end of scene.`},prereq:"Fated Blow",levels:null},
 p8:{name:"Warp the Thread",meta:"Prophecy · Apex · Roll: Wits · 5 Favor · Once/Session",content:{type:"move",trigger:"When you attempt to redirect a foretold event — not erase it, but shift who bears it,",roll:"Roll Wits. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"The Keeper provides at least two options for who now bears the fate. You choose. The event still happens — only the recipient changes."},{cls:"partial",label:"4–5 — Mixed",text:"The fate shifts partially. Someone else shares the doom alongside the original target."},{cls:"fail",label:"1–3 — Fail",text:"The thread snaps back. The original fate arrives immediately and in full. You take 2 Harm (ignores armor). Cannot attempt this again this session."}]},prereq:"Doom-Sight + Fulfilled Fate",levels:null},
-w1:{name:"Crow's Presence",meta:"War · Tier I · Passive",content:{type:"passive",desc:`At the start of any combat scene, every ally within Close range gains +1 die on their first attack roll. Automatic — no activation needed.`},prereq:null,levels:null},
+w1:{name:"Crow's Presence",meta:"War · Tier I · Passive",content:{type:"passive",desc:`At the start of any combat scene, every ally within Close range gains +1 die on their first attack roll. Automatic — no activation needed.`},prereq:null,levels:null,passive_prompt:"All allies within Close range of Lewis get +1 die on their first attack roll this scene. Apply now."},
 w2:{name:"Raven's Talon",meta:"War · Tier I · Roll: Might · 1 Favor",content:{type:"move",trigger:"When you call on the Morrigan's fury and a spectral raven dives with phantom talons beside your strike,",roll:"Roll Might. Spend 1 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. The raven lingers — once this scene: use Cleave or Disarm free (no Grit, no action)."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. Raven dissipates after this strike."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. Cannot use Raven's Talon again until you take a hit."}]},prereq:null,levels:["1d6","2d6","3d6"],targeted:true},
 w3:{name:"War Cry",meta:"War · Tier II · Roll: Intimidate · 2 Favor",content:{type:"move",trigger:"When you release a battle-cry that carries the Morrigan's fury,",roll:"Roll Intimidate. Spend 2 Favor. Uses your Action.",outcomes:[{cls:"success",label:"6 — Full",text:"Choose two: enemies in earshot lose their next Action; enemies at Close range pushed to Near; one enemy drops what they hold; all allies gain +1 die on their next roll."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one effect. Enemies beyond Close range unaffected."},{cls:"fail",label:"1–3 — Fail",text:"The cry fails. Action spent. Enemies may take a free action against you."}]},prereq:"Crow's Presence",levels:null,targeted:true},
-w4:{name:"Crow Form",meta:"War · Tier II · Passive",content:{type:"passive",desc:`Once per scene, transform into a large crow and back. No roll, no Favor, counts as a Move action.<br><br><strong>In crow form:</strong> Fly to any range as one Move; Scope with +1 die; carry one small object; pass unnoticed among corvids. <strong>Cannot:</strong> attack, use powers, or use items.`},prereq:"Raven's Talon",levels:null},
+w4:{name:"Crow Form",meta:"War · Tier II · Passive",content:{type:"passive",desc:`Once per scene, transform into a large crow and back. No roll, no Favor, counts as a Move action.<br><br><strong>In crow form:</strong> Fly to any range as one Move; Scope with +1 die; carry one small object; pass unnoticed among corvids. <strong>Cannot:</strong> attack, use powers, or use items.`},prereq:"Raven's Talon",levels:null,passive_prompt:"Lewis transforms into a crow as their Move action. No roll required. They cannot attack, use items, or powers until they shift back."},
 w5:{name:"Battlefield Insight",meta:"War · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you assess a battlefield, ongoing conflict, or place where violence is imminent,",roll:"Roll Wits. Spend 2 Favor. Can be used as a Scope action.",outcomes:[{cls:"success",label:"6 — Full",text:"Hold 2. Spend each to ask one question below, answered specifically."},{cls:"partial",label:"4–5 — Mixed",text:"Hold 1. Ask one question. The Keeper may add a complication."},{cls:"fail",label:"1–3 — Fail",text:"You misread the field. The Keeper introduces a concealed threat that activates at the worst moment."}],questions:["Where is the greatest tactical advantage?","Where is the enemy most vulnerable?","Where could a small group hold against a larger force?","What is the enemy's actual plan — and where does it break down?","Who is the real threat, and what can hurt them?"]},prereq:"Crow's Presence",levels:null},
 w6:{name:"Blood Frenzy",meta:"War · Tier III · Roll: Tough · 3 Favor",content:{type:"move",trigger:"When you draw first blood and surrender to the Morrigan's battle-madness,",roll:"Roll Tough. Spend 3 Favor. Uses your Action.",outcomes:[{cls:"success",label:"6 — Full",text:"For the rest of combat: add the bonus damage die to all damage rolls; ignore dice penalties from one physical Condition."},{cls:"partial",label:"4–5 — Mixed",text:"Gain bonus damage, but the Keeper gains 1 complication token (may make you accidentally target an ally)."},{cls:"fail",label:"1–3 — Fail",text:"No bonus. Take 1 Harm. Cannot attempt Blood Frenzy again this combat."}]},prereq:"War Cry",levels:["1d8","2d8","3d8"],targeted:true},
 w7:{name:"Murder of Crows",meta:"War · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you send your crows to scout and harass enemies before or during a conflict,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Remove one enemy advantage — choose: no reinforcements this combat; enemies deal −1 damage; enemies cannot use Help an Ally; enemy leaders cannot use special abilities."},{cls:"partial",label:"4–5 — Mixed",text:"Disrupt one minor thing. The Keeper chooses what. Enemies know someone worked against them."},{cls:"fail",label:"1–3 — Fail",text:"Your crows are spotted. The enemy learns your location and one piece of your plan."}]},prereq:"Battlefield Insight",levels:null},
 w8:{name:"Phantom Army",meta:"War · Apex · Roll: Intimidate · 5 Favor · Once/Session",content:{type:"move",trigger:"When you summon a vast cloud of crows that writhes into the shape of an army,",roll:"Roll Intimidate. Spend 5 Favor. Uses your Action. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"The illusion holds one full scene. Choose two: all enemies break morale; the illusion holds a physical position; one group routes entirely; your group gains a free round of actions."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one effect. Enemies who see through it know who created it."},{cls:"fail",label:"1–3 — Fail",text:"The crows collapse immediately. Everyone present knows you're capable of this."}]},prereq:"Blood Frenzy + Murder of Crows",levels:null},
 s1:{name:"Queen's Bearing",meta:"Sovereignty · Tier I · Passive",content:{type:"passive",desc:`You enter any room as someone of consequence. NPCs never turn you away without a named reason. You speak first in social scenes. First Persuade, Charm, or Intimidate roll each scene: +1 die.`},prereq:null,levels:null},
 s2:{name:"The Right Word",meta:"Sovereignty · Tier I · Roll: Persuade · 2 Favor",content:{type:"move",trigger:"When you speak to defuse, redirect, or reframe a confrontation before it becomes violence,",roll:"Roll Persuade. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The confrontation dissolves. The Keeper tells you what the other party now wants. Choose one: they share withheld information; they owe you a favor; they become a temporary ally this scene."},{cls:"partial",label:"4–5 — Mixed",text:"Hostility cools. They'll talk, but want something concrete in return — the Keeper names what."},{cls:"fail",label:"1–3 — Fail",text:"The words land wrong. The other party becomes more hostile and may act first."}]},prereq:null,levels:null},
-s3:{name:"Ally's Mark",meta:"Sovereignty · Tier II · Passive",content:{type:"passive",desc:`Mark up to 3 people as Allies of your bloodline — invisible but felt by both. A marked Ally: +1 die on rolls serving your shared goals; treated as under your protection by NPCs who fear you; benefits from Queen's Bearing (+1 die on first social roll per scene).<br><br>You may remove a mark at will. The person always knows.`},prereq:"Queen's Bearing",levels:null},
+s3:{name:"Ally's Mark",meta:"Sovereignty · Tier II · Passive",content:{type:"passive",desc:`Mark up to 3 people as Allies of your bloodline — invisible but felt by both. A marked Ally: +1 die on rolls serving your shared goals; treated as under your protection by NPCs who fear you; benefits from Queen's Bearing (+1 die on first social roll per scene).<br><br>You may remove a mark at will. The person always knows.`},prereq:"Queen's Bearing",levels:null,passive_prompt:"Lewis marks someone as an Ally of their bloodline. That person gains +1 die on rolls serving shared goals, and benefits from Queen\'s Bearing."},
 s4:{name:"Blood Debt",meta:"Sovereignty · Tier II · Roll: Charm · 2 Favor",content:{type:"move",trigger:"When you call in a favor owed or formally establish a new debt,",roll:"Roll Charm. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The debt is real. The Keeper says specifically what the target will do to honor it — and they will, unless their life is at stake. +1 die on rolls to collect it."},{cls:"partial",label:"4–5 — Mixed",text:"The debt holds, but the target resents it. They'll honor it once and work against you otherwise."},{cls:"fail",label:"1–3 — Fail",text:"Read as a threat. NPC disposition worsens one step. Debt not established."}]},prereq:"The Right Word",levels:null},
-s5:{name:"Lay of the Land",meta:"Sovereignty · Tier II · Passive",content:{type:"passive",desc:`Once per scene, ask the Keeper one question below — no roll required. Works anywhere people jockey for position.<ul><li>Who is the real power here, and what do they actually want?</li><li>Who is hiding something significant?</li><li>Who could be turned to our side, and what would it take?</li></ul>`},prereq:"Queen's Bearing",levels:null},
+s5:{name:"Lay of the Land",meta:"Sovereignty · Tier II · Passive",content:{type:"passive",desc:`Once per scene, ask the Keeper one question below — no roll required. Works anywhere people jockey for position.<ul><li>Who is the real power here, and what do they actually want?</li><li>Who is hiding something significant?</li><li>Who could be turned to our side, and what would it take?</li></ul>`},prereq:"Queen's Bearing",levels:null,passive_prompt:"Lewis asks: "Who here is the real power / hiding something / could be turned?" Answer one — no roll required."},
 s6:{name:"Conflict Averted",meta:"Sovereignty · Tier III · Roll: Deceive · 3 Favor",content:{type:"move",trigger:"When you intervene to prevent violence through negotiation, misdirection, or an unfired threat,",roll:"Roll Deceive. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The confrontation dissolves. The Keeper names the concession required — always a price, always survivable."},{cls:"partial",label:"4–5 — Mixed",text:"The immediate conflict is avoided but deferred. It will cost more to prevent next time."},{cls:"fail",label:"1–3 — Fail",text:"Read as interference. The conflict begins anyway, and those involved direct hostility at you."}]},prereq:"Ally's Mark + Blood Debt",levels:null},
-s7:{name:"Territorial Claim",meta:"Sovereignty · Tier III · Passive",content:{type:"passive",desc:`Claim one physical place as yours — speak it aloud while present. Within your territory: know when anyone enters with hostile intent (even if you're not watching); locals instinctively protect you; +1 die on all Scope actions.<br><br>You hold one territory at a time. Claiming a new one releases the old.`},prereq:"Lay of the Land",levels:null},
+s7:{name:"Territorial Claim",meta:"Sovereignty · Tier III · Passive",content:{type:"passive",desc:`Claim one physical place as yours — speak it aloud while present. Within your territory: know when anyone enters with hostile intent (even if you're not watching); locals instinctively protect you; +1 die on all Scope actions.<br><br>You hold one territory at a time. Claiming a new one releases the old.`},prereq:"Lay of the Land",levels:null,passive_prompt:"Lewis has claimed this location. You must alert them when anyone enters with hostile intent."},
 s8:{name:"The Morrigan's Mandate",meta:"Sovereignty · Apex · Roll: Intimidate · 5 Favor · Once/Session",content:{type:"move",trigger:"When you speak a formal decree with the full weight of your divine bloodline,",roll:"Roll Intimidate. Spend 5 Favor. Uses your Action. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"All who hear it feel compelled: NPCs cannot directly contradict it until session end unless survival demands; any PC who violates it must spend 1 Grit; the Keeper must warn you before an NPC would break it."},{cls:"partial",label:"4–5 — Mixed",text:"Allies and sympathetic NPCs feel fully compelled. Hostile NPCs feel the pull but can resist — and know something was done to them."},{cls:"fail",label:"1–3 — Fail",text:"The words ring false. No compulsion. Hostile parties now know you're capable of this and will act to neutralize you."}]},prereq:"Conflict Averted + Territorial Claim",levels:null}
 };
 
@@ -2258,11 +2289,15 @@ function showNodeDetail(id,el){
     contentHtml=`<div class="move-block"><div class="move-trigger">When to Use</div><div class="move-roll-line">${c.trigger}<br><br><strong>${c.roll||''}</strong></div><div class="move-outcomes">${outHtml}</div>${qHtml}</div>`;
   }
   let useHtml='';
-  if(isUnlocked&&favor){
-    useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="useFavor(${favor},'${id}')">Use Power <span class="ub-cost">−${favor} Favor</span></button>`;
-  } else if(isUnlocked&&c.type==='passive'){
-    // Passive abilities — "Trigger" button just notifies DM, no cost
-    useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="triggerPassive('${id}')" style="--dpacc:${accMap[branch]}">✦ Notify Weaver — Using This</button>`;
+  if(isUnlocked){
+    if(c.type==='passive'){
+      // Passive: notify DM button for all passives
+      useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="triggerPassive('${id}')" style="--dpacc:${accMap[branch]}">✦ Notify Weaver — Using This</button>`;
+    } else {
+      // Active move: always show Use button (even 0-cost moves get one)
+      const costLabel=favor?`−${favor} Favor`:'Free';
+      useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="useFavor(${favor||0},'${id}')">✦ Use — ${costLabel}</button>`;
+    }
   }
   let prereqHtml=data.prereq?`<div class="dp-prereq">Requires: ${data.prereq}</div>`:'';
   panel.innerHTML=`
@@ -2274,7 +2309,8 @@ function showNodeDetail(id,el){
 }
 
 async function triggerPassive(nodeId){
-  const powerName=ND[nodeId]?.name||nodeId;
+  const nd=ND[nodeId];
+  const powerName=nd?.name||nodeId;
   const btn=document.getElementById(`use-btn-${nodeId}`);
   if(btn){
     btn.classList.add('use-btn-used');
@@ -2282,9 +2318,36 @@ async function triggerPassive(nodeId){
     setTimeout(()=>{
       btn.classList.remove('use-btn-used');
       btn.textContent='✦ Notify Weaver — Using This';
-    },2000);
+    },2500);
   }
   await notifyDMPassiveUse(powerName, nodeId);
+
+  // If in combat, write a rich combat_action so DM gets the full passive card
+  if(typeof combatSessionData!=='undefined'&&combatSessionData){
+    const passivePrompt=nd?.content?.passive_prompt||null;
+    const richLabel=JSON.stringify({
+      type:'ability',
+      name:powerName,
+      meta:nd?.meta||'',
+      skill:null,
+      dice:[],
+      highest:null,
+      outcomeClass:'success',
+      outcomeLabel:'Passive Activated',
+      outcomeText:nd?.content?.desc||'',
+      damageDie:null,
+      damageRoll:null,
+      favorCost:0,
+      roll:null,
+      passive_prompt:passivePrompt,
+      isPassive:true
+    });
+    await db.from('combat_actions').insert({
+      session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
+      action_type:'ability',action_label:richLabel,resolved:false
+    });
+  }
+
   showToast(`Weaver notified: ${powerName}`);
 }
 
@@ -2656,17 +2719,54 @@ function showAdvanceModal(){
 function closeAdvanceModal(){
   document.getElementById('advance-modal').classList.remove('vis');
 }
+function minimizeAdvanceModal(){
+  document.getElementById('advance-modal').classList.remove('vis');
+  const pill=document.getElementById('advance-pill');
+  if(pill){pill.style.display='flex';}
+}
+function restoreAdvanceModal(){
+  const pill=document.getElementById('advance-pill');
+  if(pill){pill.style.display='none';}
+  document.getElementById('advance-modal').classList.add('vis');
+}
+
 function advanceSkill(){
-  closeAdvanceModal();
-  switchPlaybook('hero');
-  showToast('Add a check to any skill below');
-  // Highlight skill section briefly
-  const skillsGrid=document.getElementById('skills-grid');
-  if(skillsGrid){
-    skillsGrid.style.boxShadow='0 0 0 2px var(--gold)';
-    setTimeout(()=>{skillsGrid.style.boxShadow='';},3000);
+  const content=document.getElementById('advance-modal-content');
+  const SKILL_LABELS={Notice:'Notice',Persuade:'Persuade',Search:'Search',Wits:'Wits',Might:'Might',Nimble:'Nimble',Sneak:'Sneak',Tough:'Tough',Care:'Care',Charm:'Charm',Deceive:'Deceive',Intimidate:'Intimidate'};
+  content.innerHTML=`
+    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Choose a Skill to Increase</div>
+    <div class="advance-power-list">
+      ${SKILLS.map(sk=>{
+        const cur=skillData[sk]||0;
+        const maxed=cur>=4;
+        return `<div class="advance-option${maxed?' advance-option-disabled':''}" style="${maxed?'opacity:.35;cursor:default':''}" onclick="${maxed?'':'pickSkillAdvance(''+sk+'')'}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h4 style="margin:0">${sk}</h4>
+            <span style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold)">${cur}/4</span>
+          </div>
+          ${maxed?'<p style="margin:4px 0 0;font-size:11px;color:var(--dim)">Already at maximum</p>':'<p style="margin:4px 0 0">+1 die · currently '+cur+'d6 → '+(cur+1)+'d6</p>'}
+        </div>`;
+      }).join('')}
+    </div>
+    <button class="advance-back-btn" onclick="showAdvanceModal()">← Back</button>`;
+}
+async function pickSkillAdvance(skill){
+  const cur=skillData[skill]||0;
+  if(cur>=4){showToast('That skill is already maxed');return;}
+  const newVal=cur+1;
+  skillData[skill]=newVal;
+  // Write to DB
+  const{data:existing}=await db.from('character_skills').select('id').eq('character_id',CHAR_ID).eq('skill',skill).limit(1);
+  if(existing&&existing.length){
+    await db.from('character_skills').update({dice:newVal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('skill',skill);
+  } else {
+    await db.from('character_skills').insert({character_id:CHAR_ID,skill,dice:newVal});
   }
+  buildSkillsGrid();
+  updateMortalityDisplay();
+  closeAdvanceModal();
   completeAdvance();
+  showToast(`${skill} increased to ${newVal}d6!`);
 }
 function showAdvanceFeats(){
   const content=document.getElementById('advance-modal-content');

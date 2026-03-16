@@ -1123,11 +1123,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
       <div class="favor-lbl">Favor</div>
       <div class="favor-num-big" id="favor-num">0</div>
       <div class="favor-slash">/ <span id="fmax-disp">0</span></div>
-      <div class="favor-btns">
-        <button class="favor-btn" onclick="changeFavor(-1)">−</button>
-        <button class="favor-btn" onclick="changeFavor(1)">+</button>
-        <button class="refill-btn" onclick="refillFavor()">✦ Refill</button>
-      </div>
+      <!-- Favor adjusted only by spending abilities and resting -->
     </div>
     <div class="favor-tokens" id="favor-tokens"></div>
     <div style="font-size:12px;color:var(--dim);margin-top:8px">Gather materials during downtime to replenish. Each power used costs Favor slots.</div>
@@ -1427,10 +1423,16 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 
 <!-- ADVANCE MODAL -->
 <div id="advance-modal" class="modal-overlay advance-modal">
-  <div class="modal-box">
+  <div class="modal-box" style="position:relative">
     <button class="modal-close" onclick="closeAdvanceModal()">✕</button>
+    <button style="position:absolute;top:12px;right:46px;background:transparent;border:none;color:var(--dim);font-size:16px;cursor:pointer;transition:color .18s;line-height:1" title="Minimize" onclick="minimizeAdvanceModal()">—</button>
     <div id="advance-modal-content"></div>
   </div>
+</div>
+<!-- Advance pill (minimized state) -->
+<div id="advance-pill" style="display:none;position:fixed;bottom:80px;right:16px;z-index:201;padding:10px 16px;background:linear-gradient(135deg,#1a1400,#0a0800);border:2px solid var(--gold);border-radius:30px;box-shadow:0 4px 20px var(--gold2);cursor:pointer;display:none;align-items:center;gap:8px" onclick="restoreAdvanceModal()">
+  <span style="font-size:18px">✦</span>
+  <span style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--gold)">ADVANCE PENDING</span>
 </div>
 
 <!-- PREREQ MODAL -->
@@ -1540,7 +1542,18 @@ function subscribeKaraReveal(){
 async function loadCharacter(){
   const{data:_cRows}=await db.from('characters').select('*').eq('id',CHAR_ID).limit(1);
   const data=_cRows?.[0]||null;
-  if(data){charData=data;applyCharData();}
+  if(data){
+    charData=data;
+    // If favor has never been set (0) but character has skills, start full
+    if((charData.favor_current===0||charData.favor_current===null)){
+      const mort=getMortality();
+      if(mort>0){
+        charData.favor_current=mort;
+        await db.from('characters').update({favor_current:mort,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+      }
+    }
+    applyCharData();
+  }
 }
 async function loadSkills(){
   const{data}=await db.from('character_skills').select('*').eq('character_id',CHAR_ID);
@@ -2164,6 +2177,22 @@ function fireRoll(rollData){
   pendingRollId=null;
 }
 
+
+// ── SKILL DESCRIPTIONS ──
+const SKILL_DESCS={
+  Notice:'Perceive hidden things — spot danger, read a room, notice what's off.',
+  Persuade:'Convince through honest appeal, argument, or emotion.',
+  Search:'Find information, clues, or hidden things through deliberate investigation.',
+  Wits:'Think fast, solve problems, outmaneuver, or understand complex situations.',
+  Might:'Use raw physical force — lift, break, overpower, or strike hard.',
+  Nimble:'Move with precision and speed — dodge, climb, maneuver in a fight.',
+  Sneak:'Move without being noticed or do something without being caught.',
+  Tough:'Endure pain, hardship, and physical punishment without giving in.',
+  Care:'Help, heal, support, or tend to someone with patience and skill.',
+  Charm:'Win people over through personality, wit, warmth, or magnetism.',
+  Deceive:'Mislead, lie, or manipulate without being caught.',
+  Intimidate:'Cow, threaten, or dominate through presence, words, or action.'
+};
 function showRollResult(skill,results,highest,outcome,outcomeClass,ones,modifier,isZeroSkill){
   const modal=document.getElementById('roll-modal');
   const content=document.getElementById('roll-modal-content');
@@ -2198,8 +2227,10 @@ function showRollResult(skill,results,highest,outcome,outcomeClass,ones,modifier
       </div>
     </div>`;
   }
+  const skillDesc=SKILL_DESCS[skill]||'';
   content.innerHTML=`
-    <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:4px;color:var(--muted);margin-bottom:6px;text-transform:uppercase">${skill}</div>
+    <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:4px;color:var(--muted);margin-bottom:2px;text-transform:uppercase">${skill}</div>
+    ${skillDesc?`<div style="font-size:11px;color:var(--dim);font-style:italic;margin-bottom:8px">${skillDesc}</div>`:''}
     ${modHtml}${zeroHtml}
     <div class="roll-dice-display">${diceHtml}</div>
     <div class="roll-outcome ${outcomeClass}">${outcome}</div>
@@ -2298,7 +2329,7 @@ const NODE_BRANCH={
 let karaRevealed=false;
 
 const ND={
-k1:{name:"Forge Instinct",meta:"Construct · Tier I · Passive",content:{type:"passive",desc:`At level-up, instead of adding a new Skill point, you may fill your Favor track instead.<br><br>You always know the fastest way to build, break, or analyze any constructed object — no roll required for structural integrity, weaknesses, or assembly.`},prereq:null,levels:null},
+k1:{name:"Forge Instinct",meta:"Construct · Tier I · Passive",content:{type:"passive",desc:`At level-up, instead of adding a new Skill point, you may fill your Favor track instead.<br><br>You always know the fastest way to build, break, or analyze any constructed object — no roll required for structural integrity, weaknesses, or assembly.`},prereq:null,levels:null,passive_prompt:"Kara analyzes a constructed thing automatically: weaknesses, maker, modifications, fastest method to destroy/disable, whether repairable."},
 k2:{name:"Gather Materials",meta:"Construct · Tier I · Roll: Wits · 1 Favor",content:{type:"move",trigger:"When you scavenge, collect, or requisition materials for your forge-work,",roll:"Roll Wits. Spend 1 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Roll 1d4. Add that many Favor up to your maximum."},{cls:"partial",label:"4–5 — Mixed",text:"Roll 1d4. Add that many Favor, but the Keeper names one complication with the materials."},{cls:"fail",label:"1–3 — Fail",text:"You find nothing useful. Cannot attempt Gather Materials again until circumstances change."}]},prereq:null,levels:null},
 k3:{name:"Field Repair",meta:"Construct · Tier II · Roll: Care · 1 Favor",content:{type:"move",trigger:"When you apply forge-knowledge to mend a wound using available materials,",roll:"Roll Care. Spend 1 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Remove one Condition. If it has a Harm value, heal 1d6 of that Harm. The target is operational."},{cls:"partial",label:"4–5 — Mixed",text:"Reduce the Condition's Harm by 1d6. The underlying damage remains, but the target can act without penalty this scene."},{cls:"fail",label:"1–3 — Fail",text:"The repair worsens it — add 1 Harm to the Condition. Cannot attempt Field Repair on this target again this scene."}]},prereq:"Forge Instinct",levels:null},
 k4:{name:"Extra Capacity",meta:"Construct · Tier II · Passive",content:{type:"passive",desc:`Add two permanent slots to your Favor track. This stacks with future upgrades.`},prereq:"Gather Materials",levels:null},
@@ -2306,19 +2337,19 @@ k5:{name:"Analyze Machine",meta:"Construct · Tier II · Roll: Wits · 1 Favor",
 k6:{name:"Blessed Feast",meta:"Construct · Tier III · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you spend 1 Bond to bless a meal with Goibniu's sacred hospitality before it is eaten,",roll:"Roll Wits. Spend 2 Favor and 1 Bond.",outcomes:[{cls:"success",label:"6 — Full",text:"Whoever eats removes one Fleeting Condition entirely. The blessing is undetectable before consumption."},{cls:"partial",label:"4–5 — Mixed",text:"The target removes the Condition but takes 1 Harm from the dissonance."},{cls:"fail",label:"1–3 — Fail",text:"The blessing inverts — the meal causes 2 Harm. You lose the Bond spent regardless."}]},prereq:"Field Repair + Analyze Machine",levels:null},
 k7:{name:"Grand Commission",meta:"Construct · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you spend 2 Bond to bless a meal with deep sacred intent,",roll:"Roll Wits. Spend 3 Favor and 2 Bond.",outcomes:[{cls:"success",label:"6 — Full",text:"Whoever eats removes one Lasting Condition entirely. The divine quality cannot be extracted or replicated."},{cls:"partial",label:"4–5 — Mixed",text:"The Lasting Condition is downgraded to Fleeting rather than removed."},{cls:"fail",label:"1–3 — Fail",text:"The meal is mundane. All Favor and Bond spent. Cannot attempt Grand Commission again this session."}]},prereq:"Extra Capacity + Analyze Machine",levels:null},
 k8:{name:"Master Forging",meta:"Construct · Apex · Roll: Wits · 5 Favor · Once/Session",content:{type:"move",trigger:"When you spend a full scene of focused work to forge something extraordinary,",roll:"Roll Wits. Spend 5 Favor plus material costs. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"Create one item: Weapon (+2 damage die, one special property: Returning/Seeking/Divine); Tool (auto-succeeds its function once per scene); or Device (performs one impossible mechanical function). Permanent — cannot be destroyed by mundane means."},{cls:"partial",label:"4–5 — Mixed",text:"Create the item with one significant limitation. The Keeper names it."},{cls:"fail",label:"1–3 — Fail",text:"Catastrophic failure. All Favor lost. Materials ruined. Take 2 Harm."}]},prereq:"Blessed Feast + Grand Commission",levels:null},
-e1:{name:"Static Sense",meta:"Electric · Tier I · Passive",content:{type:"passive",desc:`You feel electrical currents as naturally as temperature. Always know if any machine or device within Near range is powered, functional, damaged, or dormant — no roll. Cannot be surprised by electrical hazards. Touch a powered object to receive a general impression of its purpose and state.`},prereq:null,levels:null},
+e1:{name:"Static Sense",meta:"Electric · Tier I · Passive",content:{type:"passive",desc:`You feel electrical currents as naturally as temperature. Always know if any machine or device within Near range is powered, functional, damaged, or dormant — no roll. Cannot be surprised by electrical hazards. Touch a powered object to receive a general impression of its purpose and state.`},prereq:null,levels:null,passive_prompt:"Kara senses all powered/functional/damaged/dormant devices within Near range. She cannot be surprised by electrical hazards."},
 e2:{name:"Lightning Bolt",meta:"Electric · Tier I · Roll: Might · 2 Favor",content:{type:"move",trigger:"When you throw a bolt of electricity at a target or object,",roll:"Roll Might. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. Choose: standard damage to a living target; disable a mechanical device until repaired; cause an electrical surge — lights, alarms, nearby devices activate or shut down."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level on the primary target. No secondary effects."},{cls:"fail",label:"1–3 — Fail",text:"Bolt discharges uncontrolled. Damage at one level lower on a random target within Close range — the Keeper decides who."}]},prereq:null,levels:["1d6","1d8","1d10"],targeted:true},
 e3:{name:"Machine Control",meta:"Electric · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you touch a machine and extend your electrical sense into it,",roll:"Roll Wits. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Control any machine up to 15 feet in any dimension for the rest of the scene. Direct its movement, activate its functions, or freeze it completely — no physical input required."},{cls:"partial",label:"4–5 — Mixed",text:"Control for 3 actions, then the machine fights back or locks up."},{cls:"fail",label:"1–3 — Fail",text:"The machine rejects the signal and acts erratically for the scene. The Keeper controls its behavior. Cannot attempt Machine Control on it again this scene."}]},prereq:"Static Sense",levels:null},
 e4:{name:"Arc Chain",meta:"Electric · Tier II · Roll: Might · 2 Favor",content:{type:"move",trigger:"When you channel electricity that jumps between multiple targets,",roll:"Roll Might. Spend 2 Favor. Then roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level to primary target. Chain jumps to up to 2 additional targets within Close range — each takes half damage (rounded up). You choose which targets are hit."},{cls:"partial",label:"4–5 — Mixed",text:"Damage to primary target. Chain hits one additional random target within Close range."},{cls:"fail",label:"1–3 — Fail",text:"The chain is uncontrolled. Roll damage at one level lower; distribute randomly among all targets within Close range including allies. The Keeper assigns."}]},prereq:"Lightning Bolt",levels:["1d6","1d8","1d10"],targeted:true},
-e5:{name:"Overclock",meta:"Electric · Tier II · Passive",content:{type:"passive",desc:`You can push any device you're touching to perform above its rated capacity. Once per scene per device: it performs its function once at double effectiveness — double speed, double output, or double precision. The device takes 1 point of wear afterward.`},prereq:"Machine Control",levels:null},
+e5:{name:"Overclock",meta:"Electric · Tier II · Passive",content:{type:"passive",desc:`You can push any device you're touching to perform above its rated capacity. Once per scene per device: it performs its function once at double effectiveness — double speed, double output, or double precision. The device takes 1 point of wear afterward.`},prereq:"Machine Control",levels:null,passive_prompt:"Kara pushes one device beyond its rating — it performs its function once at double effectiveness. Mark 1 wear on the device."},
 e6:{name:"Greater Control",meta:"Electric · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you extend your control to multiple machines simultaneously,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Control up to 3 machines simultaneously within Near range for the rest of the scene. Each can perform independently. No physical contact required after initial activation."},{cls:"partial",label:"4–5 — Mixed",text:"Control up to 2 machines for 5 actions total before losing the link."},{cls:"fail",label:"1–3 — Fail",text:"The machines you attempted to link fight each other and act chaotically. Cannot attempt Greater Control again this scene."}]},prereq:"Overclock + Arc Chain",levels:null},
 e7:{name:"EMP Pulse",meta:"Electric · Tier III · Roll: Might · 3 Favor",content:{type:"move",trigger:"When you release a concentrated burst of electromagnetic energy,",roll:"Roll Might. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"All electronic and mechanical devices within Close range are disabled for one full scene. You may exclude up to two specific devices."},{cls:"partial",label:"4–5 — Mixed",text:"All devices disabled, but you cannot exclude anything — including devices on allies."},{cls:"fail",label:"1–3 — Fail",text:"Pulse weaker than intended — only devices within Intimate range are affected, and only for 3 rounds."}]},prereq:"Overclock",levels:null,targeted:true},
 e8:{name:"Storm Form",meta:"Electric · Apex · Roll: Might · 5 Favor · Once/Session",content:{type:"move",trigger:"When you let forge-lightning fully inhabit your body,",roll:"Roll Might. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"For one full scene: all attacks deal +1d6 electrical damage; immune to electrical damage; jump between any two conducting surfaces you can see as a free action; machines within Close range function at peak efficiency."},{cls:"partial",label:"4–5 — Mixed",text:"First two benefits only. The form is unstable — take 1 Harm per round."},{cls:"fail",label:"1–3 — Fail",text:"The storm escapes. Everything within Close range takes 2d6 electrical damage including allies. You take 4 Harm. Storm Form ends."}]},prereq:"Greater Control + EMP Pulse",levels:null,targeted:true},
-a1:{name:"Iron Constitution",meta:"Automaton · Tier I · Passive",content:{type:"passive",desc:`Your constructed nature is undeniable. You do not need to eat, sleep, or breathe. Biological hazards — poison, disease, suffocation, hunger — do not apply. You are immune to mind-altering substances. You heal at the same rate as others, but your healing is mechanical in nature.`},prereq:null,levels:null},
+a1:{name:"Iron Constitution",meta:"Automaton · Tier I · Passive",content:{type:"passive",desc:`Your constructed nature is undeniable. You do not need to eat, sleep, or breathe. Biological hazards — poison, disease, suffocation, hunger — do not apply. You are immune to mind-altering substances. You heal at the same rate as others, but your healing is mechanical in nature.`},prereq:null,levels:null,passive_prompt:"Kara does not need to eat, sleep, or breathe. Poison, disease, suffocation, and hunger do not apply. Mind-altering substances have no effect."},
 a2:{name:"Self-Repair",meta:"Automaton · Tier I · Roll: Tough · 2 Favor",content:{type:"move",trigger:"When you take time to repair your own body using tools and materials,",roll:"Roll Tough. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Remove one Condition of any severity. If physical, fully remove. If unstable, it becomes stable."},{cls:"partial",label:"4–5 — Mixed",text:"Downgrade the Condition one step: Severe → Lasting → Fleeting → removed."},{cls:"fail",label:"1–3 — Fail",text:"Secondary damage. The Condition remains. Take 1 additional Harm."}]},prereq:null,levels:null},
-a3:{name:"Enhanced Chassis",meta:"Automaton · Tier II · Passive",content:{type:"passive",desc:`Your constructed body exceeds mortal limits. Mortality increased by 4 permanently. Armor is twice as effective (double durability rating). You carry twice normal encumbrance without penalty.`},prereq:"Iron Constitution",levels:null},
+a3:{name:"Enhanced Chassis",meta:"Automaton · Tier II · Passive",content:{type:"passive",desc:`Your constructed body exceeds mortal limits. Mortality increased by 4 permanently. Armor is twice as effective (double durability rating). You carry twice normal encumbrance without penalty.`},prereq:"Iron Constitution",levels:null,passive_prompt:"Kara\'s Mortality is permanently increased by 4. Armor applied to her is twice as effective. She can carry twice normal encumbrance."},
 a4:{name:"System Scan",meta:"Automaton · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you physically interface with any electronic or mechanical system,",roll:"Roll Wits. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Access complete operational data: history, current status, access logs, connected systems, stored data. You may alter one setting without triggering alerts."},{cls:"partial",label:"4–5 — Mixed",text:"Access current status and one data category. Altering anything requires a separate roll."},{cls:"fail",label:"1–3 — Fail",text:"Access denied and the intrusion is logged. Security knows something interfaced with the system."}]},prereq:"Self-Repair",levels:null},
-a5:{name:"Built-In Tools",meta:"Automaton · Tier II · Passive",content:{type:"passive",desc:`Your hands contain: cutting implements for any material up to reinforced steel; precision sensors (audio, chemical, electromagnetic); bypass tools for mechanical and electronic locks; emergency repair components for small devices.<br><br>You are never without the right tool. Tools never need to be sourced.`},prereq:"Iron Constitution",levels:null},
+a5:{name:"Built-In Tools",meta:"Automaton · Tier II · Passive",content:{type:"passive",desc:`Your hands contain: cutting implements for any material up to reinforced steel; precision sensors (audio, chemical, electromagnetic); bypass tools for mechanical and electronic locks; emergency repair components for small devices.<br><br>You are never without the right tool. Tools never need to be sourced.`},prereq:"Iron Constitution",levels:null,passive_prompt:"Kara always has the right tool. She never needs to source tools for construction, repair, or infiltration."},
 a6:{name:"Overclock Body",meta:"Automaton · Tier III · Roll: Tough · 3 Favor",content:{type:"move",trigger:"When you push your systems beyond designed operational limits,",roll:"Roll Tough. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"For the rest of this scene, all physical rolls gain +2 dice. At scene end, mark one Fleeting Condition of your choice: Overheated, Servos Strained, or Power Drain."},{cls:"partial",label:"4–5 — Mixed",text:"+2 dice to physical rolls for 3 actions only. The Condition is Lasting rather than Fleeting."},{cls:"fail",label:"1–3 — Fail",text:"Systems fail under strain. No bonus. Take 2 Harm and mark a Lasting Condition immediately."}]},prereq:"Enhanced Chassis + System Scan",levels:null},
 a7:{name:"Signal Mask",meta:"Automaton · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you suppress your mechanical signature entirely,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"For this scene, you read as fully human to: all electronic sensors; supernatural detection; divine scrutiny; mundane observation. Even those who know your nature must roll Wits (difficulty 6) to identify you."},{cls:"partial",label:"4–5 — Mixed",text:"The mask holds for 3 significant interactions before it begins to slip."},{cls:"fail",label:"1–3 — Fail",text:"The suppression draws attention. Anyone with sensor access now knows exactly what you are and where you are."}]},prereq:"Built-In Tools",levels:null},
 a8:{name:"True Form",meta:"Automaton · Apex · Roll: Tough · 5 Favor · Once/Session",content:{type:"move",trigger:"When you shed all pretense and become fully what Goibniu built you to be,",roll:"Roll Tough. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"For one full scene: all current Conditions suppressed (return after); immune to mundane physical damage; attacks treat as divine (affect supernatural immune creatures); you may spend actions to permanently remove suppressed Conditions."},{cls:"partial",label:"4–5 — Mixed",text:"First three benefits, but the form costs 1 Harm per action you take."},{cls:"fail",label:"1–3 — Fail",text:"The form activates but directives conflict. You cannot distinguish ally from threat. The Keeper controls your actions for 3 rounds."}]},prereq:"Overclock Body + Signal Mask",levels:null}
@@ -2392,11 +2423,15 @@ function showNodeDetail(id,el){
   if(c.type==='passive'){contentHtml=`<div class="passive-block">${c.desc}</div>`;}
   else{let outHtml=c.outcomes.map(o=>`<div class="outcome ${o.cls}"><div class="opic"></div><div><span class="olabel">${o.label}</span><div class="otext">${o.text}</div></div></div>`).join('');let qHtml=c.questions?`<div class="q-list"><div class="q-list-lbl">Questions</div><ul>${c.questions.map(q=>`<li>${q}</li>`).join('')}</ul></div>`:'';contentHtml=`<div class="move-block"><div class="move-trigger">When to Use</div><div class="move-roll-line">${c.trigger}<br><br><strong>${c.roll||''}</strong></div><div class="move-outcomes">${outHtml}</div>${qHtml}</div>`;}
   let useHtml='';
-  if(isUnlocked&&favor){
-    useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="useFavor(${favor},'${id}')">Use Power <span class="ub-cost">−${favor} Favor</span></button>`;
-  } else if(isUnlocked&&c.type==='passive'){
-    // Passive abilities — "Trigger" button just notifies DM, no cost
-    useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="triggerPassive('${id}')" style="--dpacc:${accMap[branch]}">✦ Notify Weaver — Using This</button>`;
+  if(isUnlocked){
+    if(c.type==='passive'){
+      // Passive: notify DM button for all passives
+      useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="triggerPassive('${id}')" style="--dpacc:${accMap[branch]}">✦ Notify Weaver — Using This</button>`;
+    } else {
+      // Active move: always show Use button (even 0-cost moves get one)
+      const costLabel=favor?`−${favor} Favor`:'Free';
+      useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="useFavor(${favor||0},'${id}')">✦ Use — ${costLabel}</button>`;
+    }
   }
   let prereqHtml=data.prereq?`<div class="dp-prereq">Requires: ${data.prereq}</div>`:'';
   panel.innerHTML=`
@@ -2408,7 +2443,8 @@ function showNodeDetail(id,el){
 }
 
 async function triggerPassive(nodeId){
-  const powerName=ND[nodeId]?.name||nodeId;
+  const nd=ND[nodeId];
+  const powerName=nd?.name||nodeId;
   const btn=document.getElementById(`use-btn-${nodeId}`);
   if(btn){
     btn.classList.add('use-btn-used');
@@ -2416,9 +2452,36 @@ async function triggerPassive(nodeId){
     setTimeout(()=>{
       btn.classList.remove('use-btn-used');
       btn.textContent='✦ Notify Weaver — Using This';
-    },2000);
+    },2500);
   }
   await notifyDMPassiveUse(powerName, nodeId);
+
+  // If in combat, write a rich combat_action so DM gets the full passive card
+  if(typeof combatSessionData!=='undefined'&&combatSessionData){
+    const passivePrompt=nd?.content?.passive_prompt||null;
+    const richLabel=JSON.stringify({
+      type:'ability',
+      name:powerName,
+      meta:nd?.meta||'',
+      skill:null,
+      dice:[],
+      highest:null,
+      outcomeClass:'success',
+      outcomeLabel:'Passive Activated',
+      outcomeText:nd?.content?.desc||'',
+      damageDie:null,
+      damageRoll:null,
+      favorCost:0,
+      roll:null,
+      passive_prompt:passivePrompt,
+      isPassive:true
+    });
+    await db.from('combat_actions').insert({
+      session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
+      action_type:'ability',action_label:richLabel,resolved:false
+    });
+  }
+
   showToast(`Weaver notified: ${powerName}`);
 }
 
@@ -2781,17 +2844,54 @@ function showAdvanceModal(){
 function closeAdvanceModal(){
   document.getElementById('advance-modal').classList.remove('vis');
 }
+function minimizeAdvanceModal(){
+  document.getElementById('advance-modal').classList.remove('vis');
+  const pill=document.getElementById('advance-pill');
+  if(pill){pill.style.display='flex';}
+}
+function restoreAdvanceModal(){
+  const pill=document.getElementById('advance-pill');
+  if(pill){pill.style.display='none';}
+  document.getElementById('advance-modal').classList.add('vis');
+}
+
 function advanceSkill(){
-  closeAdvanceModal();
-  switchPlaybook('hero');
-  showToast('Add a check to any skill below');
-  // Highlight skill section briefly
-  const skillsGrid=document.getElementById('skills-grid');
-  if(skillsGrid){
-    skillsGrid.style.boxShadow='0 0 0 2px var(--gold)';
-    setTimeout(()=>{skillsGrid.style.boxShadow='';},3000);
+  const content=document.getElementById('advance-modal-content');
+  const SKILL_LABELS={Notice:'Notice',Persuade:'Persuade',Search:'Search',Wits:'Wits',Might:'Might',Nimble:'Nimble',Sneak:'Sneak',Tough:'Tough',Care:'Care',Charm:'Charm',Deceive:'Deceive',Intimidate:'Intimidate'};
+  content.innerHTML=`
+    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Choose a Skill to Increase</div>
+    <div class="advance-power-list">
+      ${SKILLS.map(sk=>{
+        const cur=skillData[sk]||0;
+        const maxed=cur>=4;
+        return `<div class="advance-option${maxed?' advance-option-disabled':''}" style="${maxed?'opacity:.35;cursor:default':''}" onclick="${maxed?'':'pickSkillAdvance(''+sk+'')'}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h4 style="margin:0">${sk}</h4>
+            <span style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold)">${cur}/4</span>
+          </div>
+          ${maxed?'<p style="margin:4px 0 0;font-size:11px;color:var(--dim)">Already at maximum</p>':'<p style="margin:4px 0 0">+1 die · currently '+cur+'d6 → '+(cur+1)+'d6</p>'}
+        </div>`;
+      }).join('')}
+    </div>
+    <button class="advance-back-btn" onclick="showAdvanceModal()">← Back</button>`;
+}
+async function pickSkillAdvance(skill){
+  const cur=skillData[skill]||0;
+  if(cur>=4){showToast('That skill is already maxed');return;}
+  const newVal=cur+1;
+  skillData[skill]=newVal;
+  // Write to DB
+  const{data:existing}=await db.from('character_skills').select('id').eq('character_id',CHAR_ID).eq('skill',skill).limit(1);
+  if(existing&&existing.length){
+    await db.from('character_skills').update({dice:newVal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('skill',skill);
+  } else {
+    await db.from('character_skills').insert({character_id:CHAR_ID,skill,dice:newVal});
   }
+  buildSkillsGrid();
+  updateMortalityDisplay();
+  closeAdvanceModal();
   completeAdvance();
+  showToast(`${skill} increased to ${newVal}d6!`);
 }
 function showAdvanceFeats(){
   const content=document.getElementById('advance-modal-content');

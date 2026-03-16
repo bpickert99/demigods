@@ -1197,20 +1197,40 @@ function showAbilityActionCard(ab, rawAction){
     </div>`;
   }
 
-  // DM action detection — look for keywords in outcome text that require DM action
+  // DM action detection — look for keywords in outcome text + explicit passive_prompt
   const outcomeText=ab.outcomeText||'';
   const dmReqs=[];
-  if(/deal damage|damage at|roll damage/i.test(outcomeText))
+
+  // Passive with explicit prompt: render a dedicated card and return immediately
+  if(ab.isPassive&&ab.passive_prompt){
+    area.innerHTML=`<div class="acard" style="background:#001020;border:1px solid var(--rc)40">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;color:${p.acc};text-transform:uppercase">${p.name}</span>
+        <span style="font-size:10px;color:var(--dim)">·</span>
+        <span style="font-size:10px;color:var(--rc);font-family:'Cinzel',serif;font-weight:700;letter-spacing:2px">PASSIVE</span>
+      </div>
+      <div class="acard-name" style="color:${p.acc}">${ab.name}</div>
+      <div class="acard-meta">${ab.meta||''}</div>
+      <div class="acard-dmreq">
+        <div class="acard-dmreq-title">⚡ Passive Activated — Weaver: Act Now</div>
+        <div class="acard-dmreq-body">${ab.passive_prompt}</div>
+      </div>
+      <button class="btn sm green" onclick="resolveAction()" style="margin-top:10px;width:100%">✓ Acknowledged</button>
+    </div>`;
+    return;
+  }
+
+  if(/deal damage|damage at|roll damage/i.test(outcomeText))
     dmReqs.push({icon:'⚔',label:'Apply Harm',text:`Apply ${ab.damageRoll||'damage'} harm to the target (use Resolve button below to set condition).`});
-  if(/heal|remove.*condition|recover/i.test(outcomeText))
+  if(/\bheal\b|remove.*condition|\brecover\b/i.test(outcomeText))
     dmReqs.push({icon:'✦',label:'Apply Healing',text:'One or more conditions should be removed or healed — check the outcome and apply to the relevant character.'});
-  if(/hold\s+\d+/i.test(outcomeText))
+  if(/hold\s+\d+/i.test(outcomeText))
     dmReqs.push({icon:'📌',label:'Hold Tokens',text:`Player holds ${(outcomeText.match(/hold\s+(\d+)/i)||[])[1]||'?'} — remind them to spend before end of scene.`});
-  if(/choose/i.test(outcomeText))
+  if(/choose/i.test(outcomeText))
     dmReqs.push({icon:'📋',label:'Player Must Choose',text:'The outcome requires the player to make a choice. Prompt them now.'});
-  if(/once per scene/i.test(outcomeText))
+  if(/once per scene/i.test(outcomeText))
     dmReqs.push({icon:'🔒',label:'Mark As Used',text:'This ability has a once-per-scene clause. Note that it has been used.'});
-  if(/keeper/i.test(outcomeText))
+  if(/keeper/i.test(outcomeText))
     dmReqs.push({icon:'🎲',label:'Keeper Response Required',text:'The outcome asks the Keeper to provide information, make a choice, or describe something. See full text below.'});
 
   const dmReqHtml=dmReqs.length?`
@@ -1649,7 +1669,7 @@ function promptWipeCharacter(){
   dmModal(`<h3 style="color:var(--fail)">⚠ Wipe ${p.name}'s Sheet?</h3>
     <div style="font-size:13px;color:var(--muted);margin-bottom:16px">
       This will permanently delete all of ${p.name}'s:<br>
-      <span style="color:var(--text)">Skills · Conditions · Inventory · Feats · Powers · Traits · Drives · XP</span><br><br>
+      <span style="color:var(--text)">Skills · Conditions · Inventory · Feats · Divine Powers · Traits · Drives · XP</span><br><br>
       Stats (Favor, Grit, Wisdom, Bond) will be reset to 0.<br><br>
       <strong style="color:var(--fail)">This cannot be undone.</strong>
     </div>
