@@ -47,8 +47,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .pb-panel{display:none}.pb-panel.active{display:block}
 
 /* ── COMBAT OVERLAY ── */
-.combat-overlay{display:none;position:fixed;inset:0;z-index:150;background:#050508;flex-direction:column;overflow-y:auto}
-.combat-overlay.vis{display:flex}
 .co-header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:linear-gradient(135deg,#1a0800,#080400);border-bottom:2px solid var(--gold)}
 .co-title{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);letter-spacing:2px}
 .co-round{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-left:auto}
@@ -575,8 +573,6 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
   <div class="char-info">
     <h1>Finn</h1>
     <div class="char-sub">Púca</div>
-    <div id="current-form-display" style="display:none;margin-top:4px;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;color:#34d399;text-transform:uppercase"></div>
-    <button id="return-human-btn" onclick="returnToHuman()" style="display:none;margin-top:6px;padding:3px 10px;border-radius:4px;border:1px solid #34d39960;background:transparent;color:#34d399;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer">↩ Return to Human</button>
   </div>
   <div class="char-vitals">
     <div class="mortality-display">
@@ -1203,17 +1199,6 @@ async function checkPendingRoll(){
 function applyCharData(){
   buildStatPips();
   buildFavorTokens();
-  const fd=document.getElementById('current-form-display');
-  const rb=document.getElementById('return-human-btn');
-  const form=charData.current_form;
-  if(form&&form!=='human'){
-    const ad=ANIMAL_DATA[form];
-    if(fd){fd.textContent=`Form: ${ad?ad.emoji+' '+ad.name:form}`;fd.style.display='block';}
-    if(rb)rb.style.display='inline-block';
-  } else {
-    if(fd){fd.textContent='';fd.style.display='none';}
-    if(rb)rb.style.display='none';
-  }
 }
 
 // ── SUBSCRIPTIONS ──
@@ -2096,13 +2081,33 @@ function applyAnimalStates(){
 
 async function toggleNode(el){
   const id=el.id;
+  // Animal nodes
   if(id.startsWith('an-')){
     if(el.classList.contains('locked')){showPrereqModalUI(el);return;}
     showAnimalDetail(id);
+    if(unlockedPowers.has(id)){
+      if(hasDependent(id)){showToast("Another form depends on this one");return;}
+      unlockedPowers.delete(id);el.classList.remove('unlocked');el.classList.add('avail');
+      await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
+    } else {
+      unlockedPowers.add(id);el.classList.remove('avail');el.classList.add('unlocked');
+      await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:0});
+    }
+    applyAnimalStates();updateSpread();updateProgress();
     return;
   }
+  // Standard nodes
   if(el.classList.contains('locked')){showPrereqModalUI(el);return;}
   showNodeDetail(id,el);
+  if(unlockedPowers.has(id)){
+    if(hasDependent(id)){showToast("Another power depends on this one");return;}
+    unlockedPowers.delete(id);el.classList.remove('unlocked');el.classList.add('avail');
+    await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
+  } else {
+    unlockedPowers.add(id);el.classList.remove('avail');el.classList.add('unlocked');
+    await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:nodeLevels[id]||0});
+  }
+  updateAllLocks();refreshDice(el,id);updateSpread();updateProgress();
 }
 
 function showAnimalDetail(nodeId){
@@ -2128,7 +2133,7 @@ function showAnimalDetail(nodeId){
   if(isUnlocked&&ad.roll){
     actionHtml=`<button class="use-btn" onclick="useAnimal('${animal}')" style="--dpacc:#34d399">Shift → ${ad.emoji} ${ad.name} <span class="ub-cost">−${ad.favor} Favor</span></button>`;
   } else if(isUnlocked){
-    actionHtml=`<button class="use-btn" onclick="shiftFree('${animal}')" style="--dpacc:#34d399">✦ Shift → ${ad.emoji} ${ad.name}</button>`;
+    actionHtml=`<button class="use-btn" onclick="triggerPassive('${nodeId}')" style="--dpacc:#34d399">✦ Notify Weaver — Shifting to ${ad.emoji} ${ad.name}</button>`;
   }
   panel.innerHTML=`
     <div class="dp-meta">Shifting · ${ad.emoji} ${ad.name}${ad.roll?' · Roll: '+ad.roll+' · '+ad.favor+' Favor':' · Free Shift'}</div>
@@ -2144,9 +2149,6 @@ async function useAnimal(animal){
   const nodeId=`an-${animal}`;
   const level=animalLevels[animal]||0;
   if(ad.favor>0) await setFavor((charData.favor_current||0)-ad.favor);
-  charData.current_form=animal;
-  await db.from('characters').update({current_form:animal,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
-  applyCharData();
   // Roll using the animal's roll skill
   const skill=ad.roll;
   const baseDice=skillData[skill]||0;
@@ -3016,6 +3018,15 @@ async function castJuryVote(queueItemId,vote){
 }
 // ── BOOT ──
 init().catch(e=>{console.error(e);setSyncDot(false);});
+
+function minimizeCombat(){
+  const ov=document.getElementById('combat-overlay');if(!ov)return;
+  ov.classList.add('minimized');
+}
+function restoreCombat(){
+  const ov=document.getElementById('combat-overlay');if(!ov)return;
+  ov.classList.remove('minimized');
+}
 </script>
 </body>
 </html>

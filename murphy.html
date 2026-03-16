@@ -47,8 +47,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .pb-panel{display:none}.pb-panel.active{display:block}
 
 /* ── COMBAT OVERLAY ── */
-.combat-overlay{display:none;position:fixed;inset:0;z-index:150;background:#050508;flex-direction:column;overflow-y:auto}
-.combat-overlay.vis{display:flex}
 .co-header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:linear-gradient(135deg,#1a0800,#080400);border-bottom:2px solid var(--gold)}
 .co-title{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);letter-spacing:2px}
 .co-round{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-left:auto}
@@ -1868,6 +1866,15 @@ async function toggleNode(el){
   const id=el.id;
   if(el.classList.contains('locked')){showPrereqModalUI(el);return;}
   showNodeDetail(id,el);
+  if(unlockedPowers.has(id)){
+    if(hasDependent(id)){showToast("Another power depends on this one");return;}
+    unlockedPowers.delete(id);el.classList.remove('unlocked');el.classList.add('avail');
+    await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
+  } else {
+    unlockedPowers.add(id);el.classList.remove('avail');el.classList.add('unlocked');
+    await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:nodeLevels[id]||0});
+  }
+  updateAllLocks();refreshDice(el,id);updateSpread();updateProgress();
 }
 
 function applyPowerStates(){
@@ -2831,6 +2838,15 @@ async function castJuryVote(queueItemId,vote){
 }
 // ── BOOT ──
 init().catch(e=>{console.error(e);setSyncDot(false);});
+
+function minimizeCombat(){
+  const ov=document.getElementById('combat-overlay');if(!ov)return;
+  ov.classList.add('minimized');
+}
+function restoreCombat(){
+  const ov=document.getElementById('combat-overlay');if(!ov)return;
+  ov.classList.remove('minimized');
+}
 </script>
 </body>
 </html>
