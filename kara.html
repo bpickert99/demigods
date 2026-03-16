@@ -506,6 +506,63 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .toast.show{transform:translateX(-50%) translateY(0)}
 
 footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:4px}
+
+/* ── COMBAT OVERLAY ── */
+.combat-overlay{display:none;position:fixed;inset:0;z-index:150;background:rgba(4,3,2,.82);backdrop-filter:blur(4px);flex-direction:column;align-items:center;justify-content:flex-start;padding:20px 12px;overflow-y:auto}
+.combat-overlay.vis{display:flex}
+.combat-overlay.minimized{display:flex;align-items:flex-end;justify-content:flex-end;padding:0;background:transparent;backdrop-filter:none;pointer-events:none}
+.combat-overlay.minimized .co-box{display:none}
+.combat-overlay.minimized .co-minimized-bar{display:flex;pointer-events:auto}
+.co-minimized-bar{display:none;position:fixed;bottom:16px;right:16px;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(135deg,#fdf6e8,#f5e6c8);border:2px solid #8b6340;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5);cursor:pointer;z-index:151}
+.co-minimized-label{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:#2c1a08;text-transform:uppercase}
+.co-minimized-badge{background:#ef4444;color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 6px;font-family:'Cinzel',serif}
+.co-box{width:100%;max-width:800px;background:linear-gradient(160deg,#fdf6e8,#f5e6c8);border:2px solid #8b6340;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:hidden}
+.co-header{display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(135deg,#8b4513,#5c2d0a);border-bottom:2px solid #c4a87a}
+.co-title{font-family:'Cinzel Decorative',serif;font-size:17px;color:#fef3c7;letter-spacing:2px}
+.co-round{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;color:#d4b896;text-transform:uppercase;margin-left:auto}
+.co-turn-banner{padding:10px 18px;background:linear-gradient(90deg,#22c55e20,#22c55e08);border-bottom:1px solid #22c55e40;text-align:center;display:none}
+.co-turn-banner.vis{display:block}
+.co-turn-banner-text{font-family:'Cinzel Decorative',serif;font-size:14px;color:#22c55e;letter-spacing:2px}
+.co-body{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px}
+@media(max-width:600px){.co-body{grid-template-columns:1fr}}
+.co-section{background:rgba(255,248,235,.6);border:1px solid #c4a87a;border-radius:8px;padding:12px}
+.co-sec-title{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#7a5c2e;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.co-sec-title::after{content:'';flex:1;height:1px;background:#c4a87a60}
+.co-harm-bar{height:8px;background:#d4b896;border-radius:4px;overflow:hidden;margin:8px 0}
+.co-harm-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444);transition:width .4s}
+.co-stat-nums{font-family:'Cinzel Decorative',serif;font-size:20px;color:#8b2500}
+.co-actions{display:flex;gap:8px;flex-wrap:wrap}
+.co-apip{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;border:2px solid #c4a87a;background:#ede0c4;transition:all .2s;color:#7a5c2e}
+.co-apip.avail{background:#d4edda;border-color:#5a8a5a;color:#2d6a2d}
+.co-apip.used{background:#e0d0b8;border-color:#b09070;color:#b09070}
+.co-tracks{display:flex;gap:10px}
+.co-track{flex:1;text-align:center}
+.co-track-lbl{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:5px;color:#7a5c2e}
+.co-pips{display:flex;gap:4px;justify-content:center}
+.co-pip{width:18px;height:18px;border-radius:50%;border:2px solid #c4a87a;background:#ede0c4}
+.co-pip.on.wisdom{background:#60a5fa;border-color:#93c5fd;box-shadow:0 0 6px #60a5fa66}
+.co-pip.on.grit{background:#f87171;border-color:#fca5a5;box-shadow:0 0 6px #f8717166}
+.co-pip.on.bond{background:#4ade80;border-color:#86efac;box-shadow:0 0 6px #4ade8066}
+.co-queue-list{display:flex;flex-direction:column;gap:6px}
+.co-queue-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,248,235,.7);border:1px solid #c4a87a;border-radius:4px;font-size:13px;color:#2c1a08}
+.co-queue-item.my-turn{border-color:#8b4513;background:#8b451315}
+.co-queue-item.active{border-color:#5a8a5a;background:#d4edda30}
+.co-join-btn{width:100%;padding:10px;border-radius:6px;border:2px solid #8b4513;background:transparent;color:#8b4513;font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-top:10px}
+.co-join-btn:hover{background:#8b451315}
+.co-join-btn:disabled{opacity:.35;cursor:default;pointer-events:none}
+.co-actions-panel{background:linear-gradient(135deg,#d4edda,#f0fdf4);border:2px solid #5a8a5a;border-radius:8px;padding:14px;margin-top:10px}
+.co-actions-panel h3{font-family:'Cinzel Decorative',serif;font-size:13px;color:#2d6a2d;margin-bottom:10px;text-align:center}
+.co-action-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.co-action-btn{padding:9px 10px;border-radius:6px;border:1px solid #c4a87a;background:rgba(255,248,235,.8);color:#2c1a08;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;text-align:left}
+.co-action-btn:hover{border-color:#8b4513;background:#fdf6e8}
+.co-action-btn .co-action-icon{font-size:16px;display:block;margin-bottom:2px}
+.co-action-btn .co-action-cost{font-size:9px;color:#7a5c2e;letter-spacing:1px;margin-top:1px}
+.co-weapon-display{padding:7px 10px;background:rgba(255,248,235,.7);border:1px solid #c4a87a;border-radius:4px;font-size:12px;color:#2c1a08;margin-bottom:6px}
+.co-weapon-name{font-weight:700}
+.co-weapon-harm{font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:#8b2500;margin-left:8px}
+.co-inv-item{display:flex;align-items:center;gap:8px;padding:5px 9px;background:rgba(255,248,235,.7);border:1px solid #c4a87a;border-radius:4px;margin-bottom:4px;font-size:12px;color:#2c1a08}
+.co-inv-use{padding:2px 7px;border-radius:4px;border:1px solid #8b451360;background:transparent;color:#8b4513;font-size:10px;font-weight:700;cursor:pointer}
+.co-minimize-btn{padding:4px 10px;border-radius:4px;border:1px solid #c4a87a80;background:transparent;color:#d4b896;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-left:8px}
 </style>
 </head>
 <body>
@@ -568,6 +625,70 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
   <div id="jury-submit-list"></div>
 </div>
 
+
+<!-- ══ COMBAT OVERLAY ══ -->
+<div class="combat-overlay" id="combat-overlay">
+  <div class="co-minimized-bar" onclick="restoreCombat()">
+    <span style="font-size:20px">⚔</span>
+    <span class="co-minimized-label">Combat Active</span>
+    <span class="co-minimized-badge" id="co-mini-round">Rd 1</span>
+    <span class="co-minimized-badge" id="co-mini-turn" style="display:none;background:#22c55e">Your Turn!</span>
+  </div>
+  <div class="co-box">
+    <div class="co-header">
+      <div class="co-title">⚔ Combat</div>
+      <div class="co-round" id="co-round-text">Round 1</div>
+      <button class="co-minimize-btn" onclick="minimizeCombat()">— Minimize</button>
+    </div>
+    <div class="co-turn-banner" id="co-turn-banner">
+      <div class="co-turn-banner-text">⚔ IT IS YOUR TURN — CHOOSE AN ACTION ⚔</div>
+    </div>
+    <div class="co-body">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="co-section">
+          <div class="co-sec-title">Harm &amp; Status</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:12px;color:#7a5c2e">Harm / Mortality</span>
+            <span class="co-stat-nums" id="co-harm-nums">0 / 0</span>
+          </div>
+          <div class="co-harm-bar"><div class="co-harm-fill" id="co-harm-fill" style="width:0%"></div></div>
+          <div id="co-conditions" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px"></div>
+        </div>
+        <div class="co-section">
+          <div class="co-sec-title">My Actions</div>
+          <div class="co-actions" id="co-action-pips"></div>
+          <button class="co-join-btn" id="co-join-btn" onclick="joinCombatQueue()">⚔ I Want to Act</button>
+        </div>
+        <div class="co-section">
+          <div class="co-sec-title">Momentum</div>
+          <div class="co-tracks">
+            <div class="co-track"><span class="co-track-lbl" style="color:#3b82f6">Wisdom</span><div class="co-pips" id="co-wisdom-pips"></div></div>
+            <div class="co-track"><span class="co-track-lbl" style="color:#ef4444">Grit</span><div class="co-pips" id="co-grit-pips"></div></div>
+            <div class="co-track"><span class="co-track-lbl" style="color:#22c55e">Bond</span><div class="co-pips" id="co-bond-pips"></div></div>
+          </div>
+        </div>
+        <div class="co-section">
+          <div class="co-sec-title">Equipped Weapon</div>
+          <div id="co-weapon-display"><div style="color:#7a5c2e;font-size:12px;font-style:italic">No weapon equipped.</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="co-section">
+          <div class="co-sec-title">Queue</div>
+          <div class="co-queue-list" id="co-queue-list"><div style="color:#7a5c2e;font-size:12px;font-style:italic">No one in queue yet.</div></div>
+        </div>
+        <div class="co-section">
+          <div class="co-sec-title">Inventory</div>
+          <div id="co-inventory"></div>
+        </div>
+        <div class="co-actions-panel" id="co-action-panel" style="display:none">
+          <h3>Your Turn — Choose an Action</h3>
+          <div class="co-action-grid" id="co-action-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- JURY OVERLAY (full screen) -->
 <div id="jury-overlay" style="display:none;position:fixed;inset:0;z-index:200;background:#000000e0;backdrop-filter:blur(8px);flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;text-align:center">
@@ -2449,12 +2570,14 @@ async function loadCombatState(){
   }
 }
 function showCombatOverlay(){
-  document.getElementById('combat-overlay').classList.add('vis');
+  const co=document.getElementById('combat-overlay');if(!co)return;
+  co.classList.add('vis');co.classList.remove('minimized');
   document.body.style.overflow='hidden';
   updateCombatOverlay();
 }
 function hideCombatOverlay(){
-  document.getElementById('combat-overlay').classList.remove('vis');
+  const co=document.getElementById('combat-overlay');if(!co)return;
+  co.classList.remove('vis','minimized');
   document.body.style.overflow='';
   combatSessionData=null;combatParticipantData=null;myQueueItem=null;
 }
@@ -2512,7 +2635,12 @@ function updateCombatOverlay(){
   }
   // Turn indicator
   const isMyTurn=combatSessionData.current_turn_id===CHAR_ID&&combatSessionData.current_turn_type==='pc';
-  document.getElementById('co-turn-text').textContent=isMyTurn?'▶ YOUR TURN':'';
+  const turnBanner=document.getElementById('co-turn-banner');
+  if(turnBanner)turnBanner.classList.toggle('vis',isMyTurn);
+  const miniTurn=document.getElementById('co-mini-turn');
+  if(miniTurn)miniTurn.style.display=isMyTurn?'inline':'none';
+  const miniRound=document.getElementById('co-mini-round');
+  if(miniRound)miniRound.textContent=`Rd ${combatSessionData.round||1}`;
   const actionPanel=document.getElementById('co-action-panel');
   if(actionPanel) actionPanel.style.display=isMyTurn?'block':'none';
   if(isMyTurn) buildCombatActionGrid();
