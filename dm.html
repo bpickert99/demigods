@@ -221,6 +221,21 @@ select.inp{cursor:pointer}
 @keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
 footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:4px}
+/* Harm flash animation */
+@keyframes harmFlash{0%{background:transparent}20%{background:#ef444430}50%{background:#ef444418}100%{background:transparent}}
+.harm-flash{animation:harmFlash .8s ease}
+/* Heal flash animation */
+@keyframes healFlash{0%{background:transparent}20%{background:#22c55e30}100%{background:transparent}}
+.heal-flash{animation:healFlash .7s ease}
+/* Condition form inside action card */
+.cond-form{margin-top:12px;padding:12px 14px;background:#001a0a10;border:1px solid var(--success)40;border-radius:6px}
+.cond-form-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.cond-form input[type=text]{flex:1;min-width:140px;padding:7px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:13px;font-family:'Inter',sans-serif}
+.cond-form input[type=text]:focus{outline:none;border-color:var(--gold)}
+.cond-form input[type=number]{width:64px;padding:7px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:13px;font-family:'Inter',sans-serif}
+.cond-form input[type=number]:focus{outline:none;border-color:var(--gold)}
+.unstable-toggle{padding:5px 12px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .18s}
+.unstable-toggle.on{border-color:var(--unstable);color:var(--unstable);background:#f9731615}
 </style>
 </head>
 <body>
@@ -634,7 +649,7 @@ function renderPartyGrid(){
     const conds=condData[p.id]||[];const w=ch.wisdom||0,gr=ch.grit||0,bo=ch.bond||0;
     const condHtml=conds.map(c=>`<span class="cond-chip${c.is_permanent?' perm':c.unstable?' unstable':''}" title="Click to remove" onclick="removeCond('${c.id}','${p.id}')">${c.label} ${c.harm}${c.is_permanent?' 🔒':''}</span>`).join('');
     const pipHtml=(t,v)=>[1,2,3,4].map(i=>`<div class="pip${i<=v?' on '+t:''}"></div>`).join('');
-    const card=document.createElement('div');card.className='pcard';
+    const card=document.createElement('div');card.className='pcard';card.dataset.charId=p.id;
     card.innerHTML=`
       <div class="pcard-hdr" style="border-bottom-color:${p.color}40">
         <div class="pcard-av" style="border:2px solid ${p.color};box-shadow:0 0 10px ${p.color}33">${p.emoji}</div>
@@ -932,6 +947,13 @@ async function activateTurn(partId){
 // ── Call next person from the queue and set their turn ──
 async function callNextInQueue(){
   if(!combatSess)return;
+  // Retire the currently active item (whoever just went) before calling next
+  const current=combatQ.find(q=>q.status==='active');
+  if(current){
+    await db.from('combat_queue').update({status:'done',updated_at:new Date().toISOString()}).eq('id',current.id);
+    current.status='done';
+    combatQ=combatQ.filter(q=>q.id!==current.id);
+  }
   const next=combatQ.find(q=>q.status==='waiting');
   if(!next){showToast('Queue is empty — players need to click "I Want to Act"');return;}
 
@@ -1092,15 +1114,76 @@ function rollDie(s){const f=parseInt(s);if(!isNaN(f)&&!s.includes('d'))return f;
 function showActionCard(a){
   const area=document.getElementById('action-card-area');if(!area)return;
   const oc=a.roll_outcome==='success'?'var(--success)':a.roll_outcome==='mixed'?'var(--partial)':'var(--fail)';
+  // Determine target for harm (from action row or infer from label)
+  const targetId=a.target_id||null;
+  const targetType=a.target_type||'pc';
+  const targetName=a.target_name||'target';
+  const hasHarm=!!(a.harm_dealt&&a.harm_dealt>0&&targetId&&targetType==='pc');
+  const actionId=a.id||'';
+
+  const harmForm=hasHarm?`
+    <div class="cond-form">
+      <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--success);margin-bottom:8px">APPLY CONDITION TO ${targetName.toUpperCase()}</div>
+      <div class="cond-form-row">
+        <input type="text" id="cond-label-input" placeholder="Condition name e.g. Blade wound" value="Hit by ${a.actor_name||'attack'}">
+        <input type="number" id="cond-harm-input" value="${a.harm_dealt}" min="1" max="99" title="Harm">
+        <button class="unstable-toggle" id="unstable-toggle-btn" onclick="toggleCondUnstable(this)">Stable</button>
+      </div>
+      <button class="btn green" onclick="resolveWithCondition('${targetId}','${targetName}','${actionId}')" style="width:100%">✓ Apply & Resolve</button>
+    </div>`:'<button class="btn sm green" onclick="resolveAction()" style="margin-top:8px">✓ Resolve & Continue</button>';
+
   area.innerHTML=`<div class="action-card">
-    <div class="action-card-actor">${a.actor_name}</div>
+    <div class="action-card-actor">${a.actor_name||''}</div>
     <div style="font-size:15px;color:var(--text);margin-bottom:6px">${a.action_label||''}</div>
     ${a.roll_highest?`<div style="font-family:'Cinzel Decorative',serif;font-size:13px;color:${oc};margin-bottom:4px">Rolled ${a.roll_highest} — ${a.roll_outcome}</div>`:''}
     ${a.harm_dealt?`<div style="font-size:13px;color:var(--harm);margin-bottom:4px">⚔ ${a.harm_dealt} Harm dealt</div>`:''}
     ${a.healing_dealt?`<div style="font-size:13px;color:var(--success);margin-bottom:4px">✦ ${a.healing_dealt} Healing</div>`:''}
-    <button class="btn sm green" onclick="resolveAction()" style="margin-top:8px">✓ Resolve & Continue</button>
+    ${harmForm}
   </div>`;
 }
+
+function toggleCondUnstable(btn){
+  btn.classList.toggle('on');
+  btn.textContent=btn.classList.contains('on')?'⚠ Unstable':'Stable';
+}
+
+async function resolveWithCondition(targetId, targetName, actionId){
+  const label=document.getElementById('cond-label-input')?.value.trim()||'Hit';
+  const harm=parseInt(document.getElementById('cond-harm-input')?.value)||1;
+  const unstable=document.getElementById('unstable-toggle-btn')?.classList.contains('on')||false;
+
+  // Write the condition to the DB
+  const{data:cond,error}=await db.from('conditions').insert({
+    character_id:targetId,label,harm,unstable,is_permanent:false
+  }).select().single();
+  if(error){showToast('DB error: '+error.message);return;}
+
+  // Log it
+  if(!condData[targetId])condData[targetId]=[];
+  condData[targetId].push(cond);
+  await logChange(targetId,'condition_add',`Combat: "${label}" (${harm} harm${unstable?' — unstable':''})`,null,{id:cond.id,label,harm});
+
+  // Flash the party card
+  flashPartyCard(targetId,'harm');
+
+  // Resolve the action
+  document.getElementById('action-card-area').innerHTML='';
+  if(combatSess)await db.from('combat_actions').update({resolved:true}).eq('session_id',combatSess.id).eq('resolved',false);
+  await loadChars();renderPartyGrid();
+  showToast(`${label} (${harm} harm) applied to ${targetName}`);
+}
+
+function flashPartyCard(charId, type){
+  // Flash the party card for the affected character
+  const cards=document.querySelectorAll(`[data-char-id="${charId}"]`);
+  cards.forEach(card=>{
+    card.classList.remove('harm-flash','heal-flash');
+    void card.offsetWidth; // force reflow
+    card.classList.add(type==='harm'?'harm-flash':'heal-flash');
+    setTimeout(()=>card.classList.remove('harm-flash','heal-flash'),900);
+  });
+}
+
 async function resolveAction(){
   document.getElementById('action-card-area').innerHTML='';
   if(combatSess)await db.from('combat_actions').update({resolved:true}).eq('session_id',combatSess.id).eq('resolved',false);

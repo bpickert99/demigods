@@ -203,6 +203,12 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 @keyframes emberFloat{0%{transform:translateY(0) translateX(0);opacity:1}100%{transform:translateY(-80px) translateX(var(--ex));opacity:0}}
 @keyframes heartbeat{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 @keyframes slideDown{from{transform:translateY(-12px);opacity:0}to{transform:none;opacity:1}}
+@keyframes condHarmFlash{0%{background:var(--surf2)}20%{background:#ef444430;border-color:#ef4444}100%{background:var(--surf2)}}
+@keyframes condHealFlash{0%{background:var(--surf2)}20%{background:#22c55e30;border-color:#22c55e}100%{background:var(--surf2)}}
+.condition-row.harm-flash{animation:condHarmFlash .7s ease!important}
+.condition-row.heal-flash{animation:condHealFlash .6s ease!important}
+@keyframes overlayHarmFlash{0%{background:rgba(4,3,2,.82)}25%{background:rgba(100,10,10,.72)}100%{background:rgba(4,3,2,.82)}}
+.combat-overlay.harm-hit{animation:overlayHarmFlash .6s ease}
 @keyframes numberCountUp{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
 
 /* Combat cinematic */
@@ -766,8 +772,11 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
         <div class="co-grit-sub">Roll your Grit to determine your actions this first round.</div>
         <div class="co-grit-dice-count" id="co-grit-dice-display">0d6</div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:14px">6+ = 3 actions · 4–5 = 2 actions · 1–3 = 1 action</div>
-        <button class="co-grit-roll-btn" onclick="rollGritInitiative()">🎲 Roll Initiative</button>
-        <div id="co-grit-roll-result" style="display:none" class="co-grit-result"></div>
+        <button class="co-grit-roll-btn" id="co-grit-roll-btn" onclick="rollGritInitiative()">🎲 Roll Initiative</button>
+        <div id="co-grit-dice-result" style="display:none;margin-top:12px">
+          <div id="co-grit-dice-row" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:10px"></div>
+          <div id="co-grit-outcome-label" class="co-grit-result" style="text-align:center"></div>
+        </div>
       </div>
     </div>
 
@@ -1349,6 +1358,25 @@ function applyCharData(){
   buildFavorTokens();
 }
 
+// ── CONDITION RECEIVED FLASH ──
+function flashConditionReceived(){
+  // Flash the overlay red-tinted to signal harm landed on this character
+  const overlay=document.getElementById('combat-overlay');
+  if(overlay&&overlay.classList.contains('vis')){
+    overlay.classList.remove('harm-hit');
+    void overlay.offsetWidth; // force reflow so re-trigger works
+    overlay.classList.add('harm-hit');
+    setTimeout(()=>overlay.classList.remove('harm-hit'),700);
+  }
+  // Briefly highlight the newest condition row
+  const rows=document.querySelectorAll('.condition-row');
+  const last=rows[rows.length-1];
+  if(last){
+    last.classList.add('harm-flash');
+    setTimeout(()=>last.classList.remove('harm-flash'),800);
+  }
+}
+
 // ── SUBSCRIPTIONS ──
 function subscribeAll(){
   db.channel('lewis-char').on('postgres_changes',{event:'*',schema:'public',table:'characters'},payload=>{
@@ -1356,7 +1384,11 @@ function subscribeAll(){
   }).subscribe();
   db.channel('lewis-cond').on('postgres_changes',{event:'*',schema:'public',table:'conditions'},payload=>{
     const id=payload.new?.character_id||payload.old?.character_id;
-    if(id===CHAR_ID)loadConditions();
+    if(id!==CHAR_ID)return;
+    const wasInsert=payload.eventType==='INSERT';
+    loadConditions().then(()=>{
+      if(wasInsert)flashConditionReceived();
+    });
   }).subscribe();
   db.channel('lewis-powers').on('postgres_changes',{event:'*',schema:'public',table:'unlocked_powers'},payload=>{
     const id=payload.new?.character_id||payload.old?.character_id;
@@ -2996,21 +3028,38 @@ async function rollGritInitiative(){
   const dice=Array.from({length:diceCount},()=>Math.ceil(Math.random()*6));
   const relevant=isZeroGrit?Math.min(...dice):Math.max(...dice);
   let actions=relevant>=6?3:relevant>=4?2:1;
-  const outcome=relevant>=6?'Success — 3 Actions!':relevant>=4?'Mixed — 2 Actions':'Fail — 1 Action';
-  const resEl=document.getElementById('co-grit-roll-result');
-  const rollLabel=isZeroGrit?`${dice.join(', ')} (lower) → ${outcome}`:`${dice.join(', ')} → ${outcome}`;
-  resEl.textContent=rollLabel;
-  resEl.style.display='block';
+  const outcomeText=relevant>=6?'✦ Success — 3 Actions':relevant>=4?'◈ Mixed — 2 Actions':'✕ Fail — 1 Action';
+  const outcomeColor=relevant>=6?'var(--success)':relevant>=4?'var(--partial)':'var(--fail)';
+
+  // Render visual dice — highlight the chosen die (lowest for 0-grit, highest otherwise)
+  const diceRow=document.getElementById('co-grit-dice-row');
+  const resultWrap=document.getElementById('co-grit-dice-result');
+  const outcomeLabel=document.getElementById('co-grit-outcome-label');
+  const rollBtn=document.getElementById('co-grit-roll-btn');
+  if(diceRow&&resultWrap&&outcomeLabel){
+    diceRow.innerHTML='';
+    dice.forEach((val,i)=>{
+      const isChosen=isZeroGrit?(val===relevant&&dice.indexOf(val)===i || (val===Math.min(...dice)&&dice.filter(d=>d===val).length>1?i===dice.lastIndexOf(val):i===dice.indexOf(val))):val===relevant&&i===dice.indexOf(val);
+      const span=document.createElement('div');
+      // Style matches .roll-die from the playbook tab
+      span.style.cssText=`width:44px;height:44px;border-radius:8px;border:2px solid ${isChosen?(isZeroGrit?'#ef4444':'var(--gold)'):'#c4a87a'};background:rgba(255,248,235,.85);display:flex;align-items:center;justify-content:center;font-family:'Cinzel Decorative',serif;font-size:20px;font-weight:700;color:${isChosen?(isZeroGrit?'#ef4444':'var(--gold)'):'#5c2d0a'};${isChosen?`box-shadow:0 0 10px ${isZeroGrit?'#ef444440':'#d4a84b60'};`:''}animation:diceSpinIn .4s ease ${i*80}ms both`;
+      span.textContent=val;
+      diceRow.appendChild(span);
+    });
+    outcomeLabel.textContent=outcomeText;
+    outcomeLabel.style.color=outcomeColor;
+    resultWrap.style.display='block';
+    if(rollBtn)rollBtn.style.display='none'; // hide roll button once rolled
+  }
+
   // Update participant row
   if(combatParticipantData){
     await db.from('combat_participants').update({actions_max:actions,grit_rolled:true,updated_at:new Date().toISOString()}).eq('id',combatParticipantData.id);
     combatParticipantData.actions_max=actions;
     combatParticipantData.grit_rolled=true;
   }
-  showToast(`Initiative: ${outcome}`);
-  // Hold the result on screen for 3.2s before transitioning to the main combat UI.
-  // gritResultShowing prevents subscription-triggered updateCombatOverlay from
-  // collapsing the init section early during this window.
+  showToast(`Initiative: ${outcomeText}`);
+  // Hold the result on screen for 3.2s before transitioning to main combat UI
   gritResultShowing=true;
   setTimeout(()=>{gritResultShowing=false;updateCombatOverlay();},3200);
 }
@@ -3050,7 +3099,7 @@ function buildCombatActionGrid(){
 
   // Range-eligible combat feats (hidden entirely if weapon doesn't qualify)
   const eligibleFeats=FEATS.filter(f=>{
-    if(!f.type==='combat'||!unlockedFeats.has(f.id)) return false;
+    if(f.type!=='combat'||!unlockedFeats.has(f.id)) return false;
     if(f.id==='cleave') return hasClose;
     if(f.id==='cover_shot') return hasFar;
     if(f.id==='disarm') return hasClose||hasIntimate;
