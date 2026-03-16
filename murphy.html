@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Murphy — Demigods Campaign · v3.2</title>
+<title>Murphy — Demigods Campaign · v3.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -524,7 +524,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
       Harm <span class="harm-num" id="header-harm">0</span>
       / <span class="mortality-num" id="header-mortality">—</span> Mortality
       <span class="sync-dot off" id="sync-dot" title="Syncing..."></span>
-      <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.2</span>
+      <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.3</span>
     </div>
     <div class="mortality-display" style="font-size:10px;margin-top:2px">
       Favor <span style="color:var(--fc);font-family:'Cinzel Decorative',serif;font-size:16px" id="header-favor">0</span>
@@ -1742,15 +1742,6 @@ async function toggleNode(el){
   const id=el.id;
   if(el.classList.contains('locked')){showPrereqModalUI(el);return;}
   showNodeDetail(id,el);
-  if(unlockedPowers.has(id)){
-    if(hasDependent(id)){showToast("Another power depends on this one");return;}
-    unlockedPowers.delete(id);el.classList.remove('unlocked');el.classList.add('avail');
-    await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
-  } else {
-    unlockedPowers.add(id);el.classList.remove('avail');el.classList.add('unlocked');
-    await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:nodeLevels[id]||0});
-  }
-  updateAllLocks();refreshDice(el,id);updateSpread();updateProgress();
 }
 
 function applyPowerStates(){

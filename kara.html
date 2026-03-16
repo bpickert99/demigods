@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kara — Demigods Campaign · v3.2</title>
+<title>Kara — Demigods Campaign · v3.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -524,7 +524,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
       Harm <span class="harm-num" id="header-harm">0</span>
       / <span class="mortality-num" id="header-mortality">—</span> Mortality
       <span class="sync-dot off" id="sync-dot" title="Syncing..."></span>
-      <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.2</span>
+      <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.3</span>
     </div>
     <div class="mortality-display" style="font-size:10px;margin-top:2px">
       Favor <span style="color:var(--fc);font-family:'Cinzel Decorative',serif;font-size:16px" id="header-favor">0</span>
@@ -1833,15 +1833,6 @@ async function toggleNode(el){
   const id=el.id;
   if(el.classList.contains('locked')){showPrereqModalUI(el);return;}
   showNodeDetail(id,el);
-  if(unlockedPowers.has(id)){
-    if(hasDependent(id)){showToast("Another power depends on this one");return;}
-    unlockedPowers.delete(id);el.classList.remove('unlocked');el.classList.add('avail');
-    await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
-  } else {
-    unlockedPowers.add(id);el.classList.remove('avail');el.classList.add('unlocked');
-    await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:nodeLevels[id]||0});
-  }
-  updateAllLocks();refreshDice(el,id);updateSpread();updateProgress();
 }
 
 function applyPowerStates(){
@@ -2752,6 +2743,14 @@ const CRAFT_TAGS=[
     {id:'coverage-head', lbl:'Head',   tip:'Covers the head and face'},
     {id:'coverage-arms', lbl:'Arms',   tip:'Covers both arms'},
     {id:'coverage-legs', lbl:'Legs',   tip:'Covers the legs'},
+  ]},
+  {grp:'Drawbacks (−1 Favor each)',tags:[
+    {id:'fragile',    lbl:'Fragile',    tip:'Durability is halved — breaks more easily under stress',    negative:true},
+    {id:'bulky',      lbl:'Bulky',      tip:'Requires two hands or significant effort to carry and use', negative:true},
+    {id:'loud',       lbl:'Loud',       tip:'Makes obvious noise when used — stealth is impossible',     negative:true},
+    {id:'singleuse',  lbl:'Single-Use', tip:'Breaks, depletes, or burns out after one use',              negative:true},
+    {id:'unreliable', lbl:'Unreliable', tip:'On a 1–3, the item malfunctions instead of failing normally',negative:true},
+    {id:'obvious',    lbl:'Obvious',    tip:'Cannot be concealed — clearly visible and identifiable',    negative:true},
   ]}
 ];
 
@@ -2762,12 +2761,17 @@ function calculateCraftFavorCost(){
   const isTool=document.getElementById('craft-tool')?.checked;
   const tags=getCraftTags();
   let base=isWeapon?3:isArmor?2:isTool?1:1;
-  // Each additional tag beyond 2 costs +1
-  const extraTags=Math.max(0,tags.length-2);
+  // Collect negative tag ids
+  const negativeIds=new Set(CRAFT_TAGS.flatMap(g=>g.tags.filter(t=>t.negative).map(t=>t.id)));
+  const checkedIds=[...document.querySelectorAll('#craft-tag-picker input:checked')].map(cb=>cb.id.replace('ctag-',''));
+  const positiveTags=checkedIds.filter(id=>!negativeIds.has(id));
+  const negativeTags=checkedIds.filter(id=>negativeIds.has(id));
+  // Each additional positive tag beyond 2 costs +1
+  const extraTags=Math.max(0,positiveTags.length-2);
   // Weapon damage die scaling
   const die=document.getElementById('craft-dmg')?.value||'1d6';
   const dieBonus={'1d4':0,'1d6':0,'1d8':1,'1d10':2,'1d12':3,'2d6':2}[die]||0;
-  return base+extraTags+dieBonus;
+  return Math.max(1,base+extraTags+dieBonus-negativeTags.length);
 }
 
 function getCraftTags(){
@@ -2789,9 +2793,11 @@ function buildCraftTagPicker(){
     lbl.textContent=group.grp;picker.appendChild(lbl);
     group.tags.forEach(t=>{
       const id=`ctag-${t.id}`;
+      const isNeg=!!t.negative;
       const cb=document.createElement('input');cb.type='checkbox';cb.id=id;cb.value=t.lbl;cb.style.display='none';cb.onchange=updateCraftPreview;
-      const lb=document.createElement('label');lb.htmlFor=id;lb.textContent=t.lbl;
-      lb.style.cssText='display:inline-flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--surf);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .18s;position:relative';
+      const lb=document.createElement('label');lb.htmlFor=id;
+      lb.textContent=(isNeg?'− ':'')+t.lbl;
+      lb.style.cssText=`display:inline-flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;border:1px solid ${isNeg?'#ef444440':'var(--border2)'};background:var(--surf);color:${isNeg?'#ef4444':'var(--muted)'};font-size:11px;font-weight:600;cursor:pointer;transition:all .18s;position:relative`;
       if(t.tip)lb.dataset.tip=t.tip;
       // Tooltip
       lb.onmouseover=function(){
@@ -2799,10 +2805,17 @@ function buildCraftTagPicker(){
       };
       lb.onmouseout=function(){document.getElementById('craft-tt')?.remove();};
       cb.onchange=()=>{
-        lb.style.background=cb.checked?'var(--kara)20':'var(--surf)';
-        lb.style.borderColor=cb.checked?'var(--kara)':'var(--border2)';
-        lb.style.color=cb.checked?'var(--kara-acc)':'var(--muted)';
-        if(cb.checked)lb.textContent='✓ '+t.lbl;else lb.textContent=t.lbl;
+        if(isNeg){
+          lb.style.background=cb.checked?'#ef444420':'var(--surf)';
+          lb.style.borderColor=cb.checked?'#ef4444':'#ef444440';
+          lb.style.color=cb.checked?'#fca5a5':'#ef4444';
+          lb.textContent=cb.checked?'✓ −1 '+t.lbl:'− '+t.lbl;
+        } else {
+          lb.style.background=cb.checked?'var(--kara)20':'var(--surf)';
+          lb.style.borderColor=cb.checked?'var(--kara)':'var(--border2)';
+          lb.style.color=cb.checked?'var(--kara-acc)':'var(--muted)';
+          lb.textContent=cb.checked?'✓ '+t.lbl:t.lbl;
+        }
         updateCraftPreview();
       };
       picker.appendChild(cb);picker.appendChild(lb);

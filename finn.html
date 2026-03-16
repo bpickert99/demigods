@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Finn — Demigods Campaign · v3.2</title>
+<title>Finn — Demigods Campaign · v3.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -518,13 +518,15 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
   <div class="char-info">
     <h1>Finn</h1>
     <div class="char-sub">Púca</div>
+    <div id="current-form-display" style="display:none;margin-top:4px;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;color:#34d399;text-transform:uppercase"></div>
+    <button id="return-human-btn" onclick="returnToHuman()" style="display:none;margin-top:6px;padding:3px 10px;border-radius:4px;border:1px solid #34d39960;background:transparent;color:#34d399;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer">↩ Return to Human</button>
   </div>
   <div class="char-vitals">
     <div class="mortality-display">
       Harm <span class="harm-num" id="header-harm">0</span>
       / <span class="mortality-num" id="header-mortality">—</span> Mortality
       <span class="sync-dot off" id="sync-dot" title="Syncing..."></span>
-      <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.2</span>
+      <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.3</span>
     </div>
     <div class="mortality-display" style="font-size:10px;margin-top:2px">
       Favor <span style="color:var(--fc);font-family:'Cinzel Decorative',serif;font-size:16px" id="header-favor">0</span>
@@ -1080,6 +1082,17 @@ async function checkPendingRoll(){
 function applyCharData(){
   buildStatPips();
   buildFavorTokens();
+  const fd=document.getElementById('current-form-display');
+  const rb=document.getElementById('return-human-btn');
+  const form=charData.current_form;
+  if(form&&form!=='human'){
+    const ad=ANIMAL_DATA[form];
+    if(fd){fd.textContent=`Form: ${ad?ad.emoji+' '+ad.name:form}`;fd.style.display='block';}
+    if(rb)rb.style.display='inline-block';
+  } else {
+    if(fd){fd.textContent='';fd.style.display='none';}
+    if(rb)rb.style.display='none';
+  }
 }
 
 // ── SUBSCRIPTIONS ──
@@ -1962,29 +1975,11 @@ async function toggleNode(el){
   if(id.startsWith('an-')){
     if(el.classList.contains('locked')){showPrereqModalUI(el);return;}
     showAnimalDetail(id);
-    if(unlockedPowers.has(id)){
-      if(hasDependent(id)){showToast("Another form depends on this one");return;}
-      unlockedPowers.delete(id);el.classList.remove('unlocked');el.classList.add('avail');
-      await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
-    } else {
-      unlockedPowers.add(id);el.classList.remove('avail');el.classList.add('unlocked');
-      await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:0});
-    }
-    applyAnimalStates();updateSpread();updateProgress();
     return;
   }
   // Standard nodes
   if(el.classList.contains('locked')){showPrereqModalUI(el);return;}
   showNodeDetail(id,el);
-  if(unlockedPowers.has(id)){
-    if(hasDependent(id)){showToast("Another power depends on this one");return;}
-    unlockedPowers.delete(id);el.classList.remove('unlocked');el.classList.add('avail');
-    await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
-  } else {
-    unlockedPowers.add(id);el.classList.remove('avail');el.classList.add('unlocked');
-    await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:nodeLevels[id]||0});
-  }
-  updateAllLocks();refreshDice(el,id);updateSpread();updateProgress();
 }
 
 function showAnimalDetail(nodeId){
@@ -2010,7 +2005,7 @@ function showAnimalDetail(nodeId){
   if(isUnlocked&&ad.roll){
     actionHtml=`<button class="use-btn" onclick="useAnimal('${animal}')" style="--dpacc:#34d399">Shift → ${ad.emoji} ${ad.name} <span class="ub-cost">−${ad.favor} Favor</span></button>`;
   } else if(isUnlocked){
-    actionHtml=`<button class="use-btn" onclick="triggerPassive('${nodeId}')" style="--dpacc:#34d399">✦ Notify Weaver — Shifting to ${ad.emoji} ${ad.name}</button>`;
+    actionHtml=`<button class="use-btn" onclick="shiftFree('${animal}')" style="--dpacc:#34d399">✦ Shift → ${ad.emoji} ${ad.name}</button>`;
   }
   panel.innerHTML=`
     <div class="dp-meta">Shifting · ${ad.emoji} ${ad.name}${ad.roll?' · Roll: '+ad.roll+' · '+ad.favor+' Favor':' · Free Shift'}</div>
@@ -2026,6 +2021,10 @@ async function useAnimal(animal){
   const nodeId=`an-${animal}`;
   const level=animalLevels[animal]||0;
   if(ad.favor>0) await setFavor((charData.favor_current||0)-ad.favor);
+  // Save current form
+  charData.current_form=animal;
+  await db.from('characters').update({current_form:animal,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+  applyCharData();
   // Roll using the animal's roll skill
   const skill=ad.roll;
   const baseDice=skillData[skill]||0;
@@ -2050,6 +2049,22 @@ async function useAnimal(animal){
   showAbilityResult(nodeId,`${ad.emoji} ${ad.name}`,skill,results,relevant,outcomeClass,fakeOutcome,dmgDie,dmgRoll,ones,isZero);
   await notifyDMAbilityUse(`Shifting: ${ad.emoji} ${ad.name}`,`Rolled ${relevant} (${outcomeClass})${dmgRoll?' · '+dmgRoll+' harm':''}`,nodeId);
   if(skill){await db.from('roll_log').insert({character_id:CHAR_ID,skill:`Shift: ${ad.name}`,dice_rolled:diceCount,results,highest:relevant,outcome:outcomeClass,ones_count:ones,modifier:0});}
+}
+
+async function shiftFree(animal){
+  const ad=ANIMAL_DATA[animal];if(!ad)return;
+  charData.current_form=animal;
+  await db.from('characters').update({current_form:animal,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+  applyCharData();
+  await notifyDMPassiveUse(`Shifting: ${ad.emoji} ${ad.name}`,`an-${animal}`);
+  showToast(`Shifted to ${ad.emoji} ${ad.name}`);
+}
+
+async function returnToHuman(){
+  charData.current_form='human';
+  await db.from('characters').update({current_form:'human',updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+  applyCharData();
+  showToast('Returned to human form');
 }
 
 async function advanceAnimal(animal){

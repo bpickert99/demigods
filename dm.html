@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Weaver Screen — Demigods · v3.2</title>
+<title>Weaver Screen — Demigods · v3.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -151,6 +151,7 @@ select.inp{cursor:pointer}
 .rest-ov.vis{display:flex}
 .rest-icon{font-size:56px;animation:pulse 2s ease-in-out infinite}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes roll-bounce{0%{transform:translateY(0)}15%{transform:translateY(-6px)}30%{transform:translateY(0)}45%{transform:translateY(-4px)}60%{transform:translateY(0)}100%{transform:translateY(0)}}
 .rest-title{font-family:'Cinzel Decorative',serif;font-size:26px;color:var(--gold)}
 .rest-sub{font-size:15px;color:var(--muted);font-family:'Crimson Pro',serif;font-style:italic}
 /* Toast */
@@ -193,7 +194,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
     <button class="btn sm gold" onclick="promptShortRest()">☽ Short Rest</button>
     <button class="btn sm gold" onclick="promptLongRest()">☀ Long Rest</button>
     <span class="sync off" id="sync-dot"></span>
-    <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.2</span>
+    <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.3</span>
   </div>
 </div>
 
@@ -201,7 +202,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
   <button class="mtab active" data-tab="party" onclick="switchTab('party')">Party</button>
   <button class="mtab" data-tab="npcs" onclick="switchTab('npcs')">NPCs</button>
   <button class="mtab" data-tab="combat" onclick="switchTab('combat')">⚔ Combat</button>
-  <button class="mtab" data-tab="rolls" onclick="switchTab('rolls')">🎲 Rolls</button>
+  <button class="mtab" data-tab="rolls" onclick="switchTab('rolls')" id="rolls-tab-btn">🎲 Rolls <span id="rolls-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;font-family:'Cinzel',serif;border-radius:10px;padding:1px 5px;margin-left:3px;vertical-align:middle"></span></button>
   <button class="mtab" data-tab="equipment" onclick="switchTab('equipment')">📦 Equipment</button>
   <button class="mtab" data-tab="jury" onclick="switchTab('jury')">⚖ Jury</button>
   <button class="mtab" data-tab="log" onclick="switchTab('log')">📋 Log</button>
@@ -417,6 +418,12 @@ const PLAYERS=[
   {id:'finn',  name:'Finn',  playbook:'Púca',                 emoji:'🐺', color:'var(--finn)',  acc:'var(--finn-acc)'}
 ];
 
+const FINN_FORMS={
+  stallion:{emoji:'🐴',name:'Stallion'},hare:{emoji:'🐇',name:'Hare'},goat:{emoji:'🐐',name:'Goat'},
+  cow:{emoji:'🐄',name:'Cow'},magpie:{emoji:'🐦',name:'Magpie'},salmon:{emoji:'🐟',name:'Salmon'},
+  wolf:{emoji:'🐺',name:'Wolf'},bear:{emoji:'🐻',name:'Bear'}
+};
+
 const TAG_DEFS=[
   {grp:'Range',tags:[
     {id:'intimate',lbl:'Intimate',tip:'Must be skin-to-skin or grappling range'},
@@ -530,7 +537,7 @@ function renderPartyGrid(){
     card.innerHTML=`
       <div class="pcard-hdr" style="border-bottom-color:${p.color}40">
         <div class="pcard-av" style="border:2px solid ${p.color};box-shadow:0 0 10px ${p.color}33">${p.emoji}</div>
-        <div><div class="pcard-name" style="color:${p.acc}">${p.name}</div><div class="pcard-sub" style="color:${p.color}">${p.playbook}</div></div>
+        <div><div class="pcard-name" style="color:${p.acc}">${p.name}</div><div class="pcard-sub" style="color:${p.color}">${p.playbook}${p.id==='finn'&&ch.current_form&&ch.current_form!=='human'?` · ${(FINN_FORMS[ch.current_form]?.emoji||'')+'  '+( FINN_FORMS[ch.current_form]?.name||ch.current_form)}`  :''}</div></div>
       </div>
       <div class="pcard-body">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
@@ -837,13 +844,15 @@ async function endCombat(){
 // Rolls
 function renderPendingRolls(){
   const list=document.getElementById('pending-rolls');if(!list)return;
+  const badge=document.getElementById('rolls-badge');
+  if(badge){if(pendingRolls.length){badge.textContent=pendingRolls.length;badge.style.display='inline';}else{badge.style.display='none';}}
   if(!pendingRolls.length){list.innerHTML='<div style="color:var(--dim);font-size:13px;font-style:italic;text-align:center;padding:12px">No pending rolls.</div>';return;}
   list.innerHTML='';
   pendingRolls.forEach(r=>{
     const p=PLAYERS.find(pl=>pl.id===r.character_id)||{name:r.character_id,acc:'var(--gold)'};
     const conds=condData[r.character_id]||[];const mod=r.modifier||0;
     const card=document.createElement('div');
-    card.style.cssText='padding:14px;background:linear-gradient(135deg,#1a1a00,#0a0a00);border:1px solid var(--gold);border-radius:6px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;animation:pulse 2s ease-in-out infinite';
+    card.style.cssText='padding:14px;background:linear-gradient(135deg,#1a1a00,#0a0a00);border:1px solid var(--gold);border-radius:6px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;animation:roll-bounce .8s ease 0s 2 both';
     card.innerHTML=`<div style="flex:1;min-width:120px"><div style="font-family:'Cinzel Decorative',serif;font-size:14px;color:${p.acc}">${p.name}</div><div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Rolling: ${r.skill}</div>${conds.length?`<div style="font-size:11px;color:var(--harm);margin-top:2px">Conditions: ${conds.map(c=>c.label).join(', ')}</div>`:''}</div><div style="font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold)">${r.base_dice}d6</div><div style="display:flex;align-items:center;gap:5px"><button class="btn sm" onclick="adjMod('${r.id}',-1)">−</button><span style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;min-width:28px;text-align:center;color:var(--gold)">${mod>=0?'+':''}${mod}</span><button class="btn sm" onclick="adjMod('${r.id}',1)">+</button></div><button class="btn green sm" onclick="approveRoll('${r.id}')">✓ Roll</button><button class="btn red sm" onclick="cancelRoll('${r.id}')">✕</button>`;
     list.appendChild(card);
   });
