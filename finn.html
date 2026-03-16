@@ -373,9 +373,6 @@ body.markup .power-node:hover .pn-name{color:var(--gold) !important}
 .favor-lbl{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:4px;color:var(--fc);text-transform:uppercase}
 .favor-num-big{font-family:'Cinzel Decorative',serif;font-size:22px;color:var(--fc)}
 .favor-slash{font-size:12px;color:var(--dim);font-family:'Cinzel',serif}
-.favor-btns{display:flex;gap:6px;margin-left:auto}
-.favor-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--fc)60;background:transparent;color:var(--fc);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .18s}
-.favor-btn:hover{background:var(--fc)20;border-color:var(--fc)}
 .refill-btn{padding:6px 14px;border-radius:4px;border:1px solid var(--fc)60;background:transparent;color:var(--fc);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap}
 .refill-btn:hover{background:var(--fc)20;border-color:var(--fc)}
 .favor-tokens{display:flex;flex-wrap:wrap;gap:4px}
@@ -1612,7 +1609,16 @@ function buildStatPips(){
     for(let i=1;i<=4;i++){
       const pip=document.createElement('div');
       pip.className=`stat-pip${i<=val?' on '+track:''}`;
-      // read-only — momentum only from roll results
+      if(markupMode){
+        const iVal=i;
+        pip.style.cursor='pointer';
+        pip.onclick=()=>{
+          const newVal=iVal<=val?iVal-1:iVal;
+          charData[track]=newVal;
+          db.from('characters').update({[track]:newVal,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+          buildStatPips();
+        };
+      }
       container.appendChild(pip);
     }
   });
@@ -1733,8 +1739,8 @@ async function setFavor(n){
   animateFavorChange(oldVal,val,max);
   await db.from('characters').update({favor_current:val,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
 }
-function changeFavor(d){setFavor((charData.favor_current||0)+d);}
-function refillFavor(){setFavor(getMortality()||15);}
+// changeFavor removed — favor adjusted only by useFavor/setFavor directly
+// refillFavor removed — favor starts full on load, refills on rest
 async function useFavor(cost,nodeId){
   // Deduct favor
   await setFavor((charData.favor_current||0)-cost);
@@ -2695,18 +2701,8 @@ function animateFavorChange(oldVal, newVal, max){
 }
 
 // ── DICE ROLL ANIMATION ──
-function animateDiceRoll(resultsArr, container){
-  if(!container)return;
-  container.innerHTML='';
-  resultsArr.forEach((val,i)=>{
-    const span=document.createElement('span');
-    span.className='dice-tumble';
-    span.style.animationDelay=`${i*60}ms`;
-    span.style.cssText+=`;display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;border-radius:6px;border:1px solid var(--border2);background:var(--surf2);font-family:'Cinzel',serif;font-weight:700;font-size:14px;margin:2px`;
-    span.textContent=val;
-    container.appendChild(span);
-  });
-}
+// animateDiceRoll removed
+
 
 
 // ── MARKUP MODE ──
@@ -3824,10 +3820,7 @@ async function useCombatAbilityFromPanel(nodeId,cost){
   document.getElementById('co-action-panel').style.display='none';
 }
 
-// Keep old useCombatAbility alias for any other callers
-async function useCombatAbility(nodeId,cost){
-  await useCombatAbilityFromPanel(nodeId,cost);
-}
+// useCombatAbility removed — call useCombatAbilityFromPanel directly
 
 // ── DIVINE PARTICLE ANIMATION ──
 function playDivineAnimation(){
@@ -3953,27 +3946,8 @@ function showFeatSubPanel(){
     <div class="co-ability-list">${cards}</div>`;
 }
 
-function showFeatFlow(feat){
-  const inner=document.getElementById('co-action-panel-inner');if(!inner)return;
-  // Feats that need a target
-  const needsTarget=['cleave','disarm','stun','cover_shot'];
-  if(needsTarget.includes(feat.id)){
-    const targets=combatParticipantsAll.filter(p=>p.participant_id!==CHAR_ID&&p.is_active&&!p.is_dead);
-    inner.innerHTML=`
-      <button class="co-action-back" onclick="buildCombatActionGrid()">← Back</button>
-      <div class="co-action-title">⚡ ${feat.name} — Choose Target</div>
-      <div style="font-size:11px;color:#7a5c2e;margin-bottom:10px">${feat.desc}</div>
-      ${feat.id==='cleave'?'<div style="font-size:11px;color:#8b4513;margin-bottom:8px">Select two targets:</div>':''}
-      ${targets.map(t=>`<button class="co-target-btn" onclick="executeFeat('${feat.id}','${feat.name}','${t.participant_id}','${t.participant_type}','${t.participant_name}')">${t.participant_type==='npc'?'👹':'🧑'} ${t.participant_name}</button>`).join('')}`;
-  } else {
-    // Bash — no target needed, just deals 5 harm to declared target
-    inner.innerHTML=`
-      <button class="co-action-back" onclick="buildCombatActionGrid()">← Back</button>
-      <div class="co-action-title">⚡ ${feat.name}</div>
-      <div style="font-size:11px;color:#7a5c2e;margin-bottom:10px">${feat.desc}</div>
-      ${combatParticipantsAll.filter(p=>p.participant_id!==CHAR_ID&&p.is_active&&!p.is_dead).map(t=>`<button class="co-target-btn" onclick="executeFeat('${feat.id}','${feat.name}','${t.participant_id}','${t.participant_type}','${t.participant_name}')">${t.participant_type==='npc'?'👹':'🧑'} ${t.participant_name}</button>`).join('')}`;
-  }
-}
+// showFeatFlow removed — target selection inline in showFeatSubPanel
+
 async function executeFeat(featId,featName,targetId,targetType,targetName){
   const grit=charData.grit||0;
   if(grit<=0){showToast('Not enough Grit');return;}
@@ -4285,7 +4259,6 @@ function showUndoNotification(changeType){
     </div>`;
   modal.classList.add('vis');
 }
-
 
 
 // ── JURY OVERLAY ──
