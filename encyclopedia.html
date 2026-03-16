@@ -152,13 +152,29 @@ async function loadNotes(){
   try{
     const h={'Authorization':'Bearer '+API_KEY};
 
-    // Step 1: list all files in vault
-    const listRes=await fetch(OBSIDIAN_URL+'/vault/',{headers:h});
-    if(!listRes.ok)throw new Error('HTTP '+listRes.status);
-    const listData=await listRes.json();
-    const allFiles=(listData.files||[]).filter(f=>f.endsWith('.md'));
+    // Recursively collect every .md file in the vault
+    async function listAll(path){
+      const url=OBSIDIAN_URL+'/vault/'+(path?encodeURIComponent(path)+'/':'');
+      const r=await fetch(url,{headers:h});
+      if(!r.ok)return[];
+      const d=await r.json();
+      const files=[];
+      for(const entry of(d.files||[])){
+        if(entry.endsWith('/')){
+          // It's a folder — recurse into it
+          const folderPath=path?(path+'/'+entry.slice(0,-1)):entry.slice(0,-1);
+          const sub=await listAll(folderPath);
+          sub.forEach(f=>files.push(f));
+        } else if(entry.endsWith('.md')){
+          files.push(path?(path+'/'+entry):entry);
+        }
+      }
+      return files;
+    }
 
-    // Step 2: fetch metadata for each file in parallel (batches of 10)
+    const allFiles=await listAll('');
+
+    // Fetch metadata in parallel batches of 10, filter by tag
     const tagged=[];
     const BATCH=10;
     for(let i=0;i<allFiles.length;i+=BATCH){
@@ -170,10 +186,9 @@ async function loadNotes(){
           });
           if(!r.ok)return null;
           const d=await r.json();
-          const tags=(d.tags||d.frontmatter?.tags||[]).map(t=>t.replace(/^#/,''));
-          if(tags.includes(TAG))return{filename:fname,tags};
-          // Also check raw content for inline tag
-          if((d.content||'').includes('#'+TAG))return{filename:fname,tags:[TAG,...tags]};
+          const tags=(d.tags||d.frontmatter?.tags||[]).map(t=>String(t).replace(/^#/,'').toLowerCase());
+          if(tags.includes(TAG))return{filename:fname,tags:d.tags||[]};
+          if((d.content||'').includes('#'+TAG))return{filename:fname,tags:[TAG]};
           return null;
         }catch(e){return null;}
       }));
@@ -181,7 +196,7 @@ async function loadNotes(){
     }
 
     allNotes=tagged.sort((a,b)=>getTitle(a.filename).localeCompare(getTitle(b.filename)));
-    connected=true;setStatus(true,'Connected \u2014 '+allNotes.length+' entries');
+    connected=true;setStatus(true,'Connected \u2014 '+allNotes.length+' entr'+(allNotes.length===1?'y':'ies'));
     renderNoteList(allNotes);
     if(allNotes.length===0)showEmpty();
     else if(activeNote){
