@@ -27,9 +27,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 
 /* ── HEADER ── */
 .char-header{display:flex;align-items:center;gap:20px;padding:24px 0 20px;border-bottom:1px solid var(--border)}
-.char-avatar{width:64px;height:64px;border-radius:50%;border:2px solid var(--lewis);background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 20px var(--lewis-glow);flex-shrink:0}
+.char-avatar{width:64px;height:64px;border-radius:50%;border:2px solid var(--finn);background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 20px var(--finn-glow);flex-shrink:0}
 .char-info h1{font-family:'Cinzel Decorative',serif;font-size:22px;color:var(--text);letter-spacing:1px}
-.char-info .char-sub{font-size:12px;letter-spacing:4px;color:var(--lewis-acc);font-family:'Cinzel',serif;font-weight:700;text-transform:uppercase;margin-top:2px}
+.char-info .char-sub{font-size:12px;letter-spacing:4px;color:var(--finn-acc);font-family:'Cinzel',serif;font-weight:700;text-transform:uppercase;margin-top:2px}
 .char-vitals{margin-left:auto;text-align:right;display:flex;flex-direction:column;gap:4px}
 .mortality-display{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;color:var(--muted);text-transform:uppercase}
 .mortality-num{font-family:'Cinzel Decorative',serif;font-size:24px;color:var(--harm);display:inline}
@@ -41,7 +41,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .pb-toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin:20px 0}
 .pb-btn{flex:1;padding:12px 8px;border:none;background:var(--surf);cursor:pointer;font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);transition:all .25s;border-right:1px solid var(--border)}
 .pb-btn:last-child{border-right:none}
-.pb-btn.active{background:var(--surf2);color:var(--lewis-acc);box-shadow:inset 0 -2px 0 var(--lewis)}
+.pb-btn.active{background:var(--surf2);color:var(--finn-acc);box-shadow:inset 0 -2px 0 var(--finn)}
 
 /* ── PLAYBOOK PANELS ── */
 .pb-panel{display:none}.pb-panel.active{display:block}
@@ -133,6 +133,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 #pb-hero .skill-roll-btn:hover{background:#8b451320;border-color:#8b4513;color:#8b4513}
 #pb-hero .stat-track{background:#fdf6e8;border-color:#c4a87a}
 #pb-hero .stat-pip{border-color:#c4a87a;background:#ede0c4}
+#pb-hero .stat-pip.on.wisdom{background:#60a5fa;border-color:#93c5fd;box-shadow:0 0 6px #60a5fa88}
+#pb-hero .stat-pip.on.grit{background:#f87171;border-color:#fca5a5;box-shadow:0 0 6px #f8717188}
+#pb-hero .stat-pip.on.bond{background:#4ade80;border-color:#86efac;box-shadow:0 0 6px #4ade8088}
 #pb-hero .harm-section{background:#fdf6e8;border-color:#c4a87a}
 #pb-hero .harm-bar-bg{background:#d4b896}
 #pb-hero .harm-nums{color:#7a5c2e}
@@ -178,10 +181,10 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .skill-name{font-size:13px;font-weight:600;color:var(--text);min-width:72px}
 .skill-boxes{display:flex;gap:4px;flex:1}
 .sbox{width:16px;height:16px;border-radius:3px;border:1px solid var(--border2);background:var(--surf2);cursor:pointer;transition:all .18s;flex-shrink:0}
-.sbox.checked{background:var(--lewis);border-color:var(--lewis-acc);box-shadow:0 0 5px var(--lewis-glow)}
-.skill-dice{font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--lewis-acc);min-width:24px;text-align:right}
+.sbox.checked{background:var(--finn);border-color:var(--finn-acc);box-shadow:0 0 5px var(--finn-glow)}
+.skill-dice{font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--finn-acc);min-width:24px;text-align:right}
 .skill-roll-btn{width:22px;height:22px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0}
-.skill-roll-btn:hover{background:var(--lewis-glow);border-color:var(--lewis);color:var(--lewis-acc)}
+.skill-roll-btn:hover{background:var(--finn-glow);border-color:var(--finn);color:var(--finn-acc)}
 
 /* ── STAT TRACKS ── */
 .stat-tracks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px}
@@ -192,7 +195,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .stat-label.bond{color:#4ade80}
 .stat-desc{font-size:11px;color:var(--dim);margin-bottom:8px;line-height:1.4}
 .stat-pips{display:flex;gap:5px}
-.stat-pip{width:20px;height:20px;border-radius:50%;border:1px solid var(--border2);background:var(--surf2);cursor:pointer;transition:all .18s}
+.stat-pip{width:20px;height:20px;border-radius:50%;border:1px solid var(--border2);background:var(--surf2);transition:all .18s}
 .stat-pip.on.wisdom{background:#60a5fa;border-color:#93c5fd;box-shadow:0 0 6px #60a5fa88}
 .stat-pip.on.grit{background:#f87171;border-color:#fca5a5;box-shadow:0 0 6px #f8717188}
 .stat-pip.on.bond{background:#4ade80;border-color:#86efac;box-shadow:0 0 6px #4ade8088}
@@ -218,12 +221,12 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .harm-btn{padding:5px 14px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .18s}
 .harm-btn:hover{border-color:var(--harm);color:var(--harm)}
 .harm-input{width:44px;padding:5px 8px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:14px;text-align:center}
-.harm-input:focus{outline:none;border-color:var(--lewis)}
+.harm-input:focus{outline:none;border-color:var(--finn)}
 .add-cond-form{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .add-cond-input{flex:1;min-width:120px;padding:7px 12px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:14px}
-.add-cond-input:focus{outline:none;border-color:var(--lewis)}
-.add-cond-btn{padding:7px 14px;border-radius:4px;border:1px solid var(--lewis);background:transparent;color:var(--lewis-acc);font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .18s;white-space:nowrap}
-.add-cond-btn:hover{background:var(--lewis-glow)}
+.add-cond-input:focus{outline:none;border-color:var(--finn)}
+.add-cond-btn{padding:7px 14px;border-radius:4px;border:1px solid var(--finn);background:transparent;color:var(--finn-acc);font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .18s;white-space:nowrap}
+.add-cond-btn:hover{background:var(--finn-glow)}
 
 /* ── FAVOR ── */
 .favor-section{background:var(--surf);border:1px solid var(--fc)30;border-radius:6px;padding:14px 16px;margin-bottom:24px}
@@ -259,7 +262,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .item-del{width:22px;height:22px;border-radius:4px;border:none;background:transparent;color:var(--dim);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:color .18s;flex-shrink:0}
 .item-del:hover{color:var(--fail)}
 .item-send-btn{font-size:10px;font-weight:600;letter-spacing:1px;padding:3px 8px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all .18s;margin-top:4px}
-.item-send-btn:hover{border-color:var(--lewis);color:var(--lewis-acc)}
+.item-send-btn:hover{border-color:var(--finn);color:var(--finn-acc)}
 
 /* ── DIVINE PLAYBOOK (Brigid) ── */
 .dp-detail{display:none;padding:22px 26px;border:1px solid var(--border);border-radius:8px;background:linear-gradient(135deg,var(--dpbg,#13132a),var(--bg));box-shadow:0 0 50px var(--dpglow,transparent);margin-bottom:24px;animation:fadeUp .22s ease}
@@ -362,10 +365,10 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 /* ── MODAL ── */
 .modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:#00000088;backdrop-filter:blur(4px);align-items:center;justify-content:center}
 .modal-overlay.vis{display:flex}
-.modal-box{background:linear-gradient(135deg,#13132a,#07070e);border:1px solid var(--border);border-top:2px solid var(--lewis);border-radius:8px;padding:28px 32px;max-width:480px;width:90%;box-shadow:0 0 60px var(--lewis-glow);animation:fadeUp .22s ease;position:relative}
+.modal-box{background:linear-gradient(135deg,#13132a,#07070e);border:1px solid var(--border);border-top:2px solid var(--finn);border-radius:8px;padding:28px 32px;max-width:480px;width:90%;box-shadow:0 0 60px var(--finn-glow);animation:fadeUp .22s ease;position:relative}
 .modal-close{position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--dim);font-size:20px;cursor:pointer;transition:color .18s}
 .modal-close:hover{color:var(--text)}
-.modal-heading{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:4px;color:var(--lewis-acc);text-transform:uppercase;margin-bottom:6px}
+.modal-heading{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:4px;color:var(--finn-acc);text-transform:uppercase;margin-bottom:6px}
 .modal-title{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--text);margin-bottom:14px}
 .modal-body{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:14px}
 .modal-list{padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px}
@@ -542,7 +545,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
   <div id="jury-active-display" style="display:none">
     <div class="jury-active-item">
       <div class="jury-item-who">
-        <span id="jury-item-player" style="color:var(--lewis-acc)"></span>
+        <span id="jury-item-player" style="color:var(--finn-acc)"></span>
         <span class="jury-item-type" id="jury-item-type"></span>
       </div>
       <div class="jury-item-text" id="jury-item-text"></div>
@@ -564,6 +567,17 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
   <div id="jury-submit-list"></div>
 </div>
 
+
+<!-- JURY OVERLAY (full screen) -->
+<div id="jury-overlay" style="display:none;position:fixed;inset:0;z-index:200;background:#000000e0;backdrop-filter:blur(8px);flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;text-align:center">
+  <div style="font-family:'Cinzel Decorative',serif;font-size:22px;color:var(--gold);letter-spacing:2px">⚖ Jury Session</div>
+  <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:4px;color:var(--dim);text-transform:uppercase">Now Discussing</div>
+  <div style="font-size:16px;color:var(--text);max-width:500px;line-height:1.7;font-family:'Crimson Pro',serif;font-style:italic" id="jury-ov-text">Waiting for item...</div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center" id="jury-ov-btns"></div>
+  <div style="font-size:12px;color:var(--dim)" id="jury-ov-tally"></div>
+  <div style="font-size:11px;color:var(--dim);font-style:italic;max-width:400px">Vote honestly. The Weaver sees all results simultaneously.</div>
+</div>
+
 <!-- PLAYBOOK TOGGLE -->
 <div class="pb-toggle">
   <button class="pb-btn active" onclick="switchPlaybook('hero')">⚔ Hero</button>
@@ -577,15 +591,11 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
   <div class="section">
     <div class="section-title">Skills</div>
     <div class="skills-grid" id="skills-grid"></div>
-    <div style="margin-top:10px;font-size:12px;color:var(--dim);font-family:'Cinzel',serif;letter-spacing:1px">
-      Total dice: <span id="total-dice" style="color:var(--lewis-acc);font-weight:700">0</span>
-      &nbsp;·&nbsp; Mortality &amp; Favor Max: <span id="mortality-display" style="color:var(--harm);font-weight:700">0</span>
-    </div>
   </div>
 
   <!-- WISDOM / GRIT / BOND -->
   <div class="section">
-    <div class="section-title">Tracks</div>
+    <div class="section-title">Momentum Tracks</div>
     <div class="stat-tracks">
       <div class="stat-track">
         <div class="stat-label wisdom">Wisdom</div>
@@ -634,8 +644,8 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
     </div>
   </div>
 
-  <!-- ACTION REFERENCE -->
-  <div class="section">
+  <!-- ACTION REFERENCE - only shown in combat -->
+  <div class="section" style="display:none" id="action-ref-section">
     <div class="section-title">Quick Reference</div>
     <div class="action-ref">
       <div class="action-col">
@@ -687,11 +697,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
     <div class="section-title">Experience</div>
     <div class="xp-section">
       <div class="xp-pips" id="xp-pips"></div>
-      <div>
-        <div class="xp-label">Experience</div>
-        <div class="xp-count"><span id="xp-current">0</span> / 4</div>
-      </div>
-      <div style="font-size:11px;color:var(--dim);max-width:200px;line-height:1.5">Fill all 4 to Advance — gain a new skill point, feat, or divine power.</div>
+      <div style="font-size:11px;color:var(--dim);max-width:220px;line-height:1.5">Fill all 4 to Advance.</div>
     </div>
   </div>
 
@@ -1223,8 +1229,19 @@ async function adjustCondHarm(id,current,delta){
   await loadConditions();
 }
 async function deleteConditionUI(id){
-  await db.from('conditions').delete().eq('id',id);
-  await loadConditions();
+  const cond=conditions.find(c=>c.id===id);if(!cond)return;
+  showStyledConfirm(
+    'Request condition removal?',
+    cond.label+' ('+cond.harm+' harm) — The Weaver must approve this.',
+    async()=>{
+      await db.from('change_log').insert({
+        character_id:CHAR_ID,change_type:'condition_remove',
+        description:'Player requests removal of "'+cond.label+'" ('+cond.harm+' harm)',
+        old_value:JSON.stringify({id,label:cond.label,harm:cond.harm}),new_value:null
+      });
+      showToast('Request sent to Weaver');
+    }
+  );
 }
 function updateHarmDisplay(){renderConditions();}
 
@@ -2216,7 +2233,6 @@ async function loadAdvancement(){
 }
 function renderXP(){
   const xp=advancementData.xp_current||0;
-  document.getElementById('xp-current').textContent=xp;
   const pips=document.getElementById('xp-pips');
   if(!pips) return;
   pips.innerHTML='';
@@ -2696,12 +2712,14 @@ async function submitCombatAction(type,label){
 // ── ITEM USE ──
 async function useItem(itemId){
   const item=inventoryData.find(i=>i.id===itemId);if(!item)return;
-  if(!confirm(`Use "${item.name}"? This may be permanent.`))return;
-  if(item.healing_value){
-    await useHealingItem(item);
-  } else if(item.uses_max>0){
-    await decrementItem(item);
-  }
+  showStyledConfirm(
+    'Use "'+item.name+'"?',
+    item.healing_value?'Heals a condition using '+item.healing_value+'. Uses one charge.':'Consumes one use. This is permanent.',
+    async()=>{
+      if(item.healing_value){await useHealingItem(item);}
+      else if(item.uses_max>0){await decrementItem(item);}
+    }
+  );
 }
 async function useHealingItem(item){
   if(!conditions.length){showToast('No conditions to heal');return;}
@@ -2770,7 +2788,7 @@ function subscribeNotifications(){
     }
   }).subscribe();
   // Combat session changes
-  db.channel(`${CHAR_ID}-dm-settings`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'dm_settings',filter:'id=eq.1'},async(payload)=>{
+  db.channel(CHAR_ID+'-dm-settings').on('postgres_changes',{event:'UPDATE',schema:'public',table:'dm_settings'},async(payload)=>{
     if(payload.new?.combat_active&&payload.new?.combat_session_id){
       const{data:sess}=await db.from('combat_sessions').select('*').eq('id',payload.new.combat_session_id).single();
       combatSessionData=sess;
@@ -2843,6 +2861,50 @@ function showUndoNotification(changeType){
 }
 
 
+
+// ── JURY OVERLAY ──
+async function updateJuryOverlay(){
+  const{data:sess}=await db.from('jury_sessions').select('*').in('status',['open','voting']).order('created_at',{ascending:false}).limit(1);
+  const overlay=document.getElementById('jury-overlay');if(!overlay)return;
+  if(!sess||sess.length===0){overlay.style.display='none';return;}
+  const session=sess[0];
+  if(session.status==='complete'){overlay.style.display='none';return;}
+  // Get active queue item
+  const{data:active}=await db.from('jury_queue').select('*').eq('session_id',session.id).eq('status','active').limit(1);
+  if(!active||!active.length){
+    // Session open but nothing active yet
+    document.getElementById('jury-ov-text').textContent='The Weaver is opening the session...';
+    document.getElementById('jury-ov-btns').innerHTML='';
+    overlay.style.display='flex';
+    return;
+  }
+  const item=active[0];
+  const isMyItem=item.character_id===CHAR_ID;
+  document.getElementById('jury-ov-text').textContent=(isMyItem?'Your ':'')+(item.character_id===CHAR_ID?'':''+item.character_id+'\'s ')+item.item_type+': "'+item.item_text+'"';
+  // Check if already voted
+  const{data:myVote}=await db.from('jury_votes').select('*').eq('queue_item_id',item.id).eq('voter_id',CHAR_ID).limit(1);
+  const voted=myVote&&myVote.length>0;
+  const{data:allVotes}=await db.from('jury_votes').select('*').eq('queue_item_id',item.id);
+  const yc=(allVotes||[]).filter(v=>v.vote).length;
+  const nc=(allVotes||[]).filter(v=>!v.vote).length;
+  document.getElementById('jury-ov-tally').textContent=(allVotes?.length||0)+'/4 voted · '+yc+'Y '+nc+'N';
+  const btnsEl=document.getElementById('jury-ov-btns');
+  if(isMyItem){
+    btnsEl.innerHTML='<div style="font-size:13px;color:var(--muted);font-style:italic">You are arguing for this item — wait for others to vote.</div>';
+  } else if(voted){
+    btnsEl.innerHTML='<div style="font-size:13px;color:var(--success)">✓ Vote recorded — waiting for others.</div>';
+  } else {
+    btnsEl.innerHTML='<button onclick="castJuryVote(\''+item.id+'\',true)" style="padding:10px 24px;border-radius:6px;border:1px solid var(--success);background:transparent;color:var(--success);font-family:'Cinzel',serif;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s" onmouseover="this.style.background='#22c55e20'" onmouseout="this.style.background='transparent'">✓ Yes</button>'
+      +'<button onclick="castJuryVote(\''+item.id+'\',false)" style="padding:10px 24px;border-radius:6px;border:1px solid var(--fail);background:transparent;color:var(--fail);font-family:'Cinzel',serif;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s" onmouseover="this.style.background='#ef444420'" onmouseout="this.style.background='transparent'">✕ No</button>';
+  }
+  overlay.style.display='flex';
+}
+async function castJuryVote(queueItemId,vote){
+  const{error}=await db.from('jury_votes').insert({queue_item_id:queueItemId,voter_id:CHAR_ID,vote});
+  if(error){showToast('Vote error: '+error.message);return;}
+  showToast(vote?'Voted Yes':'Voted No');
+  await updateJuryOverlay();
+}
 // ── BOOT ──
 init().catch(e=>{console.error(e);setSyncDot(false);});
 </script>

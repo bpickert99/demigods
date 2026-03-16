@@ -167,6 +167,19 @@ select.inp{cursor:pointer}
 .anc-ability{font-family:'Cinzel Decorative',serif;font-size:14px;color:var(--text);flex:1}
 .anc-meta{font-size:11px;color:var(--dim);margin-top:2px}
 .anc-cost{font-size:11px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:10px;background:var(--fc)15;border:1px solid var(--fc)40;color:var(--fc);white-space:nowrap}
+/* DM Modal system */
+.dm-modal{display:none;position:fixed;inset:0;z-index:300;background:#00000090;backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.dm-modal.vis{display:flex}
+.dm-mbox{background:linear-gradient(135deg,#13132a,#07070e);border:1px solid var(--border);border-top:2px solid var(--gold);border-radius:8px;padding:24px 28px;max-width:480px;width:92%;box-shadow:0 0 50px var(--gold2);animation:fadeUp .2s ease;max-height:90vh;overflow-y:auto}
+.dm-mbox h3{font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--text);margin-bottom:14px}
+.dm-mbox .dm-mrow{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.dm-mbox .dm-mlbl{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim)}
+.dm-mbox .dm-minp{padding:8px 12px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:13px;font-family:'Inter',sans-serif}
+.dm-mbox .dm-minp:focus{outline:none;border-color:var(--gold)}
+.dm-mbox .dm-mbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.dm-mbox .dm-mcheck{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
 footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:4px}
 </style>
 </head>
@@ -177,8 +190,8 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 <div class="hdr">
   <div><div class="hdr-title">Weaver Screen</div><div class="hdr-sub">Demigods Campaign</div></div>
   <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-    <button class="btn sm gold" onclick="doShortRest()">☽ Short Rest</button>
-    <button class="btn sm gold" onclick="doLongRest()">☀ Long Rest</button>
+    <button class="btn sm gold" onclick="promptShortRest()">☽ Short Rest</button>
+    <button class="btn sm gold" onclick="promptLongRest()">☀ Long Rest</button>
     <span class="sync off" id="sync-dot"></span>
   </div>
 </div>
@@ -225,7 +238,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
       <div class="round-lbl" id="round-lbl">Round 1</div>
       <div style="font-size:12px;color:var(--muted);flex:1" id="cmb-status">Combat in progress</div>
       <button class="btn sm" onclick="skipRound()">⟳ Next Round</button>
-      <button class="btn sm red" onclick="endCombat()">End Combat</button>
+      <button class="btn sm red" onclick="promptEndCombat()">End Combat</button>
     </div>
     <div id="action-card-area"></div>
     <div class="cmb-grid">
@@ -349,7 +362,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
   <div class="adv-card">
     <h3>Kara — Automaton Reveal</h3>
     <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Reveals the hidden Automaton branch on Kara's divine playbook. Cannot be undone.</div>
-    <button class="btn gold" id="kara-reveal-btn" onclick="revealKara()">🔒 Reveal Automaton Nature</button>
+    <button class="btn gold" id="kara-reveal-btn" onclick="promptRevealKara()">🔒 Reveal Automaton Nature</button>
   </div>
 </div>
 
@@ -382,6 +395,12 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 
 <div class="toast" id="toast"></div>
 <div class="ability-notif" id="ability-notif"></div>
+
+<!-- DM MODAL (replaces all prompt/confirm) -->
+<div class="dm-modal" id="dm-modal">
+  <div class="dm-mbox" id="dm-mbox"></div>
+</div>
+
 <footer>WEAVER SCREEN · DEMIGODS CAMPAIGN</footer>
 
 <script>
@@ -536,19 +555,44 @@ function renderPartyGrid(){
     g.appendChild(card);
   });
 }
-async function openAddCond(charId,perm=false){
-  const label=prompt(`Add ${perm?'permanent ':''}condition to ${charId}:`);if(!label)return;
-  const harm=parseInt(prompt('Harm value:','1'))||1;
-  const{data}=await db.from('conditions').insert({character_id:charId,label,harm,unstable:false,is_permanent:!!perm}).select().single();
-  if(data){if(!condData[charId])condData[charId]=[];condData[charId].push(data);await logChange(charId,'condition_add',`Added${perm?' permanent':''} "${label}" (${harm})`,null,{id:data.id,label,harm,is_permanent:!!perm});renderPartyGrid();showToast(`Condition added`);}
+function openAddCond(charId,perm=false){
+  const p=PLAYERS.find(pl=>pl.id===charId);
+  dmModal('<h3>Add '+(perm?'Permanent ':'')+' Condition \u2014 '+(p?.name||charId)+'</h3>'
+    +'<div class="dm-mrow"><label class="dm-mlbl">Label</label><input class="dm-minp" id="mc-label" placeholder="e.g. Bruised Ribs"></div>'
+    +'<div class="dm-mrow"><label class="dm-mlbl">Harm</label><input class="dm-minp" id="mc-harm" type="number" min="1" max="20" value="2" style="width:80px"></div>'
+    +'<div class="dm-mrow"><label class="dm-mcheck"><input type="checkbox" id="mc-unstable" style="accent-color:var(--gold)"> Unstable (worsening)</label></div>'
+    +'<div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button>'
+    +'<button class="btn '+(perm?'red':'gold')+'" onclick="submitAddCond(\''+charId+'\','+(perm?'true':'false')+')">'+(perm?'Add Permanent':'Add Condition')+'</button></div>');
+  setTimeout(()=>document.getElementById('mc-label')?.focus(),80);
 }
-async function removeCond(condId,charId){
-  if(!confirm('Remove this condition?'))return;
+async function submitAddCond(charId,perm){
+  const label=document.getElementById('mc-label')?.value.trim();
+  const harm=parseInt(document.getElementById('mc-harm')?.value)||1;
+  const unstable=document.getElementById('mc-unstable')?.checked||false;
+  if(!label){showToast('Enter a condition name');return;}
+  closeDMModal();
+  const{data,error}=await db.from('conditions').insert({character_id:charId,label,harm,unstable,is_permanent:!!perm}).select().single();
+  if(error){showToast('DB error: '+error.message);console.error(error);return;}
+  if(data){
+    if(!condData[charId])condData[charId]=[];
+    condData[charId].push(data);
+    await logChange(charId,'condition_add','Added'+(perm?' permanent':unstable?' unstable':'')+' "'+label+'" ('+harm+')',null,{id:data.id,label,harm,is_permanent:!!perm,unstable});
+    renderPartyGrid();showToast('Condition added');
+  }
+}
+function removeCond(condId,charId){
   const c=(condData[charId]||[]).find(x=>x.id===condId);
-  await db.from('conditions').delete().eq('id',condId);
-  if(c)await logChange(charId,'condition_remove',`Removed "${c.label}"`,{id:condId,label:c.label,harm:c.harm},null);
+  const perm=c?.is_permanent?'<span style="color:var(--harm)"> PERMANENT</span>':'';
+  dmModal('<h3>Remove Condition</h3><div style="font-size:14px;color:var(--text);margin-bottom:8px">"'+(c?.label||condId)+'" ('+(c?.harm||0)+' harm)'+perm+'</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px">Permanently remove this condition?</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="confirmRemoveCond(\''+condId+'\',\''+charId+'\')" >Remove</button></div>');
+}
+async function confirmRemoveCond(condId,charId){
+  closeDMModal();
+  const c=(condData[charId]||[]).find(x=>x.id===condId);
+  const{error}=await db.from('conditions').delete().eq('id',condId);
+  if(error){showToast('DB error: '+error.message);return;}
+  if(c)await logChange(charId,'condition_remove','Removed "'+c.label+'"',{id:condId,label:c.label,harm:c.harm},null);
   if(condData[charId])condData[charId]=condData[charId].filter(x=>x.id!==condId);
-  renderPartyGrid();
+  renderPartyGrid();showToast('Condition removed');
 }
 
 // NPC Tab
@@ -593,13 +637,20 @@ function renderNPCTab(){
     roster.appendChild(row);
   });
 }
-async function addNPC(){
-  const name=prompt('NPC name:');if(!name)return;
-  const type=prompt('Type (humanoid/creature/monster/boss):','humanoid')||'humanoid';
-  const mort=parseInt(prompt('Mortality:','10'))||10;
-  const acts=parseInt(prompt('Actions/round:','1'))||1;
-  const{data}=await db.from('npcs').insert({name,npc_type:type,mortality:mort,harm_current:0,is_active:true,in_scene:false,actions_max:acts}).select().single();
-  if(data){npcData.push(data);renderNPCTab();showToast(`${name} added`);}
+function addNPC(){
+  dmModal('<h3>Add NPC</h3><div class="dm-mrow"><label class="dm-mlbl">Name</label><input class="dm-minp" id="mn-name" placeholder="e.g. Officer Brennan"></div><div class="dm-mrow"><label class="dm-mlbl">Type</label><select class="dm-minp" id="mn-type"><option value="humanoid">Humanoid</option><option value="creature">Creature</option><option value="monster">Monster</option><option value="boss">Boss</option></select></div><div style="display:flex;gap:10px"><div class="dm-mrow" style="flex:1"><label class="dm-mlbl">Mortality</label><input class="dm-minp" id="mn-mort" type="number" min="1" value="10"></div><div class="dm-mrow" style="flex:1"><label class="dm-mlbl">Actions/Round</label><input class="dm-minp" id="mn-acts" type="number" min="1" max="4" value="1"></div></div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn gold" onclick="submitAddNPC()">Add NPC</button></div>');
+  setTimeout(()=>document.getElementById('mn-name')?.focus(),80);
+}
+async function submitAddNPC(){
+  const name=document.getElementById('mn-name')?.value.trim();
+  const type=document.getElementById('mn-type')?.value||'humanoid';
+  const mort=parseInt(document.getElementById('mn-mort')?.value)||10;
+  const acts=parseInt(document.getElementById('mn-acts')?.value)||1;
+  if(!name){showToast('Enter a name');return;}
+  closeDMModal();
+  const{data,error}=await db.from('npcs').insert({name,npc_type:type,mortality:mort,harm_current:0,is_active:true,in_scene:false,actions_max:acts}).select().single();
+  if(error){showToast('DB error: '+error.message);console.error(error);return;}
+  if(data){npcData.push(data);renderNPCTab();showToast(name+' added');}
 }
 async function toggleScene(id,cur){
   await db.from('npcs').update({in_scene:!cur,updated_at:new Date().toISOString()}).eq('id',id);
@@ -611,25 +662,51 @@ async function adjustNPCHarm(id,delta){
   await db.from('npcs').update({harm_current:n.harm_current,updated_at:new Date().toISOString()}).eq('id',id);
   renderNPCTab();
 }
-async function addNPCCond(npcId){
-  const label=prompt('Condition:');if(!label)return;const harm=parseInt(prompt('Harm:','1'))||1;
-  const{data}=await db.from('npc_conditions').insert({npc_id:npcId,label,harm,unstable:false}).select().single();
+function addNPCCond(npcId){
+  dmModal('<h3>Add NPC Condition</h3><div class="dm-mrow"><label class="dm-mlbl">Condition</label><input class="dm-minp" id="mnc-label" placeholder="e.g. Stunned"></div><div class="dm-mrow"><label class="dm-mlbl">Harm</label><input class="dm-minp" id="mnc-harm" type="number" min="1" value="1" style="width:80px"></div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="submitNPCCond(\''+npcId+'\')" >Add</button></div>');
+  setTimeout(()=>document.getElementById('mnc-label')?.focus(),80);
+}
+async function submitNPCCond(npcId){
+  const label=document.getElementById('mnc-label')?.value.trim();
+  const harm=parseInt(document.getElementById('mnc-harm')?.value)||1;
+  if(!label)return;
+  closeDMModal();
+  const{data,error}=await db.from('npc_conditions').insert({npc_id:npcId,label,harm,unstable:false}).select().single();
+  if(error){showToast('DB error: '+error.message);return;}
   if(data){if(!npcCondData[npcId])npcCondData[npcId]=[];npcCondData[npcId].push(data);renderNPCTab();}
 }
 async function removeNPCCond(condId,npcId){
-  if(!confirm('Remove?'))return;
   await db.from('npc_conditions').delete().eq('id',condId);
   if(npcCondData[npcId])npcCondData[npcId]=npcCondData[npcId].filter(c=>c.id!==condId);renderNPCTab();
 }
-async function editNPC(id){
+function editNPC(id){
   const n=npcData.find(x=>x.id===id);if(!n)return;
-  const name=prompt('Name:',n.name)||n.name;const mort=parseInt(prompt('Mortality:',n.mortality))||n.mortality;const acts=parseInt(prompt('Actions/round:',n.actions_max))||n.actions_max;
-  await db.from('npcs').update({name,mortality:mort,actions_max:acts,updated_at:new Date().toISOString()}).eq('id',id);
+  dmModal('<h3>Edit: '+n.name+'</h3><div class="dm-mrow"><label class="dm-mlbl">Name</label><input class="dm-minp" id="me-name" value="'+n.name+'"></div><div style="display:flex;gap:10px"><div class="dm-mrow" style="flex:1"><label class="dm-mlbl">Mortality</label><input class="dm-minp" id="me-mort" type="number" value="'+n.mortality+'"></div><div class="dm-mrow" style="flex:1"><label class="dm-mlbl">Actions/Round</label><input class="dm-minp" id="me-acts" type="number" min="1" max="4" value="'+(n.actions_max||1)+'"></div></div><div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px"><div class="dm-mlbl" style="margin-bottom:8px">Add Weapon (optional)</div><div style="display:flex;gap:8px"><input class="dm-minp" id="me-wname" placeholder="Weapon name" style="flex:1"><input class="dm-minp" id="me-wdie" placeholder="1d6" style="width:70px"></div></div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn gold" onclick="submitEditNPC(\''+id+'\')" >Save</button></div>');
+  setTimeout(()=>document.getElementById('me-name')?.focus(),80);
+}
+async function submitEditNPC(id){
+  const n=npcData.find(x=>x.id===id);if(!n)return;
+  const name=document.getElementById('me-name')?.value.trim()||n.name;
+  const mort=parseInt(document.getElementById('me-mort')?.value)||n.mortality;
+  const acts=parseInt(document.getElementById('me-acts')?.value)||1;
+  const wname=document.getElementById('me-wname')?.value.trim();
+  const wdie=document.getElementById('me-wdie')?.value.trim()||'1d6';
+  closeDMModal();
+  const{error}=await db.from('npcs').update({name,mortality:mort,actions_max:acts,updated_at:new Date().toISOString()}).eq('id',id);
+  if(error){showToast('DB error: '+error.message);return;}
   n.name=name;n.mortality=mort;n.actions_max=acts;
-  if(confirm('Add/update a weapon?')){const wn=prompt('Weapon name:');const wd=prompt('Harm die:','1d6');if(wn&&wd){const{data}=await db.from('npc_weapons').insert({npc_id:id,name:wn,harm_die:wd,tags:[],is_equipped:true}).select().single();if(data){if(!npcWpnData[id])npcWpnData[id]=[];npcWpnData[id].push(data);}}}
+  if(wname){const{data}=await db.from('npc_weapons').insert({npc_id:id,name:wname,harm_die:wdie,tags:[],is_equipped:true}).select().single();if(data){if(!npcWpnData[id])npcWpnData[id]=[];npcWpnData[id].push(data);}}
   renderNPCTab();showToast('NPC updated');
 }
-async function deleteNPC(id){if(!confirm('Remove NPC?'))return;await db.from('npcs').update({is_active:false}).eq('id',id);npcData=npcData.filter(n=>n.id!==id);renderNPCTab();}
+function deleteNPC(id){
+  const n=npcData.find(x=>x.id===id);
+  dmModal('<h3>Remove NPC</h3><div style="font-size:14px;color:var(--text);margin-bottom:16px">Remove "'+(n?.name||id)+'" from the roster?</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="confirmDeleteNPC(\''+id+'\')" >Remove</button></div>');
+}
+async function confirmDeleteNPC(id){
+  closeDMModal();
+  await db.from('npcs').update({is_active:false}).eq('id',id);
+  npcData=npcData.filter(n=>n.id!==id);renderNPCTab();showToast('NPC removed');
+}
 
 // Combat
 function openCombatSetup(){
@@ -746,8 +823,10 @@ async function skipRound(){
   combatQ=[];document.getElementById('round-lbl').textContent=`Round ${nr}`;document.getElementById('cmb-status').textContent='Combat in progress';document.getElementById('action-card-area').innerHTML='';
   renderCombatants();renderCombatQueue();showToast(`Round ${nr} begins`);
 }
+function promptEndCombat(){
+  dmModal('<h3>End Combat?</h3><div style="font-size:13px;color:var(--muted);margin-bottom:16px">This will dismiss the combat overlay for all players.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="closeDMModal();endCombat()">End Combat</button></div>');
+}
 async function endCombat(){
-  if(!confirm('End combat?'))return;
   if(combatSess){await db.from('combat_sessions').update({status:'ended',updated_at:new Date().toISOString()}).eq('id',combatSess.id);await db.from('dm_settings').update({combat_active:false,combat_session_id:null,updated_at:new Date().toISOString()}).eq('id',1);}
   combatSess=null;combatParts=[];combatQ=[];
   document.getElementById('combat-idle').style.display='block';document.getElementById('combat-active').style.display='none';
@@ -828,9 +907,14 @@ async function sendEquipment(){
   toggleEqFields();updateEqPreview();document.getElementById('eq-preview').style.display='none';
   await loadInv();renderInv();
 }
-async function removeItem(itemId,pName){
-  if(!confirm(`Remove this item from ${pName}'s inventory?`))return;
-  await db.from('equipment').delete().eq('id',itemId);await loadInv();renderInv();showToast('Item removed');
+function removeItem(itemId,pName){
+  dmModal('<h3>Remove Item</h3><div style="font-size:14px;color:var(--text);margin-bottom:16px">Remove this item from '+pName+'\'s inventory?</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="confirmRemoveItem(\''+itemId+'\')" >Remove</button></div>');
+}
+async function confirmRemoveItem(itemId){
+  closeDMModal();
+  const{error}=await db.from('equipment').delete().eq('id',itemId);
+  if(error){showToast('DB error: '+error.message);return;}
+  await loadInv();renderInv();showToast('Item removed');
 }
 function renderInv(){
   const c=document.getElementById('all-inv');if(!c)return;c.innerHTML='';
@@ -851,14 +935,20 @@ function renderInv(){
 }
 
 // Rest
+function promptShortRest(){
+  dmModal('<h3>☝ Short Rest</h3><div style="font-size:13px;color:var(--muted);margin-bottom:16px">Refill Favor for all players. Conditions unchanged.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn gold" onclick="closeDMModal();doShortRest()">Begin Short Rest</button></div>');
+}
+function promptLongRest(){
+  dmModal('<h3>☀ Long Rest</h3><div style="font-size:13px;color:var(--muted);margin-bottom:16px">Refill Favor and clear all non-permanent conditions.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn gold" onclick="closeDMModal();doLongRest()">Begin Long Rest</button></div>');
+}
 async function doShortRest(){
-  if(!confirm('Short Rest — all Favor refilled?'))return;
+  // called via modal
   for(const p of PLAYERS){const m=getMort(p.id)||15;await db.from('characters').update({favor_current:m,updated_at:new Date().toISOString()}).eq('id',p.id);await logChange(p.id,'rest_short','Short Rest — Favor refilled',{favor:charData[p.id]?.favor_current||0},{favor:m});if(charData[p.id])charData[p.id].favor_current=m;}
   await db.from('rest_events').insert({rest_type:'short',status:'active'});
   showRestOv('short');renderPartyGrid();showToast('Short Rest — Favor refilled');
 }
 async function doLongRest(){
-  if(!confirm('Long Rest — Favor refilled and non-permanent conditions cleared?'))return;
+  // called via modal
   for(const p of PLAYERS){
     const m=getMort(p.id)||15;await db.from('characters').update({favor_current:m,updated_at:new Date().toISOString()}).eq('id',p.id);if(charData[p.id])charData[p.id].favor_current=m;
     const toRm=(condData[p.id]||[]).filter(c=>!c.is_permanent);
@@ -942,8 +1032,11 @@ function renderLog(){
     list.appendChild(item);
   });
 }
+function undoChangePrompt(logId,charId,type,desc){
+  dmModal('<h3>Undo Change</h3><div style="font-size:13px;color:var(--muted);margin-bottom:8px">'+desc+'</div><div style="font-size:12px;color:var(--dim);margin-bottom:16px">This will revert the change and notify the player.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="closeDMModal();undoChange(\''+logId+'\',\''+charId+'\',\''+type+'\',null)">Undo</button></div>');
+}
 async function undoChange(logId,charId,type,oldValStr){
-  if(!confirm('Undo this change? The player will be notified.'))return;
+  // called via modal
   let old=null;try{old=oldValStr&&oldValStr!=='null'?JSON.parse(oldValStr):null;}catch(e){}
   if(type==='momentum_wisdom'&&old?.wisdom!==undefined)await db.from('characters').update({wisdom:old.wisdom,updated_at:new Date().toISOString()}).eq('id',charId);
   else if(type==='momentum_grit'&&old?.grit!==undefined)await db.from('characters').update({grit:old.grit,updated_at:new Date().toISOString()}).eq('id',charId);
@@ -960,7 +1053,7 @@ async function undoChange(logId,charId,type,oldValStr){
 // Advanced
 async function forceAdvance(){
   const charId=document.getElementById('adv-player').value;const pts=parseInt(document.getElementById('adv-pts').value)||1;
-  if(!confirm(`Grant ${pts} advancement point${pts>1?'s':''} to ${charId}?`))return;
+  // no confirm needed
   const curr=charData[charId]?.pending_advances||0;
   await db.from('characters').update({pending_advances:curr+pts,updated_at:new Date().toISOString()}).eq('id',charId);
   if(charData[charId])charData[charId].pending_advances=curr+pts;
@@ -977,9 +1070,12 @@ function updateKaraBtn(){
   const btn=document.getElementById('kara-reveal-btn');if(!btn)return;
   if(dmSettings.kara_revealed){btn.textContent='✓ Automaton Revealed';btn.className='btn green sm';btn.disabled=true;}
 }
+function promptRevealKara(){
+  dmModal('<h3>Reveal Kara\'s Automaton Nature?</h3><div style="font-size:13px;color:var(--muted);margin-bottom:16px">This permanently unlocks the hidden Automaton branch. Cannot be undone.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn gold" onclick="closeDMModal();revealKara()">Reveal</button></div>');
+}
 async function revealKara(){
   if(dmSettings.kara_revealed)return;
-  if(!confirm('Reveal Kara\'s automaton nature? This cannot be undone.'))return;
+  // called via modal
   dmSettings.kara_revealed=true;await db.from('dm_settings').update({kara_revealed:true,updated_at:new Date().toISOString()}).eq('id',1);updateKaraBtn();showToast('Kara\'s automaton nature revealed!');
 }
 
@@ -1022,6 +1118,10 @@ function showAbilityNotification(entry){
   container.appendChild(card);
   setTimeout(()=>{card.classList.add('hiding');setTimeout(()=>card.remove(),300);},5000);
 }
+
+// ── DM MODAL SYSTEM ──
+function dmModal(html){document.getElementById('dm-mbox').innerHTML=html;document.getElementById('dm-modal').classList.add('vis');}
+function closeDMModal(){document.getElementById('dm-modal').classList.remove('vis');}
 
 init().catch(e=>{console.error(e);setSyncDot(false);});
 </script>
