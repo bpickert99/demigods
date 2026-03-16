@@ -702,6 +702,48 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 .co-inv-item{display:flex;align-items:center;gap:8px;padding:5px 9px;background:rgba(255,248,235,.7);border:1px solid #c4a87a;border-radius:4px;margin-bottom:4px;font-size:12px;color:#2c1a08}
 .co-inv-use{padding:2px 7px;border-radius:4px;border:1px solid #8b451360;background:transparent;color:#8b4513;font-size:10px;font-weight:700;cursor:pointer}
 .co-minimize-btn{padding:4px 10px;border-radius:4px;border:1px solid #c4a87a80;background:transparent;color:#d4b896;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-left:8px}
+
+/* ── DIVINE ABILITY SIDE PANEL ── */
+.co-outer{display:flex;gap:12px;align-items:flex-start;width:100%;max-width:980px;margin:0 auto;transition:all .3s}
+.co-ability-panel{display:none;width:320px;flex-shrink:0;border-radius:10px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.7);animation:abPanelSlide .3s cubic-bezier(.22,1,.36,1)}
+.co-ability-panel.vis{display:flex;flex-direction:column}
+@keyframes abPanelSlide{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+@media(max-width:900px){.co-outer{flex-direction:column}.co-ability-panel{width:100%}}
+.cap-hdr{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.12)}
+.cap-title{font-family:"Cinzel Decorative",serif;font-size:14px;letter-spacing:1px;flex:1}
+.cap-close{background:transparent;border:none;font-size:18px;cursor:pointer;opacity:.6;line-height:1;padding:2px 6px;border-radius:4px;transition:opacity .18s}
+.cap-close:hover{opacity:1}
+.cap-favor{display:flex;align-items:center;gap:6px;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
+.cap-favor-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:.6}
+.cap-favor-val{font-family:"Cinzel Decorative",serif;font-size:18px}
+.cap-favor-max{font-size:10px;opacity:.5}
+.cap-flame{display:flex;align-items:center;gap:5px;margin-left:10px;padding-left:10px;border-left:1px solid rgba(255,255,255,.12)}
+.cap-flame-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#f87171}
+.cap-flame-val{font-family:"Cinzel Decorative",serif;font-size:18px;color:#f87171}
+.cap-list{flex:1;overflow-y:auto;padding:8px}
+.cap-card{border-radius:8px;border:1px solid rgba(255,255,255,.12);margin-bottom:8px;overflow:hidden;transition:border-color .18s}
+.cap-card:last-child{margin-bottom:0}
+.cap-card.can-afford{cursor:pointer}.cap-card.can-afford:hover{border-color:rgba(255,255,255,.3)}
+.cap-card.cannot-afford{opacity:.45}
+.cap-card-hdr{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer}
+.cap-card-name{font-family:"Cinzel",serif;font-size:12px;font-weight:700;flex:1}
+.cap-card-cost{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;letter-spacing:.5px}
+.cap-card-chevron{font-size:10px;opacity:.5;transition:transform .2s;flex-shrink:0}
+.cap-card.expanded .cap-card-chevron{transform:rotate(180deg)}
+.cap-card-meta{font-size:10px;padding:0 12px 4px;opacity:.55;font-family:"Cinzel",serif;letter-spacing:.3px}
+.cap-card-body{display:none;padding:0 12px 12px;font-size:12px;line-height:1.6;color:rgba(232,224,208,.85)}
+.cap-card.expanded .cap-card-body{display:block}
+.cap-card-trigger{font-style:italic;margin-bottom:8px;color:rgba(232,224,208,.6);font-size:11px}
+.cap-card-outcomes{display:flex;flex-direction:column;gap:4px;margin:8px 0}
+.cap-outcome{padding:6px 10px;border-radius:4px;font-size:11px;border-left:3px solid}
+.cap-outcome.success{background:rgba(34,197,94,.08);border-color:#22c55e}
+.cap-outcome.partial{background:rgba(245,158,11,.08);border-color:#f59e0b}
+.cap-outcome.fail{background:rgba(239,68,68,.08);border-color:#ef4444}
+.cap-outcome-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:2px;opacity:.7}
+.cap-use-btn{width:100%;margin-top:10px;padding:9px;border-radius:6px;border:none;font-family:"Cinzel",serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+/* Divine particle canvas */
+#ability-anim-canvas{position:fixed;inset:0;pointer-events:none;z-index:600;display:none}
+#ability-anim-canvas.vis{display:block}
 </style>
 </head>
 <body>
@@ -783,6 +825,8 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
     <span class="co-minimized-badge" id="co-mini-turn" style="display:none;background:#22c55e">Your Turn!</span>
   </div>
 
+  <!-- co-outer wraps co-box + ability side panel -->
+  <div class="co-outer" id="co-outer">
   <!-- Main box (position:relative for reaction popup) -->
   <div class="co-box" style="position:relative">
 
@@ -896,7 +940,24 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
       <div id="co-action-panel-inner"></div>
     </div>
 
-  </div>
+  </div><!-- end co-box -->
+
+  <!-- DIVINE ABILITY SIDE PANEL -->
+  <div class="co-ability-panel" id="co-ability-panel" style="border:2px solid">
+    <div class="cap-hdr">
+      <div class="cap-title" id="cap-title">✨ Divine Abilities</div>
+      <button class="cap-close" onclick="closeAbilityPanel()">✕</button>
+    </div>
+    <div class="cap-favor">
+      <span class="cap-favor-lbl">Favor</span>
+      <span class="cap-favor-val" id="cap-favor-val">0</span>
+      <span class="cap-favor-max" id="cap-favor-max">/ 0</span>
+      <div class="cap-flame"><span class="cap-flame-lbl">🔥 Flame</span><span class="cap-flame-val" id="cap-flame-val">0</span></div>
+    </div>
+    <div class="cap-list" id="cap-list"></div>
+  </div><!-- end co-ability-panel -->
+
+  </div><!-- end co-outer -->
 </div>
 
 <!-- JURY OVERLAY (full screen) -->
@@ -3268,9 +3329,53 @@ async function swapWeapon(itemId){
   showToast('Weapon swapped');
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
 }
-// ── ABILITY SUBPANEL ──
+// ── DIVINE ABILITY SIDE PANEL ──
+const DIVINE_PANEL_CFG={
+  acc:'#6ee7b7',glow:'#10b98144',border:'#10b981',bg:'linear-gradient(135deg,#0a1f0f,#050e07)',particles:'sparks'
+};
+
 function showAbilityFlow(){
-  const inner=document.getElementById('co-action-panel-inner');if(!inner)return;
+  // Instead of replacing action panel — open the side panel
+  openAbilityPanel();
+}
+
+function openAbilityPanel(){
+  const panel=document.getElementById('co-ability-panel');if(!panel)return;
+  // Apply character theme
+  panel.style.background=DIVINE_PANEL_CFG.bg;
+  panel.style.borderColor=DIVINE_PANEL_CFG.border;
+  panel.style.boxShadow=`0 8px 40px ${DIVINE_PANEL_CFG.glow},0 0 0 1px ${DIVINE_PANEL_CFG.border}`;
+
+  // Header title color
+  const title=document.getElementById('cap-title');
+  if(title)title.style.color=DIVINE_PANEL_CFG.acc;
+
+  // Favor display
+  const favVal=document.getElementById('cap-favor-val');
+  const favMax=document.getElementById('cap-favor-max');
+  const favor=charData.favor_current||0;
+  const mort=getMortality()||15;
+  if(favVal){favVal.textContent=favor;favVal.style.color=DIVINE_PANEL_CFG.acc;}
+  if(favMax)favMax.textContent=`/ ${mort}`;
+  
+  // Fire Track (Murphy only — same as favor_current, displayed as flame count)
+  const flameEl=document.getElementById('cap-flame-val');
+  if(flameEl){
+    flameEl.textContent=charData.favor_current||0;
+  }
+
+  // Build cards
+  buildAbilityCards();
+  panel.classList.add('vis');
+}
+
+function closeAbilityPanel(){
+  const panel=document.getElementById('co-ability-panel');
+  if(panel)panel.classList.remove('vis');
+}
+
+function buildAbilityCards(){
+  const list=document.getElementById('cap-list');if(!list)return;
   const favor=charData.favor_current||0;
   const entries=[...unlockedPowers].map(id=>{
     const nd=ND[id];if(!nd)return null;
@@ -3280,33 +3385,63 @@ function showAbilityFlow(){
   }).filter(Boolean).sort((a,b)=>a.nd.meta.localeCompare(b.nd.meta));
 
   if(!entries.length){
-    inner.innerHTML=`<button class="co-action-back" onclick="buildCombatActionGrid()">← Back</button><div class="co-action-title">✨ Use Ability</div><div style="color:#7a5c2e;font-size:12px;font-style:italic;padding:8px">No abilities unlocked yet.</div>`;
+    list.innerHTML=`<div style="text-align:center;padding:20px;font-size:12px;opacity:.5;font-style:italic">No abilities unlocked yet.</div>`;
     return;
   }
 
-  const cards=entries.map(({id,nd,cost})=>{
+  list.innerHTML='';
+  entries.forEach(({id,nd,cost})=>{
     const canAfford=favor>=cost||cost===0;
     const isPassive=nd.content.type==='passive';
-    const trigger=nd.content.trigger||'';
-    const desc=nd.content.desc||'';
-    const preview=(trigger||desc).replace(/<[^>]+>/g,'').slice(0,90).trim();
-    const costBadge=cost?`<span class="co-ab-cost">${cost} Favor</span>`:isPassive?`<span class="co-ab-cost" style="background:transparent;border-color:#7a5c2e60;color:#7a5c2e">Passive</span>`:'';
-    const noFavorHint=(!canAfford&&cost>0)?`<div style="font-size:9px;color:#c0392b;margin-top:3px">Need ${cost} Favor (have ${favor})</div>`:'';
-    return `<button class="co-ability-card" ${(!canAfford&&cost>0)?'disabled':''} onclick="useCombatAbility('${id}',${cost})">
-      <div class="co-ab-header"><span class="co-ab-name">${nd.name}</span>${costBadge}</div>
-      <div class="co-ab-meta">${nd.meta}</div>
-      ${preview?`<div class="co-ab-preview">${preview}…</div>`:''}
-      ${noFavorHint}
-    </button>`;
-  }).join('');
+    const costLabel=cost?`${cost} Favor`:isPassive?'Passive':'Free';
+    const costColor=!canAfford&&cost>0?'#ef4444':DIVINE_PANEL_CFG.acc;
+    const card=document.createElement('div');
+    card.className=`cap-card ${canAfford?'can-afford':'cannot-afford'}`;
+    card.dataset.nodeId=id;
 
-  inner.innerHTML=`
-    <button class="co-action-back" onclick="buildCombatActionGrid()">← Back</button>
-    <div class="co-action-title">✨ Use Ability <span style="font-size:10px;color:#7a5c2e;font-family:'Inter',sans-serif;font-weight:400">${favor} Favor remaining</span></div>
-    <div class="co-ability-list">${cards}</div>`;
+    // Build outcomes HTML
+    let outcomesHtml='';
+    if(nd.content.outcomes){
+      outcomesHtml=`<div class="cap-card-outcomes">${nd.content.outcomes.map(o=>`<div class="cap-outcome ${o.cls}"><div class="cap-outcome-lbl">${o.label}</div>${o.text}</div>`).join('')}</div>`;
+    } else if(nd.content.desc){
+      outcomesHtml=`<div style="margin-bottom:8px">${nd.content.desc}</div>`;
+    }
+
+    const triggerHtml=nd.content.trigger?`<div class="cap-card-trigger">${nd.content.trigger}</div>`:'';
+    const rollHtml=nd.content.roll?`<div style="font-size:11px;margin-bottom:8px;padding:5px 8px;background:rgba(255,255,255,.06);border-radius:4px;font-style:italic">${nd.content.roll}</div>`:'';
+    const useBtnHtml=canAfford?`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="useCombatAbilityFromPanel('${id}',${cost})">✦ Use — ${costLabel}</button>`
+      :`<div style="font-size:10px;text-align:center;color:#ef4444;padding:6px">Need ${cost} Favor (have ${favor})</div>`;
+
+    card.innerHTML=`
+      <div class="cap-card-hdr" onclick="toggleAbilityCard('${id}')">
+        <span class="cap-card-name" style="color:${DIVINE_PANEL_CFG.acc}">${nd.name}</span>
+        <span class="cap-card-cost" style="background:${costColor}20;border:1px solid ${costColor}60;color:${costColor}">${costLabel}</span>
+        <span class="cap-card-chevron">▾</span>
+      </div>
+      <div class="cap-card-meta">${nd.meta}</div>
+      <div class="cap-card-body">
+        ${triggerHtml}${rollHtml}${outcomesHtml}
+        ${useBtnHtml}
+      </div>`;
+    list.appendChild(card);
+  });
 }
 
-async function useCombatAbility(nodeId,cost){
+function toggleAbilityCard(nodeId){
+  const cards=document.querySelectorAll('.cap-card');
+  cards.forEach(c=>{
+    if(c.dataset.nodeId===nodeId){
+      c.classList.toggle('expanded');
+    } else {
+      c.classList.remove('expanded'); // close others (accordion)
+    }
+  });
+}
+
+async function useCombatAbilityFromPanel(nodeId,cost){
+  closeAbilityPanel();
+  // Play divine animation, then run the ability
+  await playDivineAnimation();
   await useFavor(cost,nodeId);
   const powerName=ND[nodeId]?.name||nodeId;
   if(combatSessionData){
@@ -3318,6 +3453,55 @@ async function useCombatAbility(nodeId,cost){
   }
   actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
+}
+
+// Keep old useCombatAbility alias for any other callers
+async function useCombatAbility(nodeId,cost){
+  await useCombatAbilityFromPanel(nodeId,cost);
+}
+
+// ── DIVINE PARTICLE ANIMATION ──
+function playDivineAnimation(){
+  return new Promise(resolve=>{
+    const canvas=document.getElementById('ability-anim-canvas');
+    if(!canvas){resolve();return;}
+    canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+    canvas.classList.add('vis');
+    const ctx=canvas.getContext('2d');
+    const cx=window.innerWidth/2,cy=window.innerHeight*.45;
+    const particles=[];
+    const BURST=60;
+
+    function spawnParticle(x,y){
+          const a=Math.random()*Math.PI*2,spd=Math.random()*3+1.5;
+    return{x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd-2.5,life:1,
+      decay:Math.random()*.018+.01,r:Math.random()*3+1.5,
+      color:`hsl(${Math.random()*40+15},100%,${Math.random()*20+55}%)`};
+    }
+
+    for(let i=0;i<BURST;i++)particles.push(spawnParticle(
+      cx+(Math.random()-.5)*80, cy+(Math.random()-.5)*40
+    ));
+
+    let raf;
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for(let i=particles.length-1;i>=0;i--){
+        const p=particles[i];
+            p.x+=p.vx;p.y+=p.vy;p.vy-=.06;p.vx*=.97;p.life-=p.decay;
+        if(p.life<=0){particles.splice(i,1);continue;}
+            ctx.globalAlpha=p.life*.85;ctx.fillStyle=p.color;
+      ctx.shadowBlur=8;ctx.shadowColor=p.color;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      ctx.shadowBlur=0;
+      }
+      if(particles.length>0){raf=requestAnimationFrame(draw);}
+      else{canvas.classList.remove('vis');ctx.clearRect(0,0,canvas.width,canvas.height);resolve();}
+    }
+    draw();
+    // Safety resolve after 1.5s regardless
+    setTimeout(()=>{if(raf)cancelAnimationFrame(raf);canvas.classList.remove('vis');resolve();},1500);
+  });
 }
 
 // ── FEAT SUBPANEL ──
