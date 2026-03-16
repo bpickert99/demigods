@@ -2430,12 +2430,14 @@ async function loadCombatState(){
   }
 }
 function showCombatOverlay(){
-  document.getElementById('combat-overlay').classList.add('vis');
+  const co=document.getElementById('combat-overlay');if(!co)return;
+  co.classList.add('vis');
   document.body.style.overflow='hidden';
   updateCombatOverlay();
 }
 function hideCombatOverlay(){
-  document.getElementById('combat-overlay').classList.remove('vis');
+  const co=document.getElementById('combat-overlay');if(!co)return;
+  co.classList.remove('vis');
   document.body.style.overflow='';
   combatSessionData=null;combatParticipantData=null;myQueueItem=null;
 }
@@ -2759,16 +2761,12 @@ function calculateCraftFavorCost(){
   const isWeapon=document.getElementById('craft-weapon')?.checked;
   const isArmor=document.getElementById('craft-armor')?.checked;
   const isTool=document.getElementById('craft-tool')?.checked;
-  const tags=getCraftTags();
   let base=isWeapon?3:isArmor?2:isTool?1:1;
-  // Collect negative tag ids
   const negativeIds=new Set(CRAFT_TAGS.flatMap(g=>g.tags.filter(t=>t.negative).map(t=>t.id)));
   const checkedIds=[...document.querySelectorAll('#craft-tag-picker input:checked')].map(cb=>cb.id.replace('ctag-',''));
   const positiveTags=checkedIds.filter(id=>!negativeIds.has(id));
   const negativeTags=checkedIds.filter(id=>negativeIds.has(id));
-  // Each additional positive tag beyond 2 costs +1
   const extraTags=Math.max(0,positiveTags.length-2);
-  // Weapon damage die scaling
   const die=document.getElementById('craft-dmg')?.value||'1d6';
   const dieBonus={'1d4':0,'1d6':0,'1d8':1,'1d10':2,'1d12':3,'2d6':2}[die]||0;
   return Math.max(1,base+extraTags+dieBonus-negativeTags.length);
@@ -2793,11 +2791,9 @@ function buildCraftTagPicker(){
     lbl.textContent=group.grp;picker.appendChild(lbl);
     group.tags.forEach(t=>{
       const id=`ctag-${t.id}`;
-      const isNeg=!!t.negative;
       const cb=document.createElement('input');cb.type='checkbox';cb.id=id;cb.value=t.lbl;cb.style.display='none';cb.onchange=updateCraftPreview;
-      const lb=document.createElement('label');lb.htmlFor=id;
-      lb.textContent=(isNeg?'− ':'')+t.lbl;
-      lb.style.cssText=`display:inline-flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;border:1px solid ${isNeg?'#ef444440':'var(--border2)'};background:var(--surf);color:${isNeg?'#ef4444':'var(--muted)'};font-size:11px;font-weight:600;cursor:pointer;transition:all .18s;position:relative`;
+      const lb=document.createElement('label');lb.htmlFor=id;lb.textContent=t.lbl;
+      lb.style.cssText='display:inline-flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--surf);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .18s;position:relative';
       if(t.tip)lb.dataset.tip=t.tip;
       // Tooltip
       lb.onmouseover=function(){
@@ -2805,17 +2801,10 @@ function buildCraftTagPicker(){
       };
       lb.onmouseout=function(){document.getElementById('craft-tt')?.remove();};
       cb.onchange=()=>{
-        if(isNeg){
-          lb.style.background=cb.checked?'#ef444420':'var(--surf)';
-          lb.style.borderColor=cb.checked?'#ef4444':'#ef444440';
-          lb.style.color=cb.checked?'#fca5a5':'#ef4444';
-          lb.textContent=cb.checked?'✓ −1 '+t.lbl:'− '+t.lbl;
-        } else {
-          lb.style.background=cb.checked?'var(--kara)20':'var(--surf)';
-          lb.style.borderColor=cb.checked?'var(--kara)':'var(--border2)';
-          lb.style.color=cb.checked?'var(--kara-acc)':'var(--muted)';
-          lb.textContent=cb.checked?'✓ '+t.lbl:t.lbl;
-        }
+        lb.style.background=cb.checked?'var(--kara)20':'var(--surf)';
+        lb.style.borderColor=cb.checked?'var(--kara)':'var(--border2)';
+        lb.style.color=cb.checked?'var(--kara-acc)':'var(--muted)';
+        if(cb.checked)lb.textContent='✓ '+t.lbl;else lb.textContent=t.lbl;
         updateCraftPreview();
       };
       picker.appendChild(cb);picker.appendChild(lb);

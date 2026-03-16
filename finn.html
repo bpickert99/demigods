@@ -2021,7 +2021,6 @@ async function useAnimal(animal){
   const nodeId=`an-${animal}`;
   const level=animalLevels[animal]||0;
   if(ad.favor>0) await setFavor((charData.favor_current||0)-ad.favor);
-  // Save current form
   charData.current_form=animal;
   await db.from('characters').update({current_form:animal,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
   applyCharData();
@@ -2567,12 +2566,14 @@ async function loadCombatState(){
   }
 }
 function showCombatOverlay(){
-  document.getElementById('combat-overlay').classList.add('vis');
+  const co=document.getElementById('combat-overlay');if(!co)return;
+  co.classList.add('vis');
   document.body.style.overflow='hidden';
   updateCombatOverlay();
 }
 function hideCombatOverlay(){
-  document.getElementById('combat-overlay').classList.remove('vis');
+  const co=document.getElementById('combat-overlay');if(!co)return;
+  co.classList.remove('vis');
   document.body.style.overflow='';
   combatSessionData=null;combatParticipantData=null;myQueueItem=null;
 }

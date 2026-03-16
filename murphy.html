@@ -2362,12 +2362,14 @@ async function loadCombatState(){
   }
 }
 function showCombatOverlay(){
-  document.getElementById('combat-overlay').classList.add('vis');
+  const co=document.getElementById('combat-overlay');if(!co)return;
+  co.classList.add('vis');
   document.body.style.overflow='hidden';
   updateCombatOverlay();
 }
 function hideCombatOverlay(){
-  document.getElementById('combat-overlay').classList.remove('vis');
+  const co=document.getElementById('combat-overlay');if(!co)return;
+  co.classList.remove('vis');
   document.body.style.overflow='';
   combatSessionData=null;combatParticipantData=null;myQueueItem=null;
 }
