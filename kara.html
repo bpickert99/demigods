@@ -1586,16 +1586,7 @@ function applyAutomatonReveal(revealed){
 }
 
 function subscribeKaraReveal(){
-  db.channel('kara-reveal-settings').on('postgres_changes',{event:'UPDATE',schema:'public',table:'dm_settings',filter:'id=eq.1'},payload=>{
-    const revealed=payload.new?.kara_revealed||false;
-    const wasRevealed=karaRevealed;
-    applyAutomatonReveal(revealed);
-    if(revealed&&!wasRevealed){
-      document.getElementById('automaton-banner').style.display='block';
-      showToast('⚙️ Your true nature has been revealed!');
-      setTimeout(()=>{document.getElementById('automaton-banner').style.display='none';},8000);
-    }
-  }).subscribe();
+  
 }
 
 // ── SUPABASE LOAD ──
@@ -1604,14 +1595,6 @@ async function loadCharacter(){
   const data=_cRows?.[0]||null;
   if(data){
     charData=data;
-    // If favor has never been set (0) but character has skills, start full
-    if((charData.favor_current===0||charData.favor_current===null)){
-      const mort=getMortality();
-      if(mort>0){
-        charData.favor_current=mort;
-        await db.from('characters').update({favor_current:mort,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
-      }
-    }
     applyCharData();
   }
 }
@@ -1673,8 +1656,18 @@ function flashConditionReceived(){
 
 // ── SUBSCRIPTIONS ──
 function subscribeAll(){
-  db.channel('kara-char').on('postgres_changes',{event:'*',schema:'public',table:'characters'},payload=>{
-    if(payload.new?.id===CHAR_ID){charData={...charData,...payload.new};applyCharData();}
+  db.channel('kara-char').on('postgres_changes',{event:'*',schema:'public',table:'characters'},async payload=>{
+    if(payload.new?.id===CHAR_ID){
+      charData={...charData,...payload.new};
+      applyCharData();
+      // Handle pending advances grant from DM
+      const pending=payload.new?.pending_advances||0;
+      if(pending>0&&pending!==_pendingAdvDone){
+        _pendingAdvTotal=pending;
+        _pendingAdvDone=0;
+        showAdvanceModal();
+      }
+    }
   }).subscribe();
   db.channel('kara-cond').on('postgres_changes',{event:'*',schema:'public',table:'conditions'},payload=>{
     const id=payload.new?.character_id||payload.old?.character_id;
@@ -1886,7 +1879,16 @@ function updateHarmDisplay(){renderConditions();}
 // ── FAVOR ──
 function buildFavorTokens(){
   const mortality=getMortality();
-  const max=mortality||charData.favor_max||15;
+  const max=mortality||0;
+  if(max>0){
+    // Cap stale favor_current to max; initialize to full if never set
+    let favVal=charData.favor_current||0;
+    if(favVal===0||favVal>max){
+      const corrected=favVal>max?max:max; // 0 -> full, over max -> cap
+      charData.favor_current=corrected;
+      db.from('characters').update({favor_current:corrected,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+    }
+  }
   const current=Math.min(charData.favor_current||0,max);
   const container=document.getElementById('favor-tokens');
   const numEl=document.getElementById('favor-num');
@@ -1905,7 +1907,7 @@ function buildFavorTokens(){
   if(headerEl) headerEl.textContent=current;
 }
 async function setFavor(n){
-  const max=getMortality()||charData.favor_max||15;
+  const max=getMortality()||0;
   const val=Math.max(0,Math.min(n,max));
   const oldVal=charData.favor_current||0;
   charData.favor_current=val;
@@ -3736,7 +3738,7 @@ function openAbilityPanel(){
   const favVal=document.getElementById('cap-favor-val');
   const favMax=document.getElementById('cap-favor-max');
   const favor=charData.favor_current||0;
-  const mort=getMortality()||15;
+  const mort=getMortality()||0;
   if(favVal){favVal.textContent=favor;favVal.style.color=DIVINE_PANEL_CFG.acc;}
   if(favMax)favMax.textContent=`/ ${mort}`;
   
@@ -4261,9 +4263,20 @@ function subscribeNotifications(){
     }
   }).subscribe();
   // ── dm_settings changes: combat start/end and markup mode toggle
-  db.channel(CHAR_ID+'-dm-settings').on('postgres_changes',{event:'*',schema:'public',table:'dm_settings'},async()=>{
+  db.channel(CHAR_ID+'-dm-settings').on('postgres_changes',{event:'*',schema:'public',table:'dm_settings'},async(payload)=>{
     await loadCombatState();
     await loadMarkupMode();
+    // Kara-reveal: check kara_revealed flag
+    if(payload.new){
+      const revealed=payload.new?.kara_revealed||false;
+      const wasRevealed=karaRevealed;
+      applyAutomatonReveal(revealed);
+      if(revealed&&!wasRevealed){
+        document.getElementById('automaton-banner').style.display='block';
+        showToast('⚙️ Your true nature has been revealed!');
+        setTimeout(()=>{document.getElementById('automaton-banner').style.display='none';},8000);
+      }
+    }
   }).subscribe();
 
   // ── Combat session updates: round advances, turn changes, reaction_pending
@@ -4274,17 +4287,12 @@ function subscribeNotifications(){
     }
   }).subscribe();
 
-  // ── My participant row: actions_used, grit_rolled, is_dead
-  db.channel(`${CHAR_ID}-combat-part`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'combat_participants'},async(payload)=>{
-    if(payload.new?.participant_id===CHAR_ID){
-      combatParticipantData=payload.new;
-      updateCombatOverlay();
-    }
-  }).subscribe();
-
-  // ── All participants: any change refreshes the combatants strip
-  db.channel(`${CHAR_ID}-combat-allparts`).on('postgres_changes',{event:'*',schema:'public',table:'combat_participants'},async()=>{
+  // ── All participant changes: refresh strip + update my row
+  db.channel(`${CHAR_ID}-combat-parts`).on('postgres_changes',{event:'*',schema:'public',table:'combat_participants'},async(payload)=>{
     if(!combatSessionData)return;
+    // Fast-path: if this is my row, update immediately
+    if(payload.new?.participant_id===CHAR_ID) combatParticipantData=payload.new;
+    // Always reload full list for combatants strip
     const{data}=await db.from('combat_participants').select('*').eq('session_id',combatSessionData.id).order('position');
     combatParticipantsAll=data||[];
     const myRow=data?.find(p=>p.participant_id===CHAR_ID)||null;
@@ -4303,20 +4311,7 @@ function subscribeNotifications(){
     updateCombatOverlay();
   }).subscribe();
 
-  // ── Advancement grant from DM
-  db.channel(`${CHAR_ID}-advance-check`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'characters'},async(payload)=>{
-    if(payload.new?.id===CHAR_ID){
-      charData={...charData,...payload.new};
-      const pending=payload.new?.pending_advances||0;
-      if(pending>0){
-        // Fresh grant: set total from current pending count
-        _pendingAdvTotal=pending;
-        _pendingAdvDone=0;
-        showAdvanceModal();
-      }
-    }
-  }).subscribe();
-}
+  }
 
 function showRestPopup(type){
   const modal=document.getElementById('roll-modal');
