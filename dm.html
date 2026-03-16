@@ -333,7 +333,10 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
         </div>
       </div>
       <div>
-        <div class="sec-title">Queue <span style="font-size:9px;color:var(--dim);font-family:'Inter',sans-serif;font-weight:400;letter-spacing:0">drag to reorder</span></div>
+        <div class="sec-title" style="display:flex;align-items:center">
+          <span style="flex:1">Queue <span style="font-size:9px;color:var(--dim);font-family:'Inter',sans-serif;font-weight:400;letter-spacing:0">drag to reorder</span></span>
+          <button class="btn sm gold" onclick="callNextInQueue()" id="call-next-btn" style="margin-left:8px">▶ Call Next</button>
+        </div>
         <div class="q-panel"><div id="cmb-queue"></div></div>
       </div>
     </div>
@@ -926,6 +929,51 @@ async function activateTurn(partId){
   if(p.participant_type==='npc'){const ap=document.getElementById('npc-atk-panel');if(ap)ap.style.display='block';const sel=document.getElementById('npc-atk-sel');if(sel){sel.value=p.participant_id;populateWeaponSel();}}
   updateDMTurnBanner();showToast(`${p.participant_name}'s turn`);
 }
+// ── Call next person from the queue and set their turn ──
+async function callNextInQueue(){
+  if(!combatSess)return;
+  const next=combatQ.find(q=>q.status==='waiting');
+  if(!next){showToast('Queue is empty — players need to click "I Want to Act"');return;}
+
+  const charId=next.character_id;
+  const charName=next.character_name||charId;
+
+  // Find their participant row (covers PCs and NPCs that were in initial setup)
+  const part=combatParts.find(p=>p.participant_id===charId&&p.is_active);
+  const partType=part?.participant_type||'pc';
+
+  // Mark queue item active
+  await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',next.id);
+  next.status='active';
+
+  // Set current turn on the session
+  await db.from('combat_sessions').update({
+    current_turn_id:charId,
+    current_turn_type:partType,
+    updated_at:new Date().toISOString()
+  }).eq('id',combatSess.id);
+  combatSess.current_turn_id=charId;
+  combatSess.current_turn_type=partType;
+
+  // If NPC: open the NPC action panel pre-populated with their weapons
+  if(partType==='npc'){
+    const npcPanel=document.getElementById('npc-turn-panel');
+    if(npcPanel)npcPanel.style.display='block';
+    document.getElementById('npc-turn-name').textContent=charName;
+    populateNPCAttackPanel();
+    const sel=document.getElementById('npc-atk-sel');
+    if(sel){
+      // Pre-select this NPC in the attacker dropdown
+      const opt=[...sel.options].find(o=>o.value===charId);
+      if(opt){sel.value=opt.value;populateWeaponSel();}
+    }
+  }
+
+  updateDMTurnBanner();
+  renderCombatQueue();
+  showToast(`${charName}'s turn`);
+}
+
 function populateNPCAttackPanel(){
   const atk=document.getElementById('npc-atk-sel');const tgt=document.getElementById('npc-tgt-sel');if(!atk||!tgt)return;
   const sceneNPCs=npcData.filter(n=>n.in_scene);

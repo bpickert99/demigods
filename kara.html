@@ -2917,6 +2917,7 @@ let combatParticipantData=null;
 let myQueueItem=null;
 let combatQueueData=[];
 let combatParticipantsAll=[];
+let gritResultShowing=false; // true for 3.2s after rolling initiative — prevents premature hide
 
 async function loadCombatState(){
   const{data:_dsRows}=await db.from('dm_settings').select('combat_active,combat_session_id').eq('id',1).limit(1);
@@ -2962,12 +2963,15 @@ function updateCombatOverlay(){
   const miniRound=document.getElementById('co-mini-round');
   if(miniRound)miniRound.textContent=`Rd ${round}`;
 
-  // Grit initiative section — show on round 1 if not yet rolled
+  // Grit initiative section
+  // Show when: round 1 and not yet rolled.
+  // Stay visible when: gritResultShowing=true (result animating — don't yank it away).
   const initSec=document.getElementById('co-grit-init-section');
   const isRound1=round===1;
   const gritRolled=combatParticipantData?.grit_rolled||false;
-  if(initSec) initSec.style.display=(isRound1&&!gritRolled)?'block':'none';
-  if(isRound1&&!gritRolled){
+  if(initSec) initSec.style.display=(isRound1&&(!gritRolled||gritResultShowing))?'block':'none';
+  if(isRound1&&!gritRolled&&!gritResultShowing){
+    // Pre-roll state: show dice count, hide any previous result
     const grit=charData.grit||0;
     const dc=document.getElementById('co-grit-dice-display');
     if(dc) dc.textContent=`${grit}d6`;
@@ -3024,7 +3028,8 @@ function updateCombatOverlay(){
   const actionPanel=document.getElementById('co-action-panel');
   if(actionPanel){
     const noActions=combatParticipantData&&combatParticipantData.actions_used>=combatParticipantData.actions_max;
-    const waitingForInit=isRound1&&!gritRolled;
+    // Block action panel while init result is still showing, even if gritRolled flipped
+    const waitingForInit=(isRound1&&!gritRolled)||gritResultShowing;
     actionPanel.style.display=(isMyTurn&&!noActions&&!waitingForInit)?'block':'none';
     if(isMyTurn&&!noActions&&!waitingForInit) buildCombatActionGrid();
   }
@@ -3034,7 +3039,7 @@ function updateCombatOverlay(){
   if(joinBtn){
     const inQueue=combatQueueData.some(q=>q.character_id===CHAR_ID&&q.status!=='done');
     const noActs=combatParticipantData&&combatParticipantData.actions_used>=combatParticipantData.actions_max;
-    const waitingForInit=isRound1&&!gritRolled;
+    const waitingForInit=(isRound1&&!gritRolled)||gritResultShowing;
     joinBtn.disabled=inQueue||noActs||isMyTurn||waitingForInit;
     joinBtn.textContent=inQueue?'⏳ In Queue…':noActs?'No Actions Left':waitingForInit?'Roll Initiative First':'⚔ I Want to Act';
   }
@@ -3043,7 +3048,7 @@ function updateCombatOverlay(){
   const helpBtn=document.getElementById('co-help-ally-btn');
   if(helpBtn){
     const hasBond=(charData.bond||0)>0;
-    const waitingForInit=isRound1&&!gritRolled;
+    const waitingForInit=(isRound1&&!gritRolled)||gritResultShowing;
     helpBtn.disabled=isMyTurn||!hasBond||waitingForInit;
     helpBtn.title=!hasBond?'No Bond to spend':isMyTurn?'Cannot help on your own turn':'Help the current actor (+1 die)';
   }
@@ -3110,7 +3115,11 @@ async function rollGritInitiative(){
     combatParticipantData.grit_rolled=true;
   }
   showToast(`Initiative: ${outcome}`);
-  setTimeout(()=>updateCombatOverlay(),800);
+  // Hold the result on screen for 3.2s before transitioning to the main combat UI.
+  // gritResultShowing prevents subscription-triggered updateCombatOverlay from
+  // collapsing the init section early during this window.
+  gritResultShowing=true;
+  setTimeout(()=>{gritResultShowing=false;updateCombatOverlay();},3200);
 }
 async function joinCombatQueue(){
   if(!combatSessionData)return;
