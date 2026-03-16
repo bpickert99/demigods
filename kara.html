@@ -817,6 +817,8 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 
 
 <!-- ══ COMBAT OVERLAY ══ -->
+<canvas id="ability-anim-canvas"></canvas>
+
 <div class="combat-overlay" id="combat-overlay">
   <!-- Minimized pill -->
   <div class="co-minimized-bar" onclick="restoreCombat()">
@@ -3536,14 +3538,12 @@ async function useCombatAbilityFromPanel(nodeId,cost){
   // Play divine animation, then run the ability
   await playDivineAnimation();
   await useFavor(cost,nodeId);
-  const powerName=ND[nodeId]?.name||nodeId;
-  if(combatSessionData){
-    await db.from('combat_actions').insert({
-      session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-      action_type:'ability',action_label:`Used: ${powerName}`,resolved:false
-    });
-    if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
+  // Queue update: mark as active so DM knows player has acted
+  if(combatSessionData&&myQueueItem){
+    await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
   }
+  // Note: the rich combat_action with full outcome data is written inside useAbility().
+  // No duplicate write here — that would overwrite the good card on the DM screen.
   actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
 }
