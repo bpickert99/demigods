@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kara — Demigods Campaign · v3.1</title>
+<title>Kara — Demigods Campaign · v3.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -127,7 +127,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 #pb-hero .skill-row:hover{background:#fff8f0;border-color:#8b6340}
 #pb-hero .skill-name{color:#2c1a08}
 #pb-hero .skill-dice{color:#7a3c10}
-#pb-hero .sbox{border-color:#c4a87a;background:#ede0c4}
+#pb-hero .sbox{border-color:#8b6340;background:#d4b896}
 #pb-hero .sbox.checked{background:#8b4513;border-color:#a0522d;box-shadow:0 0 4px #8b451366}
 #pb-hero .skill-roll-btn{border-color:#c4a87a;color:#7a5c2e}
 #pb-hero .skill-roll-btn:hover{background:#8b451320;border-color:#8b4513;color:#8b4513}
@@ -524,7 +524,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
       Harm <span class="harm-num" id="header-harm">0</span>
       / <span class="mortality-num" id="header-mortality">—</span> Mortality
       <span class="sync-dot off" id="sync-dot" title="Syncing..."></span>
-      <span style="font-family:\'Cinzel\',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5;margin-left:6px">v3.1</span>
+      <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.2</span>
     </div>
     <div class="mortality-display" style="font-size:10px;margin-top:2px">
       Favor <span style="color:var(--fc);font-family:'Cinzel Decorative',serif;font-size:16px" id="header-favor">0</span>
@@ -1517,6 +1517,9 @@ async function notifyDMPassiveUse(abilityName, nodeId){
 // ── INVENTORY ──
 function renderInventory(){
   const list=document.getElementById('inventory-list');
+  if(!list)return;
+  // Filter out used-up items
+  inventoryData=inventoryData.filter(i=>!(i.uses_max>0&&i.uses_current<=0));
   if(!inventoryData||inventoryData.length===0){
     list.innerHTML='<div style="color:var(--dim);font-size:13px;text-align:center;padding:8px">No items. The Weaver will send equipment.</div>';
     return;
@@ -1534,15 +1537,35 @@ function renderInventory(){
       }
       armorHtml=`<div class="armor-dur"><span class="armor-dur-label">DUR</span><div class="dur-pips">${pips}</div><span style="font-size:11px;color:var(--dim);margin-left:4px">${item.durability_current}/${item.durability_max}</span>${item.coverage?`<span style="font-size:10px;color:var(--dim);margin-left:8px">${item.coverage}</span>`:''}</div>`;
     }
+    // Uses display
+    let usesHtml=item.uses_max>0?`<div style="font-size:11px;color:var(--dim);margin-top:3px">Uses: ${item.uses_current}/${item.uses_max}</div>`:'';
+    if(item.healing_value) usesHtml+=`<div style="font-size:11px;color:var(--success);margin-top:2px">Heals ${item.healing_value}</div>`;
+    // Action buttons
+    let btns='';
+    // Damage roll button for weapons
+    const harmTag=(item.tags||[]).find(t=>t.includes('Harm'));
+    if(item.is_weapon&&harmTag){
+      const die=harmTag.replace(' Harm','');
+      btns+=`<button class="item-send-btn" style="border-color:var(--harm);color:var(--harm)" onclick="rollItemDamage('${item.id}','${die}','${item.name.replace(/'/g,"\'")}')" title="Roll damage">⚔ ${die}</button>`;
+    }
+    // Use button for healing/consumable
+    if(item.healing_value||(item.uses_max>0)){
+      btns+=`<button class="item-send-btn" onclick="useItem('${item.id}')">Use</button>`;
+    }
+    // Transfer button
+    btns+=`<button class="item-send-btn" onclick="openTransferItem('${item.id}')" title="Transfer to another player">⇄</button>`;
+    // Delete
+    btns+=`<button class="item-del" onclick="deleteItem('${item.id}')">✕</button>`;
+
     card.innerHTML=`
       <div class="item-top">
-        <div>
+        <div style="flex:1">
           <div class="item-name">${item.name}</div>
           <div class="item-tags">${tagHtml}</div>
-          ${armorHtml}
+          ${armorHtml}${usesHtml}
           ${item.notes?`<div style="font-size:12px;color:var(--dim);margin-top:4px">${item.notes}</div>`:''}
         </div>
-        <button class="item-del" onclick="deleteItem('${item.id}')">✕</button>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">${btns}</div>
       </div>`;
     list.appendChild(card);
   });
@@ -2635,16 +2658,9 @@ function subscribeNotifications(){
     }
   }).subscribe();
   // Combat session changes
-  db.channel(CHAR_ID+'-dm-settings').on('postgres_changes',{event:'UPDATE',schema:'public',table:'dm_settings'},async(payload)=>{
-    if(payload.new?.combat_active&&payload.new?.combat_session_id){
-      const{data:sess}=await db.from('combat_sessions').select('*').eq('id',payload.new.combat_session_id).single();
-      combatSessionData=sess;
-      const{data:part}=await db.from('combat_participants').select('*').eq('session_id',payload.new.combat_session_id).eq('participant_id',CHAR_ID).single();
-      combatParticipantData=part||null;
-      showCombatOverlay();
-    } else if(!payload.new?.combat_active){
-      hideCombatOverlay();
-    }
+  db.channel(CHAR_ID+'-dm-settings').on('postgres_changes',{event:'*',schema:'public',table:'dm_settings'},async()=>{
+    // Always do a fresh read — don't rely on payload.new
+    await loadCombatState();
   }).subscribe();
   // Combat session updates (round changes, turn changes)
   db.channel(`${CHAR_ID}-combat-sess`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'combat_sessions'},async(payload)=>{
