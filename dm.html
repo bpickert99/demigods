@@ -395,7 +395,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
     <div style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:16px">
       <div class="row" style="margin-bottom:12px;gap:12px">
         <div class="col" style="flex:1"><label class="lbl">Item Name</label><input class="inp" id="eq-name" placeholder="e.g. Spatha of the Tuatha" oninput="updateEqPreview()"></div>
-        <div class="col" style="flex:1"><label class="lbl">Send To</label><select class="inp" id="eq-target"><option value="lewis">Lewis</option><option value="murphy">Murphy</option><option value="kara">Kara</option><option value="finn">Finn</option></select></div>
+        <div class="col" style="flex:1"><label class="lbl">Send To</label><select class="inp" id="eq-target"></select></div>
       </div>
       <div class="row" style="margin-bottom:12px;gap:14px;flex-wrap:wrap;align-items:flex-start">
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer"><input type="checkbox" id="eq-weapon" onchange="toggleEqFields();updateEqPreview()" style="accent-color:var(--gold)"> Weapon</label>
@@ -600,7 +600,7 @@ let currentTab='party';
 async function init(){
   await Promise.all([loadChars(),loadDMSettings(),loadPendingRolls(),loadRollLog(),loadNPCs(),loadActiveCombat(),loadJury(),loadInv()]);
   buildTagPicker();
-  renderPartyGrid();renderPendingRolls();renderRollLog();renderNPCTab();renderInv();
+  renderPartyGrid();updateEqTarget();renderPendingRolls();renderRollLog();renderNPCTab();renderInv();
   updateKaraBtn();subscribeAll();setSyncDot(true);startCanvas();
   // Load markup mode state
   if(dmSettings.markup_mode !== undefined){ markupMode = dmSettings.markup_mode; updateMarkupBtn(); }
@@ -631,7 +631,14 @@ async function loadNPCs(){
     npcWpnData={};(wp.data||[]).forEach(w=>{if(!npcWpnData[w.npc_id])npcWpnData[w.npc_id]=[];npcWpnData[w.npc_id].push(w);});
   }
 }
-async function loadInv(){const{data}=await db.from('equipment').select('*').eq('owner_type','character').order('created_at');invData={};if(data)data.forEach(i=>{if(!invData[i.owner_id])invData[i.owner_id]=[];invData[i.owner_id].push(i);});}
+async function loadInv(){
+  const[pcRes,npcRes]=await Promise.all([
+    db.from('equipment').select('*').eq('owner_type','character').order('created_at'),
+    db.from('equipment').select('*').eq('owner_type','npc').order('created_at')
+  ]);
+  invData={};(pcRes.data||[]).forEach(i=>{if(!invData[i.owner_id])invData[i.owner_id]=[];invData[i.owner_id].push(i);});
+  npcInvData={};(npcRes.data||[]).forEach(i=>{if(!npcInvData[i.owner_id])npcInvData[i.owner_id]=[];npcInvData[i.owner_id].push(i);});
+}
 async function loadActiveCombat(){
   const{data}=await db.from('combat_sessions').select('*').eq('status','active').order('created_at',{ascending:false}).limit(1);
   if(data&&data.length>0){combatSess=data[0];await loadCombatParts();showActiveCombat();}
@@ -951,15 +958,32 @@ async function addNPCToQueue(){
   if(!combatSess)return;
   const sel=document.getElementById('npc-queue-sel');if(!sel||!sel.value)return;
   const npc=npcData.find(n=>n.id===sel.value);if(!npc)return;
-  // Use npc.name as character_id to avoid FK constraint on characters table
+  // character_id uses npc name prefixed so it won't match any FK row
+  // If the column has a FK to characters(id), run in Supabase:
+  // ALTER TABLE combat_queue DROP CONSTRAINT IF EXISTS combat_queue_character_id_fkey;
+  // ALTER TABLE combat_queue ALTER COLUMN character_id DROP NOT NULL;
+  const npcCharId='npc::'+npc.name;
   const{data,error}=await db.from('combat_queue').insert({
     session_id:combatSess.id,
-    character_id:npc.name,
+    character_id:npcCharId,
     character_name:npc.name,
     status:'waiting',
     position:combatQ.length+1
   }).select().single();
-  if(error){showToast('Queue error: '+error.message);console.error('addNPCToQueue error:',error);return;}
+  if(error){
+    const msg=error.message||'';
+    if(msg.includes('foreign key')||msg.includes('fkey')||msg.includes('violates')){
+      showToast('Run the FK fix SQL in Supabase — see console',4000);
+      console.error('%cNPC Queue Fix Required','color:orange;font-weight:bold');
+      console.error('Run this SQL in your Supabase SQL editor:');
+      console.error('ALTER TABLE combat_queue DROP CONSTRAINT IF EXISTS combat_queue_character_id_fkey;');
+      console.error('ALTER TABLE combat_queue ALTER COLUMN character_id DROP NOT NULL;');
+    } else {
+      showToast('Queue error: '+msg);
+    }
+    console.error(error);
+    return;
+  }
   if(data){combatQ.push(data);renderCombatQueue();}
   showToast(npc.name+' added to queue');
 }
@@ -1037,7 +1061,12 @@ function populateNPCAttackPanel(){
 function populateWeaponSel(){
   const sel=document.getElementById('npc-atk-sel');const wsel=document.getElementById('npc-wpn-sel');if(!sel||!wsel)return;
   const wpns=npcWpnData[sel.value]||[];
-  wsel.innerHTML=wpns.length?wpns.map(w=>`<option value="${w.id}" data-harm="${w.harm_die}">${w.name} (${w.harm_die})</option>`):'<option>No weapons</option>';
+  const npcItems=npcInvData[sel.value]||[];
+  const equippedItem=npcItems.find(i=>i.is_weapon&&i.equipped)||npcItems.find(i=>i.is_weapon);
+  const equippedHarm=equippedItem?(equippedItem.tags||[]).find(t=>/\dd\d/.test(t))||'1d6':null;
+  let opts=wpns.length?wpns.map(w=>'<option value="'+w.id+'" data-harm="'+w.harm_die+'">'+w.name+' ('+w.harm_die+')</option>').join(''):'';
+  if(equippedItem&&equippedHarm) opts='<option value="eq-'+equippedItem.id+'" data-harm="'+equippedHarm+'" selected>'+equippedItem.name+' [equipped] ('+equippedHarm+')</option>'+opts;
+  wsel.innerHTML=opts||'<option data-harm="1d4">Unarmed (1d4)</option>';
 }
 function updateDMTurnBanner(){
   const banner=document.getElementById('dm-turn-banner');
@@ -1485,13 +1514,16 @@ function updateEqPreview(){
 }
 async function sendEquipment(){
   const name=document.getElementById('eq-name').value.trim();if(!name){showToast('Enter item name');return;}
-  const target=document.getElementById('eq-target').value;const tags=getTagsSel();const notes=document.getElementById('eq-notes').value.trim();
+  const target=document.getElementById('eq-target').value;
+  const isNPCSend=document.getElementById('eq-target').selectedOptions[0]?.dataset.type==='npc';
+  const tags=getTagsSel();const notes=document.getElementById('eq-notes').value.trim();
   const isW=document.getElementById('eq-weapon').checked;const isA=document.getElementById('eq-armor').checked;const isH=document.getElementById('eq-ishealing').checked;
   const dur=isA?parseInt(document.getElementById('eq-dur').value)||3:0;const cov=isA?document.getElementById('eq-cov').value.trim():'';
   const hv=isH?document.getElementById('eq-healval').value.trim():'';const hu=isH?parseInt(document.getElementById('eq-healuses').value)||1:0;
-  const{error}=await db.from('equipment').insert({owner_id:target,owner_type:'character',name,tags,notes,is_weapon:isW,is_armor:isA,durability_current:dur,durability_max:dur,coverage:cov,healing_value:hv||null,uses_current:hu,uses_max:hu,sent_by:'dm'});
+  const{error}=await db.from('equipment').insert({owner_id:target,owner_type:isNPCSend?'npc':'character',name,tags,notes,is_weapon:isW,is_armor:isA,durability_current:dur,durability_max:dur,coverage:cov,healing_value:hv||null,uses_current:hu,uses_max:hu,sent_by:'dm'});
   if(error){showToast('Error sending item');console.error(error);return;}
-  showToast(`${name} sent to ${PLAYERS.find(p=>p.id===target)?.name||target}`);
+  const recip=isNPCSend?(npcData.find(n=>n.id===target)?.name||target):(PLAYERS.find(p=>p.id===target)?.name||target);
+  showToast(name+' sent to '+recip);
   document.getElementById('eq-name').value='';document.getElementById('eq-notes').value='';
   ['eq-weapon','eq-armor','eq-ishealing'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   document.querySelectorAll('.tcb').forEach(cb=>cb.checked=false);
@@ -1508,21 +1540,65 @@ async function confirmRemoveItem(itemId){
   await loadInv();renderInv();showToast('Item removed');
 }
 function renderInv(){
-  const c=document.getElementById('all-inv');if(!c)return;c.innerHTML='';
-  PLAYERS.forEach(p=>{
-    const items=invData[p.id]||[];const sec=document.createElement('div');sec.style.marginBottom='20px';
-    sec.innerHTML=`<div class="sec-title" style="color:${p.acc}">${p.emoji} ${p.name}</div>`;
-    if(!items.length){sec.innerHTML+=`<div style="color:var(--dim);font-size:12px;font-style:italic;padding:8px">No items.</div>`;c.appendChild(sec);return;}
+  const container=document.getElementById('all-inv');if(!container)return;container.innerHTML='';
+  function makeSection(items,label,ownerType,ownerId){
+    const sec=document.createElement('div');sec.style.marginBottom='20px';
+    sec.innerHTML='<div class="sec-title">'+label+'</div>';
+    if(!items.length){sec.innerHTML+='<div style="color:var(--dim);font-size:12px;font-style:italic;padding:8px">No items.</div>';return sec;}
     const tbl=document.createElement('table');tbl.className='inv-tbl';
-    tbl.innerHTML='<thead><tr><th>Item</th><th>Tags</th><th>Notes</th><th>Uses</th><th></th></tr></thead>';
+    tbl.innerHTML='<thead><tr><th>Item</th><th>Tags</th><th>Notes</th><th>Uses</th><th>Transfer To</th><th></th></tr></thead>';
     const tbody=document.createElement('tbody');
     items.forEach(item=>{
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td style="font-weight:600">${item.name}${item.is_armor?` <span style="font-size:10px;color:var(--dim)">(${item.durability_current}/${item.durability_max})</span>`:''}</td><td style="font-size:11px;color:var(--muted)">${(item.tags||[]).join(', ')}</td><td style="font-size:12px;color:var(--dim)">${item.notes||''}${item.healing_value?` <span style="color:var(--success)">Heals ${item.healing_value}</span>`:''}</td><td style="font-size:12px;color:var(--muted)">${item.uses_max>0?`${item.uses_current}/${item.uses_max}`:'-'}</td><td><button class="btn sm red" onclick="removeItem('${item.id}','${p.name}')">Remove</button></td>`;
+      const pcOpts=PLAYERS.filter(p=>!(ownerType==='character'&&p.id===ownerId)).map(p=>'<option value="'+p.id+'" data-type="character">'+p.name+'</option>').join('');
+      const allTransferNPCs=npcData.filter(n=>!(ownerType==='npc'&&n.id===ownerId));
+      const npcOpts=allTransferNPCs.length?('<optgroup label="NPCs">'+allTransferNPCs.map(n=>'<option value="'+n.id+'" data-type="npc">'+n.name+(n.in_scene?' ★':'')+'</option>').join('')+'</optgroup>'):'';
+      const wpnBadge=item.is_weapon?'<span style="font-size:9px;background:#f8717120;color:#f87171;padding:1px 5px;border-radius:8px;margin-left:4px">WPN</span>':'';
+      const armorNote=item.is_armor?' <span style="font-size:10px;color:var(--dim)">('+item.durability_current+'/'+item.durability_max+')</span>':'';
+      tr.innerHTML='<td style="font-weight:600">'+item.name+wpnBadge+armorNote+'</td>'
+        +'<td style="font-size:11px;color:var(--muted)">'+(item.tags||[]).join(', ')+'</td>'
+        +'<td style="font-size:12px;color:var(--dim)">'+(item.notes||'')+(item.healing_value?'<span style="color:var(--success)"> Heals '+item.healing_value+'</span>':'')+'</td>'
+        +'<td style="font-size:12px;color:var(--muted)">'+(item.uses_max>0?item.uses_current+'/'+item.uses_max:'-')+'</td>'
+        +'<td><select class="inp sm" id="xfer-'+item.id+'">'+pcOpts+npcOpts+'</select></td>'
+        +'<td style="display:flex;gap:4px;align-items:center">'
+        +'<button class="btn sm" onclick="transferItemInv(\''+item.id+'\')">Transfer</button>'
+        +' <button class="btn sm red" onclick="removeItem(\''+item.id+'\',\''+label.replace(/<[^>]+>/g,'')+'\')">✕</button>'
+        +'</td>';
       tbody.appendChild(tr);
     });
-    tbl.appendChild(tbody);sec.appendChild(tbl);c.appendChild(sec);
+    tbl.appendChild(tbody);sec.appendChild(tbl);return sec;
+  }
+  PLAYERS.forEach(p=>{
+    container.appendChild(makeSection(invData[p.id]||[],'<span style="color:'+p.acc+'">'+p.emoji+' '+p.name+'</span>','character',p.id));
   });
+  const scNPCs=npcData.filter(n=>n.in_scene);
+  if(scNPCs.length){
+    const hdr=document.createElement('div');
+    hdr.innerHTML='<div class="sec-title" style="margin-top:8px;color:var(--gold)">&#9876; NPCs in Scene</div>';
+    container.appendChild(hdr);
+    scNPCs.forEach(npc=>{
+      container.appendChild(makeSection(npcInvData[npc.id]||[],'&#128121; '+npc.name,'npc',npc.id));
+    });
+  }
+  updateEqTarget();
+}
+
+function updateEqTarget(){
+  const sel=document.getElementById('eq-target');if(!sel)return;
+  const pcOpts=PLAYERS.map(p=>'<option value="'+p.id+'" data-type="character">'+p.name+'</option>').join('');
+  const npcOpts=npcData.length?('<optgroup label="NPCs">'+npcData.map(n=>'<option value="'+n.id+'" data-type="npc">'+n.name+(n.in_scene?' ★':'')+'</option>').join('')+'</optgroup>'):'';
+  sel.innerHTML=pcOpts+npcOpts;
+}
+
+async function transferItemInv(itemId){
+  const sel=document.getElementById('xfer-'+itemId);if(!sel||!sel.value)return;
+  const targetId=sel.value;
+  const targetType=sel.selectedOptions[0]?.dataset.type||'character';
+  const{error}=await db.from('equipment').update({owner_id:targetId,owner_type:targetType,updated_at:new Date().toISOString()}).eq('id',itemId);
+  if(error){showToast('Transfer error: '+error.message);return;}
+  const targetName=targetType==='npc'?(npcData.find(n=>n.id===targetId)?.name||targetId):(PLAYERS.find(p=>p.id===targetId)?.name||targetId);
+  showToast('Transferred to '+targetName);
+  await loadInv();renderInv();
 }
 
 // Rest
