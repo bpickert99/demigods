@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kara — Demigods Campaign · v3.1
+<title>Kara — Demigods Campaign · v3.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -1214,13 +1214,12 @@ function buildSkillBoxes(skill,checked){
 
 function updateMortalityDisplay(){
   const total=getTotalDice();
-  document.getElementById('total-dice').textContent=total;
-  document.getElementById('mortality-display').textContent=total;
-  document.getElementById('header-mortality').textContent=total;
-  document.getElementById('mortality-max').textContent=total;
-  document.getElementById('fmax-disp').textContent=total;
-  // Update favor max
-  const fc=Math.min(charData.favor_current||0,total);
+  const setEl=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  setEl('total-dice',total);
+  setEl('mortality-display',total);
+  setEl('header-mortality',total);
+  setEl('mortality-max',total);
+  setEl('fmax-disp',total);
   buildFavorTokens();
   updateHarmBar();
 }
