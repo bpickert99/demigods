@@ -3833,15 +3833,15 @@ async function castJuryVote(queueItemId,vote){
 
 // ── FINN FORM SYSTEM ──
 const FINN_FORMS={
-  human:   {emoji:'&#129489;',name:'Human',    desc:'Natural form. Full combat abilities.',             war:false,cost:0,harmDie:null, skill:null},
-  stallion:{emoji:'&#128052;',name:'Stallion', desc:'Enormous speed. Cannot enter small spaces.',      war:false,cost:0,harmDie:null, skill:null},
-  hare:    {emoji:'&#128007;',name:'Hare',     desc:'Near-invisible. Fits through any gap.',           war:false,cost:0,harmDie:null, skill:null},
-  goat:    {emoji:'&#128016;',name:'Goat',     desc:'Sure-footed anywhere. Often underestimated.',     war:false,cost:0,harmDie:null, skill:null},
-  cow:     {emoji:'&#128004;',name:'Cow',      desc:'Unremarkable. Ideal for hiding in plain sight.',  war:false,cost:0,harmDie:null, skill:null},
-  magpie:  {emoji:'&#128038;',name:'Magpie',   desc:'Full flight. Eavesdrop freely.',                  war:false,cost:0,harmDie:null, skill:null},
-  salmon:  {emoji:'&#128031;',name:'Salmon',   desc:'Full aquatic movement. Breathe underwater.',      war:false,cost:0,harmDie:null, skill:null},
-  wolf:    {emoji:'&#128058;',name:'Wolf',     desc:'Swift and precise. +1d tracking. Roll Tough.',    war:true, cost:2,harmDie:'1d6',skill:'Tough'},
-  bear:    {emoji:'&#128059;',name:'Bear',     desc:'Immense strength. Treat Tough as maxed.',         war:true, cost:2,harmDie:'1d8',skill:'Might'},
+  human:   {emoji:'&#129489;',name:'Human',    desc:'Natural form. Full combat abilities available.',  war:false,cost:0,harmDie:null, skill:null},
+  stallion:{emoji:'&#128052;',name:'Stallion', desc:'Enormous speed. Carry two riders. Cannot enter small spaces.', war:false,cost:1,harmDie:null, skill:null},
+  hare:    {emoji:'&#128007;',name:'Hare',     desc:'Near-invisible in undergrowth. Fits through any gap larger than a fist.', war:false,cost:1,harmDie:null, skill:null},
+  goat:    {emoji:'&#128016;',name:'Goat',     desc:'Sure-footed on any terrain. Can eat almost anything. Often underestimated.', war:false,cost:1,harmDie:null, skill:null},
+  cow:     {emoji:'&#128004;',name:'Cow',      desc:'Unremarkable and ignored. Ideal for hiding in plain sight. Carry significant weight.', war:false,cost:1,harmDie:null, skill:null},
+  magpie:  {emoji:'&#128038;',name:'Magpie',   desc:'Full flight. Eavesdrop freely. Carry small objects. Recognized by other Púcas.', war:false,cost:1,harmDie:null, skill:null},
+  salmon:  {emoji:'&#128031;',name:'Salmon',   desc:'Full aquatic movement. Navigate any water system. Breathe underwater indefinitely.', war:false,cost:1,harmDie:null, skill:null},
+  wolf:    {emoji:'&#128058;',name:'Wolf',     desc:'Swift and precise. Pack hunter’s instincts. +1d on tracking and group coordination.', war:true, cost:2,harmDie:'1d6',skill:'Tough'},
+  bear:    {emoji:'&#128059;',name:'Bear',     desc:'Immense strength and durability. Treat Tough as maxed while in form. Terrifying presence.', war:true, cost:2,harmDie:'1d8',skill:'Might'},
 };
 let currentForm='human';
 
@@ -3869,36 +3869,58 @@ function openShiftModal(){
   const modal=document.getElementById('roll-modal');
   const content=document.getElementById('roll-modal-content');
   const favor=charData.favor_current||0;
-  const freeIds=Object.keys(FINN_FORMS).filter(id=>!FINN_FORMS[id].war);
-  const warIds=Object.keys(FINN_FORMS).filter(id=>FINN_FORMS[id].war);
+
   function makeBtn(id){
     const form=FINN_FORMS[id];
     const active=currentForm===id;
     const unlocked=isFormUnlocked(id);
-    const canAfford=!form.war||(favor>=form.cost);
+    const canAfford=favor>=form.cost;
+    const isHuman=id==='human';
+
     const btn=document.createElement('button');
-    btn.className='shift-form-btn'+(active?' active-form':'');
-    btn.disabled=(!unlocked||(!canAfford&&!active));
+    btn.className='shift-form-btn'+(active?' active-form':'')+(unlocked?'':' locked-form');
+    btn.disabled=(!isHuman&&!canAfford&&!active)||(!unlocked&&!isHuman);
+
+    // Badge: active checkmark, unlocked dot, or lock
+    let badge='';
+    if(active) badge='<span class="shift-cost-badge" style="background:#22c55e20;border-color:#22c55e;color:#22c55e">&#10003; Current</span>';
+    else if(isHuman) badge='<span class="shift-cost-badge" style="background:transparent;border-color:var(--border2);color:var(--dim)">Free</span>';
+    else if(!unlocked) badge='<span class="shift-cost-badge" style="background:transparent;border-color:var(--border2);color:var(--dim)">&#128274; Locked</span>';
+    else badge='<span class="shift-cost-badge">'+(form.cost)+' Favor</span>';
+
     btn.innerHTML='<span class="shift-form-emoji">'+form.emoji+'</span>'
-      +'<div class="shift-form-info"><div class="shift-form-name">'+form.name+(active?' &#10003;':'')+'</div>'
-      +'<div class="shift-form-desc">'+form.desc+'</div></div>'
-      +'<span class="shift-cost-badge">'+(form.war?form.cost+' Favor':'Free')+'</span>';
+      +'<div class="shift-form-info">'
+      +'<div class="shift-form-name" style="display:flex;align-items:center;gap:6px">'+form.name
+      +(unlocked&&!isHuman?'<span style="color:#22c55e;font-size:11px">&#10003;</span>':'')
+      +(!unlocked&&!isHuman?'<span style="color:var(--dim);font-size:11px">&#128274;</span>':'')
+      +'</div>'
+      +'<div class="shift-form-desc">'+form.desc+(form.war?' &nbsp;·&nbsp; '+form.skill+' · '+form.harmDie:'')+'</div>'
+      +'</div>'+badge;
     btn.onclick=()=>doShift(id);
     return btn.outerHTML;
   }
-  const lbl='<div style="font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin:10px 0 6px">';
+
+  const explorationIds=['stallion','hare','goat','cow','magpie','salmon'];
+  const warIds=['wolf','bear'];
+  const secLbl=(txt)=>'<div style="font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin:12px 0 6px">'+txt+'</div>';
+
   content.innerHTML=
-    '<div style="font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent-acc);margin-bottom:4px">Shift Form</div>'
-    +'<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Favor: <strong style="color:var(--fc)">'+favor+'</strong></div>'
-    +lbl+'Free Shifts</div>'+freeIds.map(makeBtn).join('')
-    +lbl+'War Forms (2 Favor)</div>'+warIds.map(makeBtn).join('')
-    +'<button class="add-cond-btn" style="margin-top:10px" onclick="closeRollModal()">Cancel</button>';
+    '<div style="font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent-acc);margin-bottom:2px">Shift Form</div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Favor: <strong style="color:var(--fc)">'+favor+'</strong>'
+    +(currentForm!=='human'?' &nbsp;&middot;&nbsp; Currently: '+FINN_FORMS[currentForm].emoji+' '+FINN_FORMS[currentForm].name:'')+'</div>'
+    +secLbl('&#129489; Return to Human')
+    +makeBtn('human')
+    +secLbl('Exploration Forms &mdash; 1 Favor')
+    +explorationIds.map(makeBtn).join('')
+    +secLbl('War Forms &mdash; 2 Favor')
+    +warIds.map(makeBtn).join('')
+    +'<button class="add-cond-btn" style="margin-top:12px" onclick="closeRollModal()">Cancel</button>';
   modal.classList.add('vis');
 }
 
 async function doShift(formId){
   const form=FINN_FORMS[formId];if(!form)return;
-  if(form.war&&formId!==currentForm){
+  if(formId!=='human'&&formId!==currentForm){
     const favor=charData.favor_current||0;
     if(favor<form.cost){showToast('Not enough Favor (need '+form.cost+')');return;}
     await setFavor(favor-form.cost);

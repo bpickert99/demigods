@@ -581,7 +581,17 @@ const SB_KEY='sb_publishable_C3dTYXnpaYOg1QCBgXMcBQ_V9cE4Na1';
 const{createClient}=supabase;
 const db=createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionFromUrl:false}});
 
-const FINN_FORMS={stallion:{emoji:'🐴',name:'Stallion'},hare:{emoji:'🐇',name:'Hare'},goat:{emoji:'🐐',name:'Goat'},cow:{emoji:'🐄',name:'Cow'},magpie:{emoji:'🐦',name:'Magpie'},salmon:{emoji:'🐟',name:'Salmon'},wolf:{emoji:'🐺',name:'Wolf'},bear:{emoji:'🐻',name:'Bear'}};
+const FINN_FORMS={
+  human:   {emoji:'🧑',  name:'Human',    desc:'Natural form. Full combat abilities.',                          war:false,cost:0, harmDie:null, skill:null},
+  stallion:{emoji:'🐴',  name:'Stallion', desc:'Enormous speed. Carry two riders. Cannot enter small spaces.', war:false,cost:1, harmDie:null, skill:null},
+  hare:    {emoji:'🐇',  name:'Hare',     desc:'Near-invisible in undergrowth. Fits through any gap.',          war:false,cost:1, harmDie:null, skill:null},
+  goat:    {emoji:'🐐',  name:'Goat',     desc:'Sure-footed anywhere. Can eat almost anything.',               war:false,cost:1, harmDie:null, skill:null},
+  cow:     {emoji:'🐄',  name:'Cow',      desc:'Unremarkable and ignored. Ideal for hiding in plain sight.',   war:false,cost:1, harmDie:null, skill:null},
+  magpie:  {emoji:'🐦',  name:'Magpie',   desc:'Full flight. Eavesdrop freely. Carry small objects.',          war:false,cost:1, harmDie:null, skill:null},
+  salmon:  {emoji:'🐟',  name:'Salmon',   desc:'Full aquatic movement. Breathe underwater indefinitely.',      war:false,cost:1, harmDie:null, skill:null},
+  wolf:    {emoji:'🐺',  name:'Wolf',     desc:'Swift and precise. +1d tracking and group coordination.',      war:true, cost:2, harmDie:'1d6',skill:'Tough'},
+  bear:    {emoji:'🐻',  name:'Bear',     desc:'Immense strength. Treat Tough as maxed. Terrifying presence.', war:true, cost:2, harmDie:'1d8',skill:'Might'},
+};
 
 const PLAYERS=[
   {id:'lewis', name:'Lewis', playbook:'Child of the Morrigan',emoji:'🐦‍⬛',color:'var(--lewis)',acc:'var(--lewis-acc)'},
@@ -712,7 +722,7 @@ function renderPartyGrid(){
     card.innerHTML=`
       <div class="pcard-hdr" style="border-bottom-color:${p.color}40">
         <div class="pcard-av" style="border:2px solid ${p.color};box-shadow:0 0 10px ${p.color}33">${p.emoji}</div>
-        <div><div class="pcard-name" style="color:${p.acc}">${p.name}</div><div class="pcard-sub" style="color:${p.color}">${p.playbook}${p.id==='finn'&&ch.current_form&&ch.current_form!=='human'?` · ${(FINN_FORMS[ch.current_form]?.emoji||'')} ${(FINN_FORMS[ch.current_form]?.name||ch.current_form)}`:''}</div></div>
+        <div><div class="pcard-name" style="color:${p.acc}">${p.name}</div><div class="pcard-sub" style="color:${p.color}">${p.playbook}${p.id==='finn'?` · ${(FINN_FORMS[ch.current_form||'human']?.emoji||'🧑')} ${(FINN_FORMS[ch.current_form||'human']?.name||'Human')}`:``}</div></div>
       </div>
       <div class="pcard-body">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
@@ -730,6 +740,18 @@ function renderPartyGrid(){
           <span style="font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--fc);text-transform:uppercase">Favor</span>
           <span class="favor-val">${ch.favor_current||0} / ${mort}</span>
         </div>
+        ${p.id==='finn'?(()=>{
+          const ff=FINN_FORMS[ch.current_form||'human']||FINN_FORMS.human;
+          const formColor=ff.war?'#f87171':'#a78bfa';
+          return `<div style="margin-top:6px;padding:8px 10px;border-radius:5px;background:${ff.war?'#ef444410':'#8b5cf610'};border:1px solid ${ff.war?'#ef444430':'#8b5cf630'}">`
+            +`<div style="display:flex;align-items:center;gap:6px;margin-bottom:${ff.desc?4:0}px">`
+            +`<span style="font-size:16px">${ff.emoji}</span>`
+            +`<span style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;color:${formColor}">${ff.name}`
+            +(ff.war?` <span style="font-size:9px;color:var(--dim)">&middot; ${ff.skill} &middot; ${ff.harmDie}</span>`:'')+'</span>'
+            +'</div>'
+            +`<div style="font-size:10px;color:var(--dim);line-height:1.4">${ff.desc}</div>`
+            +'</div>';
+        })():''}
       </div>
       <div class="pcard-ftr">
         <button class="btn sm" onclick="openAddCond('${p.id}')">+ Condition</button>
