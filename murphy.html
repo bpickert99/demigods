@@ -47,7 +47,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .pb-panel{display:none}.pb-panel.active{display:block}
 
 /* ── COMBAT OVERLAY ── */
-.combat-overlay{display:none;position:fixed;inset:0;z-index:150;background:#050508;flex-direction:column;overflow-y:auto}
+.combat-overlay{display:none;position:fixed;inset:0;z-index:150;background:#050508;flex-direction:column;overflow-y:auto;align-items:center;padding:20px 0}
 .combat-overlay.vis{display:flex}
 .co-header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:linear-gradient(135deg,#1a0800,#080400);border-bottom:2px solid var(--gold)}
 .co-title{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);letter-spacing:2px}
@@ -640,7 +640,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 .co-minimized-bar{display:none;position:fixed;bottom:16px;right:16px;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(135deg,#fdf6e8,#f5e6c8);border:2px solid #8b6340;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5);cursor:pointer;z-index:151}
 .co-minimized-label{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:#2c1a08;text-transform:uppercase}
 .co-minimized-badge{background:#ef4444;color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 6px;font-family:'Cinzel',serif}
-.co-box{width:100%;max-width:800px;background:linear-gradient(160deg,#fdf6e8,#f5e6c8);border:2px solid #8b6340;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:hidden}
+.co-box{width:100%;max-width:800px;background:linear-gradient(160deg,#fdf6e8,#f5e6c8);border:2px solid #8b6340;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:visible}
 .co-header{display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(135deg,#8b4513,#5c2d0a);border-bottom:2px solid #c4a87a}
 .co-title{font-family:'Cinzel Decorative',serif;font-size:17px;color:#fef3c7;letter-spacing:2px}
 .co-round{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;color:#d4b896;text-transform:uppercase;margin-left:auto}
