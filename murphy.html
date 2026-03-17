@@ -16,7 +16,7 @@
   --war:#b91c1c;--war-acc:#fecaca;--war-glow:#ef444455;--war-bg:#7f1d1d18;
   --sovereignty:#047857;--sovereignty-acc:#a7f3d0;--sovereignty-glow:#10b98155;--sovereignty-bg:#06402418;
   --success:#22c55e;--partial:#f59e0b;--fail:#ef4444;
-  --rc:#fbbf24;--fc:#10b981;--gc:#34d399;
+  --rc:#fbbf24;--fc:#e879f9;--gc:#34d399;
   --harm:#ef4444;--unstable:#f97316;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -158,15 +158,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .co-target-btn{width:100%;padding:8px 12px;border-radius:4px;border:1px solid #c4a87a;background:rgba(255,248,235,.8);color:#2c1a08;font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;transition:all .18s;text-align:left;margin-bottom:4px}
 .co-target-btn:hover{border-color:#8b4513;background:#fdf6e8}
 .co-rushed-warning{padding:7px 10px;background:#8b251015;border:1px solid #8b250040;border-radius:4px;font-size:11px;color:#c0392b;margin-bottom:8px;text-align:center}
-.co-ability-list{display:flex;flex-direction:column;gap:7px;max-height:340px;overflow-y:auto;padding-right:2px;margin-top:4px}
-.co-ability-card{width:100%;padding:10px 12px;border-radius:6px;border:1px solid #c4a87a;background:rgba(255,248,235,.85);color:#2c1a08;text-align:left;cursor:pointer;transition:all .18s}
-.co-ability-card:hover:not([disabled]){border-color:#8b4513;background:#fdf6e8;transform:translateY(-1px)}
-.co-ability-card[disabled]{opacity:.4;cursor:not-allowed;transform:none}
-.co-ab-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;gap:8px}
-.co-ab-name{font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:#5c2d0a;flex:1}
-.co-ab-cost{font-size:9px;padding:1px 7px;border-radius:8px;background:#d4a84b20;border:1px solid #d4a84b60;color:#8b6340;white-space:nowrap;flex-shrink:0}
-.co-ab-meta{font-size:9px;color:#7a5c2e;margin-bottom:4px;letter-spacing:.3px}
-.co-ab-preview{font-size:10px;color:#5c4020;font-family:'Crimson Pro',serif;font-style:italic;line-height:1.4}
 
 /* ── REACTION POPUP ── */
 .co-reaction-popup{display:none;position:absolute;inset:0;z-index:10;background:rgba(4,3,2,.88);backdrop-filter:blur(2px);align-items:center;justify-content:center;border-radius:10px}
@@ -191,12 +182,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 @keyframes emberFloat{0%{transform:translateY(0) translateX(0);opacity:1}100%{transform:translateY(-80px) translateX(var(--ex));opacity:0}}
 @keyframes heartbeat{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 @keyframes slideDown{from{transform:translateY(-12px);opacity:0}to{transform:none;opacity:1}}
-@keyframes condHarmFlash{0%{background:var(--surf2)}20%{background:#ef444430;border-color:#ef4444}100%{background:var(--surf2)}}
-@keyframes condHealFlash{0%{background:var(--surf2)}20%{background:#22c55e30;border-color:#22c55e}100%{background:var(--surf2)}}
-.condition-row.harm-flash{animation:condHarmFlash .7s ease!important}
-.condition-row.heal-flash{animation:condHealFlash .6s ease!important}
-@keyframes overlayHarmFlash{0%{background:rgba(4,3,2,.82)}25%{background:rgba(100,10,10,.72)}100%{background:rgba(4,3,2,.82)}}
-.combat-overlay.harm-hit{animation:overlayHarmFlash .6s ease}
 @keyframes numberCountUp{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
 
 /* Combat cinematic */
@@ -373,11 +358,14 @@ body.markup .power-node:hover .pn-name{color:var(--gold) !important}
 .favor-lbl{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:4px;color:var(--fc);text-transform:uppercase}
 .favor-num-big{font-family:'Cinzel Decorative',serif;font-size:22px;color:var(--fc)}
 .favor-slash{font-size:12px;color:var(--dim);font-family:'Cinzel',serif}
+.favor-btns{display:flex;gap:6px;margin-left:auto}
+.favor-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--fc)60;background:transparent;color:var(--fc);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .18s}
+.favor-btn:hover{background:var(--fc)20;border-color:var(--fc)}
 .refill-btn{padding:6px 14px;border-radius:4px;border:1px solid var(--fc)60;background:transparent;color:var(--fc);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap}
 .refill-btn:hover{background:var(--fc)20;border-color:var(--fc)}
 .favor-tokens{display:flex;flex-wrap:wrap;gap:4px}
-.ftok{width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);cursor:pointer;transition:all .18s;flex-shrink:0}
-.ftok.on{background:var(--fc);border-color:var(--fc);box-shadow:0 0 8px var(--fc)99}
+.ftok{width:18px;height:18px;border-radius:50%;border:1px solid var(--fc)40;background:var(--surf2);cursor:pointer;transition:all .18s;flex-shrink:0}
+.ftok.on{background:var(--fc)20;border-color:var(--fc);box-shadow:0 0 6px var(--fc)77}
 .ftok:hover{transform:scale(1.3)}
 
 /* ── INVENTORY ── */
@@ -468,12 +456,6 @@ body.markup .power-node:hover .pn-name{color:var(--gold) !important}
 .node{padding:13px 15px;border-radius:6px;border:1px solid var(--border);background:#06060f;cursor:pointer;transition:all .2s;position:relative;user-select:none;min-height:100px;display:flex;flex-direction:column}
 .node.avail:hover{border-color:var(--nc);background:#0a0a18;transform:translateY(-2px);box-shadow:0 5px 18px var(--ng)}
 .node.unlocked{border-color:var(--nc);background:linear-gradient(135deg,var(--nb),#06060f);box-shadow:0 0 14px var(--ng)}
-.node.reading{outline:3px solid var(--nc);outline-offset:2px;box-shadow:0 0 18px var(--ng),0 0 0 4px var(--ng)}
-/* Node unlock/level badge */
-.node-badge{position:absolute;top:8px;right:8px;font-size:9px;font-family:'Cinzel',serif;font-weight:700;letter-spacing:1px;padding:2px 6px;border-radius:8px;border:1px solid var(--border2);background:var(--surf2);color:var(--dim);pointer-events:none;transition:all .2s;user-select:none}
-.node.unlocked .node-badge{background:var(--nc);border-color:var(--nc);color:#000;pointer-events:none}
-.node-badge.markup-edit{pointer-events:auto;cursor:pointer}
-.node-badge.markup-edit:hover{transform:scale(1.15);box-shadow:0 0 8px var(--nc)}
 .node.locked{opacity:.3;cursor:default}
 .node.selected{outline:2px solid var(--na);outline-offset:2px}
 .nbadges{display:flex;gap:4px;margin-bottom:7px;flex-wrap:wrap;align-items:center;min-height:20px}
@@ -650,7 +632,7 @@ body.markup .power-node:hover .pn-name{color:var(--gold) !important}
 footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:4px}
 
 /* ── COMBAT OVERLAY ── */
-.combat-overlay{display:none;position:fixed;inset:0;z-index:150;background:rgba(4,3,2,.82);backdrop-filter:blur(4px);flex-direction:column;align-items:flex-start;justify-content:flex-start;padding:20px 12px;overflow-y:auto}
+.combat-overlay{display:none;position:fixed;inset:0;z-index:150;background:rgba(4,3,2,.82);backdrop-filter:blur(4px);flex-direction:column;align-items:center;justify-content:flex-start;padding:20px 12px;overflow-y:auto}
 .combat-overlay.vis{display:flex}
 .combat-overlay.minimized{display:block;position:fixed;inset:auto;bottom:0;right:0;width:0;height:0;background:transparent;backdrop-filter:none;overflow:visible;padding:0}
 .combat-overlay.minimized .co-box{display:none}
@@ -658,7 +640,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 .co-minimized-bar{display:none;position:fixed;bottom:16px;right:16px;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(135deg,#fdf6e8,#f5e6c8);border:2px solid #8b6340;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5);cursor:pointer;z-index:151}
 .co-minimized-label{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:#2c1a08;text-transform:uppercase}
 .co-minimized-badge{background:#ef4444;color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 6px;font-family:'Cinzel',serif}
-.co-box{width:100%;max-width:800px;background:linear-gradient(160deg,#fdf6e8,#f5e6c8);border:2px solid #8b6340;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:visible;margin:0 auto}
+.co-box{width:100%;max-width:800px;background:linear-gradient(160deg,#fdf6e8,#f5e6c8);border:2px solid #8b6340;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:hidden}
 .co-header{display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(135deg,#8b4513,#5c2d0a);border-bottom:2px solid #c4a87a}
 .co-title{font-family:'Cinzel Decorative',serif;font-size:17px;color:#fef3c7;letter-spacing:2px}
 .co-round{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;color:#d4b896;text-transform:uppercase;margin-left:auto}
@@ -705,57 +687,9 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 .co-inv-item{display:flex;align-items:center;gap:8px;padding:5px 9px;background:rgba(255,248,235,.7);border:1px solid #c4a87a;border-radius:4px;margin-bottom:4px;font-size:12px;color:#2c1a08}
 .co-inv-use{padding:2px 7px;border-radius:4px;border:1px solid #8b451360;background:transparent;color:#8b4513;font-size:10px;font-weight:700;cursor:pointer}
 .co-minimize-btn{padding:4px 10px;border-radius:4px;border:1px solid #c4a87a80;background:transparent;color:#d4b896;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-left:8px}
+.ftok.flame-on{background:#ef4444;border-color:#ef4444;box-shadow:0 0 8px #ef444499}
+.ftok.flame-empty{background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.2)}
 
-/* ── DIVINE ABILITY SIDE PANEL ── */
-.co-outer{display:flex;gap:12px;align-items:flex-start;width:100%;max-width:980px;margin:0 auto;transition:all .3s}
-.co-ability-panel{display:none;width:320px;flex-shrink:0;border-radius:10px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.7);animation:abPanelSlide .3s cubic-bezier(.22,1,.36,1)}
-.co-ability-panel.vis{display:flex;flex-direction:column}
-@keyframes abPanelSlide{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
-@media(max-width:900px){.co-outer{flex-direction:column}.co-ability-panel{width:100%}}
-.cap-hdr{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.12)}
-.cap-title{font-family:"Cinzel Decorative",serif;font-size:14px;letter-spacing:1px;flex:1}
-.cap-close{background:transparent;border:none;font-size:18px;cursor:pointer;opacity:.6;line-height:1;padding:2px 6px;border-radius:4px;transition:opacity .18s}
-.cap-close:hover{opacity:1}
-.cap-favor{display:flex;align-items:center;gap:6px;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
-.cap-favor-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:.6}
-.cap-favor-val{font-family:"Cinzel Decorative",serif;font-size:18px}
-.cap-favor-max{font-size:10px;opacity:.5}
-.cap-flame{display:flex;align-items:center;gap:5px;margin-left:10px;padding-left:10px;border-left:1px solid rgba(255,255,255,.12)}
-.cap-flame-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#f87171}
-.cap-flame-val{font-family:"Cinzel Decorative",serif;font-size:18px;color:#f87171}
-.cap-list{flex:1;overflow-y:auto;padding:8px}
-.cap-card{border-radius:8px;border:1px solid rgba(255,255,255,.12);margin-bottom:8px;overflow:hidden;transition:border-color .18s}
-.cap-card:last-child{margin-bottom:0}
-.cap-card.can-afford{cursor:pointer}.cap-card.can-afford:hover{border-color:rgba(255,255,255,.3)}
-.cap-card.cannot-afford{opacity:.45}
-.cap-card-hdr{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer}
-.cap-card-name{font-family:"Cinzel",serif;font-size:12px;font-weight:700;flex:1}
-.cap-card-cost{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;letter-spacing:.5px}
-.cap-card-chevron{font-size:10px;opacity:.5;transition:transform .2s;flex-shrink:0}
-.cap-card.expanded .cap-card-chevron{transform:rotate(180deg)}
-.cap-card-meta{font-size:10px;padding:0 12px 4px;opacity:.55;font-family:"Cinzel",serif;letter-spacing:.3px}
-.cap-card-body{display:none;padding:0 12px 12px;font-size:12px;line-height:1.6;color:rgba(232,224,208,.85)}
-.cap-card.expanded .cap-card-body{display:block}
-.cap-card-trigger{font-style:italic;margin-bottom:8px;color:rgba(232,224,208,.6);font-size:11px}
-.cap-card-outcomes{display:flex;flex-direction:column;gap:4px;margin:8px 0}
-.cap-outcome{padding:6px 10px;border-radius:4px;font-size:11px;border-left:3px solid}
-.cap-outcome.success{background:rgba(34,197,94,.08);border-color:#22c55e}
-.cap-outcome.partial{background:rgba(245,158,11,.08);border-color:#f59e0b}
-.cap-outcome.fail{background:rgba(239,68,68,.08);border-color:#ef4444}
-.cap-outcome-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:2px;opacity:.7}
-.cap-use-btn{width:100%;margin-top:10px;padding:9px;border-radius:6px;border:none;font-family:"Cinzel",serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
-/* Target picker inside ability card */
-.cap-target-section{margin-top:10px;padding:10px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25)}
-.cap-target-lbl{font-family:"Cinzel",serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:.6;margin-bottom:7px}
-.cap-target-btn{display:block;width:100%;padding:8px 12px;border-radius:5px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;font-family:"Inter",sans-serif;font-size:12px;cursor:pointer;text-align:left;transition:all .18s;margin-bottom:4px}
-.cap-target-btn:hover{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.08)}
-.cap-target-btn:last-child{margin-bottom:0}
-.cap-other-input{width:100%;padding:7px 10px;border-radius:5px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.3);color:inherit;font-size:12px;font-family:"Inter",sans-serif;margin-top:4px;box-sizing:border-box}
-.cap-other-input:focus{outline:none;border-color:rgba(255,255,255,.5)}
-.cap-other-confirm{margin-top:6px;width:100%;padding:8px;border-radius:5px;border:none;font-family:"Cinzel",serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
-/* Divine particle canvas */
-#ability-anim-canvas{position:fixed;inset:0;pointer-events:none;z-index:600;display:none}
-#ability-anim-canvas.vis{display:block}
 /* ── HERO ADVANCEMENTS ── */
 .hadv-pool-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .hadv-pool-badge{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--gold);background:var(--gold2);border:1px solid var(--gold);border-radius:12px;padding:3px 10px}
@@ -768,8 +702,8 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 .hadv-name{font-family:'Cinzel',serif;font-size:11px;font-weight:700;flex:1;line-height:1.3}
 .hadv-cost{font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:var(--gold2);border:1px solid var(--gold)60;color:var(--gold);flex-shrink:0;white-space:nowrap}
 .hadv-desc{font-size:11px;color:var(--dim);line-height:1.5;flex:1}
-.hadv-use-btn{padding:5px 8px;border-radius:4px;border:1px solid var(--murphy);background:transparent;color:var(--murphy-acc);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .18s;margin-top:auto}
-.hadv-use-btn:hover{background:var(--murphy-glow)}
+.hadv-use-btn{padding:5px 8px;border-radius:4px;border:1px solid #10b981;background:transparent;color:#6ee7b7;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .18s;margin-top:auto}
+.hadv-use-btn:hover{background:#10b98144}
 .hadv-remove-btn{position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:3px;border:none;background:transparent;color:var(--dim);cursor:pointer;font-size:12px;display:none;align-items:center;justify-content:center;transition:color .18s}
 body.markup .hadv-remove-btn{display:flex}
 .hadv-remove-btn:hover{color:var(--fail)}
@@ -794,7 +728,7 @@ body.markup .hadv-remove-btn{display:flex}
 .hadv-names-strip{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
 .hadv-name-tag{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:10px;background:var(--surf2);border:1px solid var(--border2);color:var(--muted);white-space:nowrap}
 .hadv-name-tag.combat{color:#f87171;border-color:#f8717140;background:#f871710a}
-.hadv-name-tag.narrative{color:#60a5fa;border-color:#60a5fa40;background:#60a5fa0a}
+.hadv-n
 
 </style>
 </head>
@@ -868,8 +802,6 @@ body.markup .hadv-remove-btn{display:flex}
 
 
 <!-- ══ COMBAT OVERLAY ══ -->
-<canvas id="ability-anim-canvas"></canvas>
-
 <div class="combat-overlay" id="combat-overlay">
   <!-- Minimized pill -->
   <div class="co-minimized-bar" onclick="restoreCombat()">
@@ -879,8 +811,6 @@ body.markup .hadv-remove-btn{display:flex}
     <span class="co-minimized-badge" id="co-mini-turn" style="display:none;background:#22c55e">Your Turn!</span>
   </div>
 
-  <!-- co-outer wraps co-box + ability side panel -->
-  <div class="co-outer" id="co-outer">
   <!-- Main box (position:relative for reaction popup) -->
   <div class="co-box" style="position:relative">
 
@@ -912,11 +842,8 @@ body.markup .hadv-remove-btn{display:flex}
         <div class="co-grit-sub">Roll your Grit to determine your actions this first round.</div>
         <div class="co-grit-dice-count" id="co-grit-dice-display">0d6</div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:14px">6+ = 3 actions · 4–5 = 2 actions · 1–3 = 1 action</div>
-        <button class="co-grit-roll-btn" id="co-grit-roll-btn" onclick="rollGritInitiative()">🎲 Roll Initiative</button>
-        <div id="co-grit-dice-result" style="display:none;margin-top:12px">
-          <div id="co-grit-dice-row" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:10px"></div>
-          <div id="co-grit-outcome-label" class="co-grit-result" style="text-align:center"></div>
-        </div>
+        <button class="co-grit-roll-btn" onclick="rollGritInitiative()">🎲 Roll Initiative</button>
+        <div id="co-grit-roll-result" style="display:none" class="co-grit-result"></div>
       </div>
     </div>
 
@@ -994,24 +921,7 @@ body.markup .hadv-remove-btn{display:flex}
       <div id="co-action-panel-inner"></div>
     </div>
 
-  </div><!-- end co-box -->
-
-  <!-- DIVINE ABILITY SIDE PANEL -->
-  <div class="co-ability-panel" id="co-ability-panel" style="border:2px solid">
-    <div class="cap-hdr">
-      <div class="cap-title" id="cap-title">✨ Divine Abilities</div>
-      <button class="cap-close" onclick="closeAbilityPanel()">✕</button>
-    </div>
-    <div class="cap-favor">
-      <span class="cap-favor-lbl">Favor</span>
-      <span class="cap-favor-val" id="cap-favor-val">0</span>
-      <span class="cap-favor-max" id="cap-favor-max">/ 0</span>
-      <div class="cap-flame"><span class="cap-flame-lbl">🔥 Flame</span><span class="cap-flame-val" id="cap-flame-val">0</span></div>
-    </div>
-    <div class="cap-list" id="cap-list"></div>
-  </div><!-- end co-ability-panel -->
-
-  </div><!-- end co-outer -->
+  </div>
 </div>
 
 <!-- JURY OVERLAY (full screen) -->
@@ -1120,12 +1030,12 @@ body.markup .hadv-remove-btn{display:flex}
     <div class="feats-note">Click a feat to unlock it. Each feat costs 1 Grit to use in combat.</div>
   </div>
 
-
-  <!-- HERO ADVANCEMENTS -->
+<!-- HERO ADVANCEMENTS -->
   <div class="section" id="hero-adv-section">
     <div class="section-title">💪 Hero Abilities</div>
     <div class="hadv-pool-row">
       <span class="hadv-pool-badge">Pool: <span id="hero-adv-pool">0</span> pt</span>
+      <button onclick="browseAllHeroAbilities()" style="padding:4px 12px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">📖 Browse All</button>
       <span style="font-size:11px;color:var(--dim)">Spend points to equip. Swap anytime.</span>
     </div>
     <div class="hadv-names-strip" id="hadv-names-strip"></div>
@@ -1164,16 +1074,26 @@ body.markup .hadv-remove-btn{display:flex}
 <!-- ══ DIVINE PLAYBOOK (Brigid) ══ -->
 <div id="pb-divine" class="pb-panel">
 
-  <!-- FAVOR — Murphy's fire mechanic -->
-  <div class="favor-section" style="border-color:#ef444430;background:linear-gradient(135deg,#1a000010,var(--bg))">
+  <!-- FAVOR -->
+  <div class="favor-section">
     <div class="favor-top">
-      <div class="favor-lbl" style="color:#f87171">🔥 Fire Track</div>
-      <div class="favor-num-big" id="favor-num" style="color:#f87171">0</div>
+      <div class="favor-lbl">Favor</div>
+      <div class="favor-num-big" id="favor-num">0</div>
       <div class="favor-slash">/ <span id="fmax-disp">0</span></div>
-      <!-- Fire Track adjusted only by spending abilities and sacrificing items -->
     </div>
     <div class="favor-tokens" id="favor-tokens"></div>
-    <div style="font-size:12px;color:var(--dim);margin-top:8px;line-height:1.6">Each 🔥 power marks this track. When you use one, roll d6 equal to current marks. Any 1 = consequence. To clear safely, burn an item of value.</div>
+  </div>
+
+  <!-- FLAME TRACK -->
+  <div class="favor-section" style="border-color:#ef444430;background:linear-gradient(135deg,#1a000010,var(--bg));margin-top:-12px">
+    <div class="favor-top">
+      <div class="favor-lbl" style="color:#f87171">&#128293; Flame</div>
+      <div class="favor-num-big" id="flame-num" style="color:#f87171">0</div>
+      <div class="favor-slash">/ <span id="flame-max">5</span></div>
+      <button onclick="clearFlame(1)" style="margin-left:auto;padding:5px 12px;border-radius:4px;border:1px solid #ef444460;background:transparent;color:#f87171;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;cursor:pointer">&#8722; Clear 1</button>
+    </div>
+    <div class="favor-tokens" id="flame-tokens"></div>
+    <div style="font-size:11px;color:var(--dim);margin-top:8px;line-height:1.5">&#128293; powers mark this track. On each use, roll d6 per mark &#8212; any 1 = Burned (1d6 harm, stable). Sacrifice items to clear marks.</div>
   </div>
 
   <!-- DETAIL PANEL -->
@@ -1405,15 +1325,10 @@ body.markup .hadv-remove-btn{display:flex}
 
 <!-- ADVANCE MODAL -->
 <div id="advance-modal" class="modal-overlay advance-modal">
-  <div class="modal-box" style="position:relative">
-    <button style="position:absolute;top:12px;right:16px;background:transparent;border:none;color:var(--dim);font-size:18px;cursor:pointer;transition:color .18s;line-height:1;padding:2px 6px" title="Minimize" onclick="minimizeAdvanceModal()">—</button>
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAdvanceModal()">✕</button>
     <div id="advance-modal-content"></div>
   </div>
-</div>
-<!-- Advance pill (minimized state) -->
-<div id="advance-pill" style="display:none;position:fixed;bottom:80px;right:16px;z-index:201;padding:10px 16px;background:linear-gradient(135deg,#1a1400,#0a0800);border:2px solid var(--gold);border-radius:30px;box-shadow:0 4px 20px var(--gold2);cursor:pointer;display:none;align-items:center;gap:8px" onclick="restoreAdvanceModal()">
-  <span style="font-size:18px">✦</span>
-  <span style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--gold)">ADVANCE PENDING</span>
 </div>
 
 <!-- PREREQ MODAL -->
@@ -1462,7 +1377,7 @@ const SKILLS=['Notice','Persuade','Search','Wits','Might','Nimble','Sneak','Toug
 
 // ── COMPUTED ──
 function getTotalDice(){return SKILLS.reduce((s,sk)=>s+(skillData[sk]||0),0);}
-function getMortality(){return getTotalDice()+getHeroMortalityBonus();}
+function getMortality(){return getTotalDice();}
 function getTotalHarm(){return conditions.reduce((s,c)=>s+c.harm,0);}
 
 // ── INIT ──
@@ -1479,6 +1394,8 @@ async function init(){
   buildSkillsGrid();
   buildStatPips();
   buildFavorTokens();
+  buildFlameTokens();
+  buildFlameTokens();
   updateHarmDisplay();
   updateSpread();
   subscribeAll();
@@ -1486,23 +1403,13 @@ async function init(){
   subscribeNotifications();
   setSyncDot(true);
   startCanvas();
-  // Re-open advance modal if there were pending advances at time of page load/refresh
-  const pending=charData.pending_advances||0;
-  if(pending>0){
-    _pendingAdvTotal=pending;
-    _pendingAdvDone=0;
-    showAdvanceModal();
-  }
 }
 
 // ── SUPABASE LOAD ──
 async function loadCharacter(){
   const{data:_cRows}=await db.from('characters').select('*').eq('id',CHAR_ID).limit(1);
   const data=_cRows?.[0]||null;
-  if(data){
-    charData=data;
-    applyCharData();
-  }
+  if(data){charData=data;applyCharData();}
 }
 async function loadSkills(){
   const{data}=await db.from('character_skills').select('*').eq('character_id',CHAR_ID);
@@ -1539,25 +1446,7 @@ async function checkPendingRoll(){
 function applyCharData(){
   buildStatPips();
   buildFavorTokens();
-}
-
-// ── CONDITION RECEIVED FLASH ──
-function flashConditionReceived(){
-  // Flash the overlay red-tinted to signal harm landed on this character
-  const overlay=document.getElementById('combat-overlay');
-  if(overlay&&overlay.classList.contains('vis')){
-    overlay.classList.remove('harm-hit');
-    void overlay.offsetWidth; // force reflow so re-trigger works
-    overlay.classList.add('harm-hit');
-    setTimeout(()=>overlay.classList.remove('harm-hit'),700);
-  }
-  // Briefly highlight the newest condition row
-  const rows=document.querySelectorAll('.condition-row');
-  const last=rows[rows.length-1];
-  if(last){
-    last.classList.add('harm-flash');
-    setTimeout(()=>last.classList.remove('harm-flash'),800);
-  }
+  buildFlameTokens();
 }
 
 // ── SUBSCRIPTIONS ──
@@ -1566,22 +1455,14 @@ function subscribeAll(){
     if(payload.new?.id===CHAR_ID){
       charData={...charData,...payload.new};
       applyCharData();
-      // Handle pending advances grant from DM
       const pending=payload.new?.pending_advances||0;
-      if(pending>0&&pending!==_pendingAdvDone){
-        _pendingAdvTotal=pending;
-        _pendingAdvDone=0;
-        showAdvanceModal();
-      }
+      const wasZero=(payload.old?.pending_advances||0)===0;
+      if(pending>0&&wasZero){_pendingAdvTotal=pending;_pendingAdvDone=0;showAdvanceModal();}
     }
   }).subscribe();
   db.channel('murphy-cond').on('postgres_changes',{event:'*',schema:'public',table:'conditions'},payload=>{
     const id=payload.new?.character_id||payload.old?.character_id;
-    if(id!==CHAR_ID)return;
-    const wasInsert=payload.eventType==='INSERT';
-    loadConditions().then(()=>{
-      if(wasInsert)flashConditionReceived();
-    });
+    if(id===CHAR_ID)loadConditions();
   }).subscribe();
   db.channel('murphy-powers').on('postgres_changes',{event:'*',schema:'public',table:'unlocked_powers'},payload=>{
     const id=payload.new?.character_id||payload.old?.character_id;
@@ -1616,16 +1497,15 @@ function buildSkillsGrid(){
 }
 
 async function saveSkillMarkup(skill, newVal){
-  // character_skills uses columns: skill, dice (not skill_name / dice_count)
-  skillData[skill] = newVal;
-  const{data:existing} = await db.from('character_skills').select('id').eq('character_id',CHAR_ID).eq('skill',skill).limit(1);
-  if(existing&&existing.length){
-    await db.from('character_skills').update({dice:newVal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('skill',skill);
+  const existing = skillsData.find(s=>s.skill_name===skill);
+  if(existing){
+    existing.dice_count = newVal;
+    await db.from('character_skills').update({dice_count:newVal, updated_at:new Date().toISOString()}).eq('id', existing.id);
   } else {
-    await db.from('character_skills').insert({character_id:CHAR_ID,skill,dice:newVal});
+    const{data}=await db.from('character_skills').insert({character_id:CHAR_ID, skill_name:skill, dice_count:newVal}).select().single();
+    if(data) skillsData.push(data);
   }
   buildSkillBoxes(skill, newVal);
-  updateMortalityDisplay();
 }
 
 function buildSkillBoxes(skill,checked){
@@ -1635,13 +1515,7 @@ function buildSkillBoxes(skill,checked){
   for(let i=1;i<=4;i++){
     const box=document.createElement('div');
     box.className='sbox'+(i<=checked?' checked':'');
-    if(markupMode){
-      const iVal=i;
-      box.onclick=()=>{
-        const newVal=iVal<=checked?iVal-1:iVal;
-        saveSkillMarkup(skill,newVal);
-      };
-    }
+    // read-only — no onclick
     container.appendChild(box);
   }
 }
@@ -1659,39 +1533,16 @@ function updateMortalityDisplay(){
 }
 
 // ── STAT PIPS ──
-// Return extra track slots from hero abilities
-function getHeroTrackBonus(track){
-  const equippedIds=Object.values(heroSlots||{}).filter(Boolean);
-  let bonus=0;
-  if(track==='grit'&&equippedIds.includes('gritty')) bonus+=1;
-  return bonus;
-}
-// Return extra mortality from hero abilities
-function getHeroMortalityBonus(){
-  const equippedIds=Object.values(heroSlots||{}).filter(Boolean);
-  return equippedIds.includes('unkillable')?3:0;
-}
-
 function buildStatPips(){
   ['wisdom','grit','bond'].forEach(track=>{
     const container=document.getElementById(`${track}-pips`);
     if(!container) return;
     container.innerHTML='';
     const val=charData[track]||0;
-    const maxSlots=4+getHeroTrackBonus(track);
-    for(let i=1;i<=maxSlots;i++){
+    for(let i=1;i<=4;i++){
       const pip=document.createElement('div');
       pip.className=`stat-pip${i<=val?' on '+track:''}`;
-      if(markupMode){
-        const iVal=i;
-        pip.style.cursor='pointer';
-        pip.onclick=()=>{
-          const newVal=iVal<=val?iVal-1:iVal;
-          charData[track]=newVal;
-          db.from('characters').update({[track]:newVal,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
-          buildStatPips();
-        };
-      }
+      // read-only — momentum only from roll results
       container.appendChild(pip);
     }
   });
@@ -1787,10 +1638,9 @@ function buildFavorTokens(){
   const mortality=getMortality();
   const max=mortality||0;
   if(max>0){
-    // Cap stale favor_current to max; initialize to full if never set
     let favVal=charData.favor_current||0;
     if(favVal===0||favVal>max){
-      const corrected=favVal>max?max:max; // 0 -> full, over max -> cap
+      const corrected=favVal>max?max:max;
       charData.favor_current=corrected;
       db.from('characters').update({favor_current:corrected,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
     }
@@ -1821,15 +1671,20 @@ async function setFavor(n){
   animateFavorChange(oldVal,val,max);
   await db.from('characters').update({favor_current:val,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
 }
-// changeFavor removed — favor adjusted only by useFavor/setFavor directly
-// refillFavor removed — favor starts full on load, refills on rest
+function changeFavor(d){setFavor((charData.favor_current||0)+d);}
+function refillFavor(){setFavor(getMortality()||0);}
 // Murphy's fire mechanic — clear by sacrifice not refill
-// clearFireTrack removed — sacrifice button removed from UI
+function clearFireTrack(){
+  const confirmed=true; // replaced by styled confirm - this path only reached when confirmed
+  if(confirmed){setFavor(0);showToast('Fire Track cleared — tell the Weaver what you sacrificed');}
+}
 async function useFavor(cost,nodeId){
-  // Deduct favor
   await setFavor((charData.favor_current||0)-cost);
-  // Run the full ability sequence
   await useAbility(nodeId,cost);
+  if(FLAME_NODE_IDS.includes(nodeId)){
+    const marks=nodeId==='c7'?2:1;
+    await markFlame(marks);
+  }
 }
 
 // ── ABILITY USE SYSTEM ──
@@ -1895,40 +1750,6 @@ async function useAbility(nodeId, favorCost){
   const resultLabel=outcomeClass==='success'?'Full Success':outcomeClass==='partial'?'Mixed':'Failure';
   const dmDesc=`${skill?`Rolled ${relevant} — ${resultLabel}`:'Used'}${damageDie&&damageRoll?` · ${damageRoll} harm (${damageDie})`:''}`;
   await notifyDMAbilityUse(powerName, favorCost?`${dmDesc} · −${favorCost} Favor`:dmDesc, nodeId);
-
-  // If we are in combat, also write a rich combat_action so the DM gets full detail
-  if(typeof combatSessionData !== 'undefined' && combatSessionData){
-    // Pick up target if set by confirmAbilityTarget
-    const _tgt=window._abilityTarget||null;
-    const richLabel = JSON.stringify({
-      type: 'ability',
-      name: powerName,
-      meta: data.meta,
-      skill: skill||null,
-      dice: results,
-      highest: relevant,
-      outcomeClass,
-      outcomeLabel: outcome.label,
-      outcomeText: outcome.text,
-      damageDie: damageDie||null,
-      damageRoll: damageRoll||null,
-      favorCost: favorCost||0,
-      roll: content.roll||null,
-      targetName: _tgt?.name||null,
-      targetType: _tgt?.type||null
-    });
-    await db.from('combat_actions').insert({
-      session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-      action_type:'ability',action_label:richLabel,
-      target_id:_tgt&&_tgt.type!=='environment'?_tgt.id:null,
-      target_type:_tgt?.type||null,
-      target_name:_tgt?.name||null,
-      resolved:false
-    });
-    if(typeof myQueueItem!=='undefined'&&myQueueItem){
-      await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
-    }
-  }
 
   // Auto-handle momentum from ones
   if(ones>0) pendingOnesCount=ones;
@@ -2061,6 +1882,7 @@ function renderInventory(){
     }
     // Transfer button
     btns+=`<button class="item-send-btn" onclick="openTransferItem('${item.id}')" title="Transfer to another player">⇄</button>`;
+    btns+=`<button class="item-send-btn" style="border-color:#ef444460;color:#f87171" onclick="sacrificeItem('${item.id}',${JSON.stringify(item.name)})">&#128293; Sacrifice</button>`;
     // Delete
     if(markupMode) btns+=`<button class="item-del" onclick="deleteItem('${item.id}')">✕</button>`;
 
@@ -2176,22 +1998,6 @@ function fireRoll(rollData){
   pendingRollId=null;
 }
 
-
-// ── SKILL DESCRIPTIONS ──
-const SKILL_DESCS={
-  Notice:"Perceive hidden things — spot danger, read a room, notice what's off.",
-  Persuade:"Convince through honest appeal, argument, or emotion.",
-  Search:"Find information, clues, or hidden things through deliberate investigation.",
-  Wits:"Think fast, solve problems, outmaneuver, or understand complex situations.",
-  Might:"Use raw physical force — lift, break, overpower, or strike hard.",
-  Nimble:"Move with precision and speed — dodge, climb, maneuver in a fight.",
-  Sneak:"Move without being noticed or do something without being caught.",
-  Tough:"Endure pain, hardship, and physical punishment without giving in.",
-  Care:"Help, heal, support, or tend to someone with patience and skill.",
-  Charm:"Win people over through personality, wit, warmth, or magnetism.",
-  Deceive:"Mislead, lie, or manipulate without being caught.",
-  Intimidate:"Cow, threaten, or dominate through presence, words, or action."
-};
 function showRollResult(skill,results,highest,outcome,outcomeClass,ones,modifier,isZeroSkill){
   const modal=document.getElementById('roll-modal');
   const content=document.getElementById('roll-modal-content');
@@ -2226,10 +2032,8 @@ function showRollResult(skill,results,highest,outcome,outcomeClass,ones,modifier
       </div>
     </div>`;
   }
-  const skillDesc=SKILL_DESCS[skill]||'';
   content.innerHTML=`
-    <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:4px;color:var(--muted);margin-bottom:2px;text-transform:uppercase">${skill}</div>
-    ${skillDesc?`<div style="font-size:11px;color:var(--dim);font-style:italic;margin-bottom:8px">${skillDesc}</div>`:''}
+    <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:4px;color:var(--muted);margin-bottom:6px;text-transform:uppercase">${skill}</div>
     ${modHtml}${zeroHtml}
     <div class="roll-dice-display">${diceHtml}</div>
     <div class="roll-outcome ${outcomeClass}">${outcome}</div>
@@ -2304,7 +2108,7 @@ async function logMomentumChange(track,oldVal,newVal,desc){
   });
 }
 
-function closeRollModal(){const m=document.getElementById('roll-modal');m.classList.remove('vis','hadv-browse-modal');}
+function closeRollModal(){document.getElementById('roll-modal').classList.remove('vis');}
 async function logRoll(skill,diceRolled,results,highest,outcome,ones,modifier){
   const outcomeKey=outcome.includes('Full')?'success':outcome.includes('Mixed')?'mixed':'fail';
   await db.from('roll_log').insert({character_id:CHAR_ID,skill,dice_rolled:diceRolled,results,highest,outcome:outcomeKey,ones_count:ones,modifier});
@@ -2326,30 +2130,30 @@ const NODE_BRANCH={
 };
 
 const ND={
-h1:{name:"Bright Hands",meta:"Healing · Tier I · Passive",content:{type:"passive",desc:`Your touch carries warmth others feel and trust. Once per scene, lay hands on any person to: remove dice penalties from minor pain; let someone who gave up from pain try once more; stop pain from limiting action for the rest of the scene.<br><br>Medical actions you take on others never make things worse on a partial success.`},prereq:null,levels:null,passive_prompt:"Murphy lays hands on someone. Remove dice penalties from minor pain. They can act without pain penalty for the rest of the scene."},
-h2:{name:"Mend the Wound",meta:"Healing · Tier I · Roll: Care · 2 Favor",content:{type:"move",trigger:"When you channel Brigid's healing fire into a wound you can touch,",roll:"Roll Care. Spend 2 Favor. Roll damage for healing amount.",outcomes:[{cls:"success",label:"6 — Full",text:"Heal for current damage die. Remove one minor Condition entirely. If second+ use this scene, remove a major Condition instead."},{cls:"partial",label:"4–5 — Mixed",text:"Heal for current damage die. Either: you take 1 Harm (the fire redirects), or the target cannot be healed again this scene."},{cls:"fail",label:"1–3 — Fail",text:"The healing surges and fails. You take 2 Harm. Cannot use Mend the Wound again this scene."}]},prereq:null,levels:["1d6","2d6","3d6"]},
-h3:{name:"Cloak of Wellness",meta:"Healing · Tier II · Roll: Care · 2 Favor",content:{type:"move",trigger:"When you extend a protective warmth over the people around you,",roll:"Roll Care. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"For this scene, choose two: allies at Close range immune to poison/disease/toxins; allies auto-succeed Tough rolls for physical hardship; first Harm each ally takes is reduced by 2."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one effect. Applies to yourself and one other ally only."},{cls:"fail",label:"1–3 — Fail",text:"No effect. Lose 1 Action next turn as the fire reabsorbs."}]},prereq:"Bright Hands",levels:null},
-h4:{name:"Brigid's Fire Strike",meta:"Healing · Tier II · Roll: Tough · 2 Favor · 🔥",content:{type:"move",trigger:"When you turn sacred fire outward as a weapon — 🔥 marks the Fire Track,",roll:"Roll Tough. Spend 2 Favor. Mark 1 Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. Against undead/corrupted/supernatural: double damage. One ally within Near range heals 1d4."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. No healing reflection. Against supernatural: +1d4 bonus damage."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. The fire sputters — the Keeper may have the enemy react aggressively."}]},prereq:"Mend the Wound",levels:["1d6","2d6","3d6"],targeted:true},
-h5:{name:"Healer's Ear",meta:"Healing · Tier II · Passive",content:{type:"passive",desc:`Diagnose any physical condition without rolling after a few moments of examination. The Keeper tells you: exactly what's wrong and how severe; whether it's mundane or supernatural; what category of treatment would work; whether it will worsen and how fast.<br><br>Any healing action on someone you've examined: +1 die.`},prereq:"Bright Hands",levels:null,passive_prompt:"Murphy examines someone. Tell Murphy: exactly what is wrong and severity, mundane or supernatural origin, best treatment, whether it will worsen."},
-h6:{name:"Cauterize",meta:"Healing · Tier III · Roll: Care · 3 Favor · 🔥",content:{type:"move",trigger:"When you purge a corruption from an ally and release that energy as a weapon — 🔥 marks the Fire Track,",roll:"Roll Care. Spend 3 Favor. Mark 1 Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Simultaneously: remove one Condition from one ally within Close range AND deal damage at current level to one enemy within Near range. If the Condition was caused by a supernatural creature, deal double damage to it."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one: fully heal the Condition, or deal damage — not both. Healing costs you 1 Harm."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. Condition reduced but not removed. You take 1 Harm. Both you and the target lose 1 Action."}]},prereq:"Cloak of Wellness + Brigid's Fire Strike",levels:["1d8","2d8","3d8"],targeted:true},
-h7:{name:"Read the Sickness",meta:"Healing · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you examine any affliction — mundane, supernatural, cursed, or divine — to understand its full nature,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The Keeper tells you: precise origin; exact mechanism and progression; two concrete cure methods (at least one achievable now); whether others will be affected. +2 dice on any cure roll."},{cls:"partial",label:"4–5 — Mixed",text:"Origin and one cure method (may be harder). +1 die on the cure roll."},{cls:"fail",label:"1–3 — Fail",text:"You learn only that it's supernatural. Cannot attempt Read the Sickness on this affliction again until you find new information."}]},prereq:"Healer's Ear",levels:null},
-h8:{name:"The Wells of Brigid",meta:"Healing · Apex · Roll: Care · 5 Favor · Once/Session",content:{type:"move",trigger:"When you draw from Brigid's deepest wellspring and pour sacred waters over all present,",roll:"Roll Care. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"All allies present: fully healed; all Conditions removed; dying allies stabilized and conscious. If an ally died this scene: you may offer them 1 HP + one severe Condition — their choice."},{cls:"partial",label:"4–5 — Mixed",text:"Choose two: full HP restoration; all Conditions removed; stabilize dying; offer breath to the dead."},{cls:"fail",label:"1–3 — Fail",text:"The wells don't answer. No healing. You take 3 Harm. Cannot attempt this again this session."}]},prereq:"Cauterize + Read the Sickness",levels:null},
-c1:{name:"The Maker's Eye",meta:"Craft · Tier I · Passive",content:{type:"passive",desc:`When you examine any made thing, you automatically know: its structural weaknesses and how to exploit them; roughly how it was made, by whom, and when; whether it's been modified; the fastest method to destroy or disable it; whether it can be repaired and how difficult.<br><br>Scope in a constructed environment: +1 die.`},prereq:null,levels:null,passive_prompt:"Murphy looks at a made thing. Tell them: structural weaknesses, how it was made, whether it was modified, how to destroy or disable it, whether it can be repaired."},
-c2:{name:"Forge Strike",meta:"Craft · Tier I · Roll: Might · 1 Favor · 🔥",content:{type:"move",trigger:"When you strike with the weight of the forge behind you — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 1 Favor. Mark 1 Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"Damage at current level. Choose: deal a specific Condition (Disarmed, Stunned, Off-Balance) instead of standard damage; or if striking a constructed object, destroy or reshape it outright."},{cls:"partial",label:"4–5 — Mixed",text:"Damage at current level. Choose standard damage or a minor Condition — not both."},{cls:"fail",label:"1–3 — Fail",text:"Damage at one level lower. An enemy may take a free action against you before you recover."}]},prereq:null,levels:["1d6","2d6","3d6"],targeted:true},
-c3:{name:"Rapid Mend",meta:"Craft · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you quickly repair a broken or damaged item in the field,",roll:"Roll Wits. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"The item is fully restored. If it's a weapon: it also gains +1 to its next damage die this scene. If it's armor: restore 2 durability."},{cls:"partial",label:"4–5 — Mixed",text:"The item is functional but fragile — it will break again on the next critical use."},{cls:"fail",label:"1–3 — Fail",text:"The repair fails and damages the item further. It cannot be used until properly repaired."}]},prereq:"The Maker's Eye",levels:null},
-c4:{name:"Shatter",meta:"Craft · Tier II · Roll: Might · 2 Favor · 🔥",content:{type:"move",trigger:"When you direct Brigid's breaking force against a constructed object — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 2 Favor. Mark 1 Fire Track.",outcomes:[{cls:"success",label:"6 — Full",text:"The object is destroyed. Choose the manner — explosive, quiet, or targeted. If held or worn: target takes 2 Harm. You may leave one specific part intact."},{cls:"partial",label:"4–5 — Mixed",text:"Object broken but not destroyed — may be salvageable. If held or worn: target takes 1 Harm."},{cls:"fail",label:"1–3 — Fail",text:"Object damaged but not broken. Something nearby may be affected by the misfire."}]},prereq:"Forge Strike",levels:null},
-c5:{name:"Brigid's Blessing",meta:"Craft · Tier II · Passive",content:{type:"passive",desc:`Items you personally craft or repair carry a subtle warmth. They: never fail on their first use after you make or mend them; have +1 durability when you carry them; can be sensed as blessed by those with supernatural awareness.`},prereq:"Rapid Mend",levels:null,passive_prompt:"Items Murphy personally crafted or repaired never fail on their first use. Note this if it\'s relevant in play."},
-c6:{name:"Forge-Born Weapon",meta:"Craft · Tier III · Roll: Might · 3 Favor · 🔥",content:{type:"move",trigger:"When you conjure a weapon of sacred forge-fire — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 3 Favor. Mark 1 Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full",text:"A weapon of pure flame in your hands until end of scene. Damage at current level. Cannot be disarmed or parried by mundane means. Bypasses mundane armor. Once per scene: throw it — it returns."},{cls:"partial",label:"4–5 — Mixed",text:"The weapon forms and deals damage at current level, but dissipates after 3 uses or end of scene."},{cls:"fail",label:"1–3 — Fail",text:"The conjuring misfires. You and one random target within Close range each take 1d4 Harm. No weapon forms. Cannot attempt this again this scene."}]},prereq:"Rapid Mend + Shatter",levels:["1d8","2d8","3d8"],targeted:true},
-c7:{name:"Sacred Commission",meta:"Craft · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you craft or heavily modify an item with specific intent and sacred purpose,",roll:"Roll Wits. Spend 3 Favor. Requires at least one uninterrupted scene of work.",outcomes:[{cls:"success",label:"6 — Full",text:"The item gains one permanent sacred property — choose: deals full damage to supernatural creatures; cannot be destroyed by mundane means; glows faintly in the presence of a specific type of threat you name."},{cls:"partial",label:"4–5 — Mixed",text:"The property manifests but is limited to 3 uses before it fades."},{cls:"fail",label:"1–3 — Fail",text:"The work is flawed. The item is mundane. Favor is spent. You cannot attempt Sacred Commission on this item again."}]},prereq:"Forge-Born Weapon",levels:null},
-c8:{name:"The Anvil of Making",meta:"Craft · Apex · Roll: Might · 5 Favor · 🔥 · Once/Session",content:{type:"move",trigger:"When you let Brigid's full craft-aspect flow through you, making the world forge-soft — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 5 Favor. Mark 2 Fire Track. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"For one full scene, any non-living constructed thing you can see responds to your will: reshape, repair, destroy, or create from available materials. No touch required."},{cls:"partial",label:"4–5 — Mixed",text:"Three specific uses rather than the full scene. Must still touch the objects."},{cls:"fail",label:"1–3 — Fail",text:"Force exceeds control. For the next hour you cannot touch a constructed object without warping it. Cannot use Craft powers for the rest of the scene."}]},prereq:"Forge-Born Weapon + Sacred Commission",levels:null},
-o1:{name:"Keening Voice",meta:"Poetry · Tier I · Passive",content:{type:"passive",desc:`Animals understand your clear intent. Spirits and unmanifested entities can hear you. When you raise your voice with purpose, you cannot be ignored.<br><br>Once per scene: a sound of grief, joy, or fury stops everyone in earshot for one moment — no roll.`},prereq:null,levels:null,passive_prompt:"Finn perceives all supernatural entities, active glamours, and thin places in this scene without rolling."},
-o2:{name:"The True Name",meta:"Poetry · Tier I · Roll: Charm · 2 Favor",content:{type:"move",trigger:"When you speak one precisely true, devastating thing about a person in front of others,",roll:"Roll Charm. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Choose two: target loses 1 die on all social rolls this scene; witnesses' attitude toward target shifts one step; target is compelled to speak one true thing; one relationship between target and a witness is permanently changed."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one effect. The target recognizes your intent and may bear a grudge."},{cls:"fail",label:"1–3 — Fail",text:"The truth reads as accusation. Target becomes hostile — or it applies to you instead. The Keeper decides which."}]},prereq:null,levels:null},
-o3:{name:"Inspire",meta:"Poetry · Tier II · Roll: Persuade · 2 Favor",content:{type:"move",trigger:"When you speak words that kindle something in your allies,",roll:"Roll Persuade. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Hold 3. Spend as free actions on different allies: +2 dice to next roll; remove one Condition from mental/emotional pressure; let an ally act when they otherwise couldn't."},{cls:"partial",label:"4–5 — Mixed",text:"Hold 1. Spend on yourself or one ally."},{cls:"fail",label:"1–3 — Fail",text:"The words land as condescending. Affected allies roll −1 die on their next action."}]},prereq:"Keening Voice",levels:null},
-o4:{name:"Glamour",meta:"Poetry · Tier II · Roll: Deceive · 2 Favor",content:{type:"move",trigger:"When you weave a story around yourself or another that the world believes,",roll:"Roll Deceive. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full",text:"Glamour holds the scene. Change: apparent social status; emotional state as read by others; whether they're noticed; or their apparent identity. Breaks if subject acts contrary to the perceived identity."},{cls:"partial",label:"4–5 — Mixed",text:"One effect. The glamour is fragile — close scrutiny may pierce it; the Keeper rolls secretly."},{cls:"fail",label:"1–3 — Fail",text:"Immediately unravels. Everyone senses manipulation. The target is under suspicion. Cannot attempt Glamour on same target this scene."}]},prereq:"The True Name",levels:null},
-o5:{name:"Memory of the Land",meta:"Poetry · Tier II · Passive",content:{type:"passive",desc:`Once per scene, spend a quiet moment and ask the Keeper what this place remembers. Choose your question:<ul><li>The most emotionally significant event that occurred here</li><li>Whether any supernatural power was used here, and what kind</li><li>The last time someone was in pain here, and who</li><li>Whether this place is being watched, and from where</li></ul>You cannot be ambushed in any location you have listened to.`},prereq:"Keening Voice",levels:null,passive_prompt:"Finn permanently gains 1 Favor slot. Also: when they gain Grit or Bond, they also gain 1 Wisdom."},
-o6:{name:"The Glám Dícenn",meta:"Poetry · Tier III · Roll: Intimidate · 3 Favor",content:{type:"move",trigger:"When you speak the satirist's binding curse against someone before at least one witness,",roll:"Roll Intimidate. Spend 3 Favor. Target must be able to hear you.",outcomes:[{cls:"success",label:"6 — Full",text:"Choose two persistent effects (until lifted by significant restitution): NPCs treat target with 1 step less trust; −1 die on pride/status rolls; cannot lie in your presence; supernaturally visible to spirits and entities."},{cls:"partial",label:"4–5 — Mixed",text:"Choose one effect. Lasts until end of session unless deepened."},{cls:"fail",label:"1–3 — Fail",text:"Reads as a regular insult. Target is hostile. Witnesses are unsettled."}]},prereq:"Inspire + Glamour",levels:null},
-o7:{name:"Shape the Telling",meta:"Poetry · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you reframe how a witnessed event is understood by everyone who saw it,",roll:"Roll Wits. Spend 3 Favor. At least one witness must be present.",outcomes:[{cls:"success",label:"6 — Full",text:"Reshape the meaning of what just occurred. Choose: a failure becomes calculated sacrifice; credit or blame shifts to another party; the cause is reframed — same action, different meaning. Witnesses accept your version immediately."},{cls:"partial",label:"4–5 — Mixed",text:"The reframing holds this scene. Some witnesses remain skeptical. Fades unless reinforced."},{cls:"fail",label:"1–3 — Fail",text:"Too obvious. Witnesses feel manipulated and are suspicious of you for the rest of the session."}]},prereq:"Memory of the Land + The Maker's Eye (Craft)",levels:null},
-o8:{name:"Song of Making",meta:"Poetry · Apex · Roll: Persuade · 5 Favor · Once/Session",content:{type:"move",trigger:"When you speak something into fuller existence,",roll:"Roll Persuade. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"Name one plausible thing you're speaking into truth: an alliance becomes binding; a contested fact becomes settled; a future possibility becomes highly probable (Keeper must find a reason it occurs); a person's identity shifts for this session to match what you've named."},{cls:"partial",label:"4–5 — Mixed",text:"The making is partial — real but smaller or more conditional. The Keeper names the qualifications."},{cls:"fail",label:"1–3 — Fail",text:"Something adjacent becomes true instead — close enough to taunt you, different enough to cause problems. You take 3 Harm."}]},prereq:"The Glám Dícenn + Shape the Telling",levels:null}
+h1:{name:"Bright Hands",meta:"Healing · Tier I · Passive",content:{type:"passive",desc:`<strong>Your hands carry a warmth others feel and instinctively trust.</strong><br><br>Once per scene, lay hands on any person for immediate relief from pain — doesn't heal wounds but:<ul><li>Stops pain from preventing action for the rest of the scene</li><li>Removes dice penalties from minor pain (not major wounds)</li><li>Allows someone who gave up from pain to try one more time</li></ul><br><strong>Any medical or first-aid actions you take</strong> on others automatically succeed on partial successes or better — you never make things worse.`},prereq:null,levels:null},
+h2:{name:"Mend the Wound",meta:"Healing · Tier I · Roll: Care · 2 Favor",content:{type:"move",trigger:"When you channel Brigid's healing fire into a wound, sickness, or injury in a living creature you can touch,",roll:"Roll Care. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Heal for current damage die. Remove one minor Condition entirely. If second+ use this scene, remove a major Condition instead."},{cls:"partial",label:"4–5 — Mixed Success",text:"Heal for current damage die, but take 1 Harm yourself (the fire has to go somewhere), or the target can't be healed again this scene."},{cls:"fail",label:"1–3 — Failure",text:"The healing surges and fails. Target is unharmed but you take 2 Harm from the backlash. Cannot use Mend the Wound again this scene."}]},prereq:null,levels:["1d6","2d6","3d6"]},
+h3:{name:"Cloak of Wellness",meta:"Healing · Tier II · Roll: Care · 2 Favor",content:{type:"move",trigger:"When you extend a protective warmth over the people around you,",roll:"Roll Care. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"For the rest of this scene, choose two: <ul><li>All allies within Close range are immune to poison, disease, environmental toxins</li><li>Allies auto-succeed Tough rolls to endure physical hardship</li><li>First Harm each ally takes is reduced by 2</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"Choose one effect. Applies to yourself and one other ally."},{cls:"fail",label:"1–3 — Failure",text:"The warmth flickers. No effect, and you lose 1 Action on your next turn as the fire reabsorbs."}]},prereq:"Bright Hands",levels:null},
+h4:{name:"Brigid's Fire Strike",meta:"Healing · Tier II · Roll: Tough · 2 Favor",content:{type:"move",trigger:"When you turn Brigid's sacred fire outward as a weapon — 🔥 marks the Fire Track,",roll:"Roll Tough. Spend 2 Favor. Mark 1 on Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Deal damage at current level. Against undead, corrupted, or hostile supernatural creatures: double damage. One ally within Near range recovers 1d4 HP from the reflected sacred light."},{cls:"partial",label:"4–5 — Mixed Success",text:"Deal damage at current level. Healing reflection does not occur. Against supernatural targets: +1d4 bonus damage."},{cls:"fail",label:"1–3 — Failure",text:"Roll damage one level lower. The fire sputters without sanctity. The Keeper may describe the enemy being emboldened."}]},prereq:"Mend the Wound",levels:["1d6","2d6","3d6"]},
+h5:{name:"Healer's Ear",meta:"Healing · Tier II · Passive",content:{type:"passive",desc:`<strong>You understand the body the way a reader understands text.</strong> Without rolling, diagnose any physical condition by examining someone for a few moments.<br><br>The Keeper tells you:<ul><li>Exactly what is wrong and how severe</li><li>Whether it's mundane or supernatural in origin</li><li>What category of treatment would address it</li><li>Whether it will worsen, and how fast</li></ul><br><strong>You never waste time on wrong treatments.</strong> Any healing action on someone you've examined is made with +1 die.`},prereq:"Bright Hands",levels:null},
+h6:{name:"Cauterize",meta:"Healing · Tier III · Roll: Care · 3 Favor · 🔥",content:{type:"move",trigger:"When you simultaneously purge a corruption from an ally and unleash that purging energy as a weapon — 🔥 marks the Fire Track,",roll:"Roll Care. Spend 3 Favor. Mark 1 on Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full Success",text:"<strong>Simultaneously:</strong> Completely remove one Condition from one ally within Close range AND deal damage at current level to one enemy within Near range. If the Condition was caused by a supernatural creature, deal double damage to that creature."},{cls:"partial",label:"4–5 — Mixed Success",text:"Choose: fully heal the Condition, or deal damage — not both. The healing costs you 1 Harm from the exertion."},{cls:"fail",label:"1–3 — Failure",text:"The fire is too much. Damage at one level lower. Condition reduced but not removed. You take 1 Harm from backlash. Both you and the target are briefly stunned (lose 1 Action each)."}]},prereq:"Cloak of Wellness + Brigid's Fire Strike",levels:["1d8","2d8","3d8"]},
+h7:{name:"Read the Sickness",meta:"Healing · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you examine any affliction — mundane, supernatural, cursed, or divine — to understand its full nature and cure,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"The Keeper tells you: <ul><li>Precise origin of the affliction</li><li>Its exact mechanism and progression</li><li>Two concrete methods to cure it, at least one achievable now</li><li>Whether anyone else will be affected</li></ul> +2 dice on any roll to perform the cure."},{cls:"partial",label:"4–5 — Mixed Success",text:"The Keeper tells you origin and one cure method (may be the harder option). +1 die on the cure roll."},{cls:"fail",label:"1–3 — Failure",text:"The affliction resists your reading. You learn only that it is supernatural. Cannot attempt Read the Sickness on this affliction again until you find more information."}]},prereq:"Healer's Ear",levels:null},
+h8:{name:"The Wells of Brigid",meta:"Healing · Apex · Roll: Care · 5 Favor · Once Per Session",content:{type:"move",trigger:"When you draw from Brigid's deepest wellspring and pour her sacred waters over everyone present (once per session),",roll:"Roll Care. Spend 5 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"<ul><li>All allies present are healed to full HP</li><li>All Conditions on all present allies are removed</li><li>Any dying ally is stabilized and conscious</li><li>If an ally died this scene, you may offer them one breath: 1 HP + one severe Condition — their choice</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"Choose two of the four effects above. The dead cannot be reached."},{cls:"fail",label:"1–3 — Failure",text:"The wells do not answer. No healing occurs. You expend the Favor and take 3 Harm. May not attempt this again this session."}]},prereq:"Cauterize + Read the Sickness",levels:null},
+c1:{name:"The Maker's Eye",meta:"Craft · Tier I · Passive",content:{type:"passive",desc:`<strong>You understand construction the way some people understand language.</strong><br><br>When you examine any made thing, you automatically know:<ul><li>Its structural weaknesses and how to exploit them</li><li>Roughly how it was made, by whom, and when</li><li>Whether it's been modified or tampered with</li><li>The fastest method to destroy or disable it</li><li>Whether it can be repaired, and how difficult</li></ul><br>When you use <strong>Scope</strong> in a constructed environment, roll with +1 die.`},prereq:null,levels:null},
+c2:{name:"Forge Strike",meta:"Craft · Tier I · Roll: Might · 1 Favor · 🔥",content:{type:"move",trigger:"When you strike with the weight of the forge behind you — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 1 Favor. Mark 1 on Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Roll damage at current level. Choose: deal a specific Condition (Disarmed, Stunned, Off-Balance) instead of standard damage, OR if striking a constructed object, destroy or reshape it — no second blow needed."},{cls:"partial",label:"4–5 — Mixed Success",text:"Roll damage at current level. Choose: standard damage, or a minor Condition. Not both."},{cls:"fail",label:"1–3 — Failure",text:"Roll damage one level lower. The precision slips. The Keeper may give an enemy a free action against you before you recover."}]},prereq:null,levels:["1d6","2d6","3d6"]},
+c3:{name:"Rapid Mend",meta:"Craft · Tier II · Roll: Wits · 2 Favor",content:{type:"move",trigger:"When you repair or restore a broken object in dramatically compressed time,",roll:"Roll Wits. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Object fully restored. Choose one: <ul><li>Repair takes seconds</li><li>Item now has a minor supernatural property</li><li>You know immediately what caused the damage</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"Object is functional but not fully restored — repair is temporary or one damage element remains."},{cls:"fail",label:"1–3 — Failure",text:"You misread the damage. No worse, but you can't fix it this way. The Keeper tells you what it actually requires."}]},prereq:"The Maker's Eye",levels:null},
+c4:{name:"Shatter",meta:"Craft · Tier II · Roll: Might · 2 Favor · 🔥",content:{type:"move",trigger:"When you direct Brigid's breaking force against a constructed object to destroy it completely — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 2 Favor. Mark 1 on Fire Track.",outcomes:[{cls:"success",label:"6 — Full Success",text:"The object is destroyed. Choose the manner — explosive, quiet, targeted. If held or worn, target takes 2 Harm. You may leave one specific part intact."},{cls:"partial",label:"4–5 — Mixed Success",text:"Object is broken but not destroyed — may be salvageable. If held or worn, target takes 1 Harm."},{cls:"fail",label:"1–3 — Failure",text:"The force goes wrong. Object is damaged but not broken. Something nearby may be affected by the misfire."}]},prereq:"Forge Strike",levels:null},
+c5:{name:"Brigid's Blessing",meta:"Craft · Tier II · Passive",content:{type:"passive",desc:`<strong>Any tool or weapon you hold responds to you as if newly made and perfectly suited to your hand.</strong><br><br><ul><li>Weapons you wield deal +1 damage</li><li>Tools cannot break, malfunction, or jam under any circumstances</li><li>Use improvised weapons without penalty</li><li>Craftwork always counts as having the right tools</li></ul><br>Once per scene, ask the Keeper how best to use a specific object you're holding — they must answer honestly.`},prereq:"The Maker's Eye",levels:null},
+c6:{name:"Forge-Born Weapon",meta:"Craft · Tier III · Roll: Might · 3 Favor · 🔥",content:{type:"move",trigger:"When you conjure a weapon of sacred forge-fire from the heat of your conviction — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 3 Favor. Mark 1 on Fire Track. Roll damage.",outcomes:[{cls:"success",label:"6 — Full Success",text:"A weapon of pure sacred flame exists in your hands until end of scene. Deals damage at current level. Cannot be disarmed or parried by mundane means. Bypasses mundane armor. Once per scene: throw it — it returns."},{cls:"partial",label:"4–5 — Mixed Success",text:"The weapon forms and deals damage at current level, but it's unstable — dissipates after 3 uses or end of scene."},{cls:"fail",label:"1–3 — Failure",text:"The conjuring misfires. 1d4 Harm to yourself and one random target within Close range. No weapon forms. Cannot attempt this again this scene."}]},prereq:"Rapid Mend + Shatter",levels:["1d8","2d8","3d8"]},
+c7:{name:"Sacred Commission",meta:"Craft · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you permanently imbue a crafted object with divine purpose — this takes at least one hour,",roll:"Roll Wits. Spend 3 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Choose the object's permanent quality: <ul><li><strong>Seeking:</strong> +2 dice to all attacks made with it</li><li><strong>Preserving:</strong> Contents safe from all supernatural interference</li><li><strong>Binding:</strong> No supernatural entity may pass without your permission</li><li><strong>Healing:</strong> Reduces severity of next Condition its holder receives</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"The quality fades after one significant use. Works once, perfectly, then becomes mundane."},{cls:"fail",label:"1–3 — Failure",text:"The commission is flawed. The object is mundane now, but you may try again next session with an automatic success. The hour is wasted and you take 1 Harm from exhaustion."}]},prereq:"Brigid's Blessing + Mend the Wound (Healing)",levels:null},
+c8:{name:"The Anvil of Making",meta:"Craft · Apex · Roll: Might · 5 Favor · 🔥 · Once Per Session",content:{type:"move",trigger:"When you let Brigid's full craft-aspect flow through you, making the world forge-soft (once per session) — 🔥 marks the Fire Track,",roll:"Roll Might. Spend 5 Favor. Mark 2 on Fire Track.",outcomes:[{cls:"success",label:"6 — Full Success",text:"For one full scene, any non-living constructed thing you can see and intend to change responds to your will: reshape, repair, destroy, or create from raw materials. No touch required — intention within line of sight is sufficient."},{cls:"partial",label:"4–5 — Mixed Success",text:"The ability lasts for three specific uses rather than the full scene. Must still touch the objects."},{cls:"fail",label:"1–3 — Failure",text:"The force exceeds your control. For the next hour, you cannot touch a constructed object without warping it. Cannot use any Craft powers for the rest of the scene."}]},prereq:"Forge-Born Weapon + Sacred Commission",levels:null},
+o1:{name:"Keening Voice",meta:"Poetry · Tier I · Passive",content:{type:"passive",desc:`<strong>Brigid invented keening — the wail of grief that carries across the veil.</strong><br><br><ul><li>Animals understand your intent clearly</li><li>Spirits and non-physical entities can hear you even if unmanifested</li><li>When you raise your voice with intent, you cannot be ignored</li><li>Once per scene: a sound of grief, joy, or fury stops everyone in earshot for a single moment — no roll</li></ul>`},prereq:null,levels:null},
+o2:{name:"The True Name",meta:"Poetry · Tier I · Roll: Charm · 2 Favor",content:{type:"move",trigger:"When you speak one precisely true, devastating thing about a person in front of others,",roll:"Roll Charm. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Choose two: <ul><li>Target loses 1 die on all social rolls this scene</li><li>Witnesses' attitude toward target shifts one step</li><li>Target is compelled to speak one true thing</li><li>One relationship between target and a witness is permanently changed</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"Choose one effect. The target recognizes your intent and may bear a grudge."},{cls:"fail",label:"1–3 — Failure",text:"The truth reads as accusation rather than revelation — target becomes defensive and hostile. Or you misspeak and it applies to you instead. The Keeper decides which."}]},prereq:null,levels:null},
+o3:{name:"Inspire",meta:"Poetry · Tier II · Roll: Persuade · 2 Favor",content:{type:"move",trigger:"When you speak words that kindle something new in your allies,",roll:"Roll Persuade. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Hold 3. Spend as free actions: <ul><li>+2 dice to one ally's next roll</li><li>Remove one Condition caused by mental/emotional pressure</li><li>Allow an ally to act when they otherwise couldn't</li></ul> Each hold on a different ally."},{cls:"partial",label:"4–5 — Mixed Success",text:"Hold 1. Spend on yourself or one ally. The Keeper may introduce a complication from the distraction."},{cls:"fail",label:"1–3 — Failure",text:"The words fall flat or read as condescending. Affected allies roll −1 die on their next roll."}]},prereq:"Keening Voice",levels:null},
+o4:{name:"Glamour",meta:"Poetry · Tier II · Roll: Deceive · 2 Favor",content:{type:"move",trigger:"When you weave a story around yourself or another person that the world believes,",roll:"Roll Deceive. Spend 2 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Glamour holds for the rest of the scene. Change one or more of: apparent social status; emotional state as read by others; whether they're noticed at all; their identity. Breaks if subject acts contrary to the perceived identity."},{cls:"partial",label:"4–5 — Mixed Success",text:"Apply one effect. The glamour is fragile — close scrutiny may pierce it; the Keeper rolls secretly."},{cls:"fail",label:"1–3 — Failure",text:"The glamour immediately unravels. Everyone senses manipulation. Your target is under suspicion. Cannot attempt Glamour on same target this scene."}]},prereq:"The True Name",levels:null},
+o5:{name:"Memory of the Land",meta:"Poetry · Tier II · Passive",content:{type:"passive",desc:`<strong>You can listen to places the way you listen to people.</strong><br><br>Once per scene, spend a few moments in quiet attention and ask the Keeper what this place remembers. Choose what you ask for:<ul><li>The most emotionally significant event that occurred here</li><li>Whether any supernatural power has been used here, and what kind</li><li>The last time someone was in pain here, and who they were</li><li>Whether this place is being watched, and from where</li></ul><br>You cannot be ambushed or surprised in any location you have listened to.`},prereq:"Keening Voice",levels:null},
+o6:{name:"The Glám Dícenn",meta:"Poetry · Tier III · Roll: Intimidate · 3 Favor",content:{type:"move",trigger:"When you speak the Glám Dícenn — the satirist's binding curse — against someone in front of at least one witness,",roll:"Roll Intimidate. Spend 3 Favor. Target must be able to hear you.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Choose two persistent effects (until lifted by a significant act of restitution): <ul><li><strong>Shame-mark:</strong> NPCs treat target with 1 step less trust</li><li><strong>Bad luck:</strong> −1 die on pride/status/reputation rolls</li><li><strong>Revealed:</strong> Cannot lie in your presence</li><li><strong>Marked:</strong> Supernaturally visible to spirits and entities</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"Choose one effect. Lasts until end of session unless the target deepens it."},{cls:"fail",label:"1–3 — Failure",text:"The verse is incomplete — reads as a regular insult. Target is hostile. Witnesses are unsettled."}]},prereq:"Inspire + Glamour",levels:null},
+o7:{name:"Shape the Telling",meta:"Poetry · Tier III · Roll: Wits · 3 Favor",content:{type:"move",trigger:"When you reframe how a witnessed event is understood by everyone who saw it,",roll:"Roll Wits. Spend 3 Favor. At least one witness must be present.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Reshape the meaning of what just occurred. Choose: <ul><li><strong>Heroism:</strong> A failure becomes calculated sacrifice</li><li><strong>Culpability:</strong> Credit or blame shifts to a different party</li><li><strong>Context:</strong> The cause is reframed — same action, different meaning</li></ul> Witnesses accept your telling as the true interpretation immediately."},{cls:"partial",label:"4–5 — Mixed Success",text:"The reframing holds for this scene. Some witnesses remain skeptical. Fades by next scene unless reinforced."},{cls:"fail",label:"1–3 — Failure",text:"Too obvious. Witnesses feel manipulated, remember the original clearly, and are suspicious of your version. Credibility with this group is reduced this session."}]},prereq:"Memory of the Land + The Maker's Eye (Craft)",levels:null},
+o8:{name:"Song of Making",meta:"Poetry · Apex · Roll: Persuade · 5 Favor · Once Per Session",content:{type:"move",trigger:"When you speak something into fuller existence (once per session),",roll:"Roll Persuade. Spend 5 Favor.",outcomes:[{cls:"success",label:"6 — Full Success",text:"Name one plausible thing you're speaking into truth: <ul><li>An alliance becomes binding — all parties feel the truth of it</li><li>A contested fact becomes settled — evidence rearranges itself</li><li>A future possibility becomes highly probable — the Keeper must find a reason it occurs before session end</li><li>A person's identity shifts for this session to match what you've named</li></ul>"},{cls:"partial",label:"4–5 — Mixed Success",text:"The making is partial. The thing becomes real but smaller or more conditional. The Keeper tells you the qualifications."},{cls:"fail",label:"1–3 — Failure",text:"Something adjacent to what you named becomes true instead — close enough to taunt you, different enough to cause problems. You take 3 Harm from the failed effort."}]},prereq:"The Glám Dícenn + Shape the Telling",levels:null}
 };
 
 function getPrereqs(el){const p=el.dataset.prereq;return p?p.split(','):[];}
@@ -2357,21 +2161,19 @@ function prereqsMet(el){return getPrereqs(el).every(id=>unlockedPowers.has(id));
 function hasDependent(id){for(const n of document.querySelectorAll('.node')){if(getPrereqs(n).includes(id)&&unlockedPowers.has(n.id))return true;}return false;}
 function updateAllLocks(){document.querySelectorAll('.node').forEach(n=>{if(unlockedPowers.has(n.id))return;if(prereqsMet(n)){n.classList.remove('locked');n.classList.add('avail');}else{n.classList.remove('avail','unlocked');n.classList.add('locked');}});}
 
-function toggleNode(el){
+async function toggleNode(el){
   const id=el.id;
-  if(el.classList.contains('locked')){
-    if(markupMode){cycleNodeInMarkup(id,el);}
-    else{showPrereqModalUI(el);}
-    return;
-  }
-  if(markupMode){
-    cycleNodeInMarkup(id,el);
-    return;
-  }
-  // Normal play — read-only, just open detail panel
-  document.querySelectorAll('.node.reading').forEach(n=>{if(n!==el)n.classList.remove('reading');});
-  el.classList.toggle('reading');
+  if(el.classList.contains('locked')){showPrereqModalUI(el);return;}
   showNodeDetail(id,el);
+  if(unlockedPowers.has(id)){
+    if(hasDependent(id)){showToast("Another power depends on this one");return;}
+    unlockedPowers.delete(id);el.classList.remove('unlocked');el.classList.add('avail');
+    await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
+  } else {
+    unlockedPowers.add(id);el.classList.remove('avail');el.classList.add('unlocked');
+    await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:nodeLevels[id]||0});
+  }
+  updateAllLocks();refreshDice(el,id);updateSpread();updateProgress();
 }
 
 function applyPowerStates(){
@@ -2381,71 +2183,8 @@ function applyPowerStates(){
     else if(prereqsMet(n)){n.classList.add('avail');n.classList.remove('unlocked','locked');}
     else{n.classList.add('locked');n.classList.remove('unlocked','avail');}
     refreshDice(n,id);
-    refreshNodeBadge(n,id);
   });
   updateSpread();updateProgress();
-}
-
-function refreshNodeBadge(el,id){
-  let badge=el.querySelector('.node-badge');
-  if(!badge){
-    badge=document.createElement('div');
-    badge.className='node-badge';
-    el.appendChild(badge);
-  }
-  const isUnlocked=unlockedPowers.has(id);
-  const levelsStr=el.dataset.levels;
-  const levelsArr=levelsStr?levelsStr.split(','):null;
-  const lvl=nodeLevels[id]||0;
-
-  if(isUnlocked){
-    badge.textContent=levelsArr?`Lv ${lvl+1}/${levelsArr.length}`:'✦';
-    badge.title=levelsArr?`Level ${lvl+1} of ${levelsArr.length} — click to change in markup`:'Unlocked';
-  } else {
-    badge.textContent='—';
-    badge.title='Not unlocked';
-  }
-
-  // Markup mode: make badge clickable to toggle/cycle
-  badge.className='node-badge'+(markupMode?' markup-edit':'');
-  badge.onclick=null;
-  if(markupMode){
-    badge.onclick=(e)=>{
-      e.stopPropagation();
-      cycleNodeInMarkup(id,el);
-    };
-  }
-}
-
-async function cycleNodeInMarkup(id,el){
-  const isUnlocked=unlockedPowers.has(id);
-  const levelsStr=el.dataset.levels;
-  const levelsArr=levelsStr?levelsStr.split(','):null;
-  const lvl=nodeLevels[id]||0;
-
-  if(!isUnlocked){
-    // In markup mode: unlock regardless of prereqs
-    unlockedPowers.add(id);
-    nodeLevels[id]=0;
-    el.classList.remove('avail','locked');el.classList.add('unlocked');
-    await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:0});
-    updateAllLocks();refreshDice(el,id);refreshNodeBadge(el,id);updateSpread();updateProgress();
-  } else if(levelsArr&&lvl<levelsArr.length-1){
-    // Level up
-    const next=lvl+1;
-    nodeLevels[id]=next;
-    refreshDice(el,id);refreshNodeBadge(el,id);
-    await db.from('unlocked_powers').update({level:next,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('power_id',id);
-  } else {
-    // Re-lock
-    if(hasDependent(id)){showToast('Another power depends on this one');return;}
-    unlockedPowers.delete(id);
-    delete nodeLevels[id];
-    el.classList.remove('unlocked');
-    el.classList.add(prereqsMet(el)?'avail':'locked');
-    await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
-    updateAllLocks();refreshDice(el,id);refreshNodeBadge(el,id);updateSpread();updateProgress();
-  }
 }
 
 function refreshDice(el,id){
@@ -2504,15 +2243,11 @@ function showNodeDetail(id,el){
     contentHtml=`<div class="move-block"><div class="move-trigger">When to Use</div><div class="move-roll-line">${c.trigger}<br><br><strong>${c.roll||''}</strong></div><div class="move-outcomes">${outHtml}</div>${qHtml}</div>`;
   }
   let useHtml='';
-  if(isUnlocked){
-    if(c.type==='passive'){
-      // Passive: notify DM button for all passives
-      useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="triggerPassive('${id}')" style="--dpacc:${accMap[branch]}">✦ Notify Weaver — Using This</button>`;
-    } else {
-      // Active move: always show Use button (even 0-cost moves get one)
-      const costLabel=favor?`−${favor} Favor`:'Free';
-      useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="useFavor(${favor||0},'${id}')">✦ Use — ${costLabel}</button>`;
-    }
+  if(isUnlocked&&favor){
+    useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="useFavor(${favor},'${id}')">Use Power <span class="ub-cost">−${favor} Favor</span></button>`;
+  } else if(isUnlocked&&c.type==='passive'){
+    // Passive abilities — "Trigger" button just notifies DM, no cost
+    useHtml=`<button class="use-btn" id="use-btn-${id}" onclick="triggerPassive('${id}')" style="--dpacc:${accMap[branch]}">✦ Notify Weaver — Using This</button>`;
   }
   let prereqHtml=data.prereq?`<div class="dp-prereq">Requires: ${data.prereq}</div>`:'';
   panel.innerHTML=`
@@ -2524,8 +2259,7 @@ function showNodeDetail(id,el){
 }
 
 async function triggerPassive(nodeId){
-  const nd=ND[nodeId];
-  const powerName=nd?.name||nodeId;
+  const powerName=ND[nodeId]?.name||nodeId;
   const btn=document.getElementById(`use-btn-${nodeId}`);
   if(btn){
     btn.classList.add('use-btn-used');
@@ -2533,36 +2267,9 @@ async function triggerPassive(nodeId){
     setTimeout(()=>{
       btn.classList.remove('use-btn-used');
       btn.textContent='✦ Notify Weaver — Using This';
-    },2500);
+    },2000);
   }
   await notifyDMPassiveUse(powerName, nodeId);
-
-  // If in combat, write a rich combat_action so DM gets the full passive card
-  if(typeof combatSessionData!=='undefined'&&combatSessionData){
-    const passivePrompt=nd?.content?.passive_prompt||null;
-    const richLabel=JSON.stringify({
-      type:'ability',
-      name:powerName,
-      meta:nd?.meta||'',
-      skill:null,
-      dice:[],
-      highest:null,
-      outcomeClass:'success',
-      outcomeLabel:'Passive Activated',
-      outcomeText:nd?.content?.desc||'',
-      damageDie:null,
-      damageRoll:null,
-      favorCost:0,
-      roll:null,
-      passive_prompt:passivePrompt,
-      isPassive:true
-    });
-    await db.from('combat_actions').insert({
-      session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-      action_type:'ability',action_label:richLabel,resolved:false
-    });
-  }
-
   showToast(`Weaver notified: ${powerName}`);
 }
 
@@ -2700,8 +2407,18 @@ function animateFavorChange(oldVal, newVal, max){
 }
 
 // ── DICE ROLL ANIMATION ──
-// animateDiceRoll removed
-
+function animateDiceRoll(resultsArr, container){
+  if(!container)return;
+  container.innerHTML='';
+  resultsArr.forEach((val,i)=>{
+    const span=document.createElement('span');
+    span.className='dice-tumble';
+    span.style.animationDelay=`${i*60}ms`;
+    span.style.cssText+=`;display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;border-radius:6px;border:1px solid var(--border2);background:var(--surf2);font-family:'Cinzel',serif;font-weight:700;font-size:14px;margin:2px`;
+    span.textContent=val;
+    container.appendChild(span);
+  });
+}
 
 
 // ── MARKUP MODE ──
@@ -2716,9 +2433,9 @@ function setMarkupMode(on){
   document.body.classList.toggle('markup', on);
   const banner = document.getElementById('markup-banner');
   if(banner) banner.classList.toggle('vis', on);
-  buildSkillsGrid();       // skill boxes pick up / lose markup click handlers
-  buildStatPips();          // momentum track pips pick up / lose markup handlers
-  applyPowerStates();       // node badges pick up / lose markup click handlers
+  // Rebuild skill boxes with/without click
+  if(typeof buildAllSkillBoxes === 'function') buildAllSkillBoxes();
+  else if(typeof renderSkills === 'function') renderSkills();
 }
 
 
@@ -2786,8 +2503,6 @@ let unlockedFeats=new Set();
 let traitsData=[];
 let drivesData=[];
 let advancementData={xp_current:0,total_advances:0};
-let _pendingAdvTotal=0;  // how many were granted this session
-let _pendingAdvDone=0;   // how many have been completed
 let jurySession=null;
 let juryQueue=[];
 let juryVotes=[];
@@ -2892,7 +2607,9 @@ function renderXP(){
     pip.className=`xp-pip${i<=xp?' filled':''}`;
     pips.appendChild(pip);
   }
-  if(xp>=4) showAdvanceModal();
+  if(xp>=4&&!document.getElementById('advance-modal').classList.contains('vis')&&!(charData.pending_advances>0)){
+    showAdvanceModal();
+  }
 }
 async function awardXP(){
   const current=advancementData.xp_current||0;
@@ -2908,68 +2625,37 @@ async function awardXP(){
 function showAdvanceModal(){
   const modal=document.getElementById('advance-modal');
   const content=document.getElementById('advance-modal-content');
-  const countHtml=_pendingAdvTotal>1
-    ?'<div style="position:absolute;top:14px;right:52px;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--gold);background:var(--gold2);border:1px solid var(--gold);border-radius:12px;padding:2px 9px">#'+(_pendingAdvDone+1)+' / '+_pendingAdvTotal+'</div>'
-    :'';
-  content.innerHTML=countHtml
-    +'<div style="font-size:20px;color:var(--gold);margin-bottom:6px;text-align:center;font-weight:700">✦ Advance ✦</div>'
-    +'<div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px">Choose one advancement:</div>'
-    +'<div class="advance-option" onclick="advanceSkill()"><h4>📈 New Skill Point</h4><p>Add one check to any skill — increases your dice pool, Mortality, and Favor max.</p></div>'
-    +'<div class="advance-option" onclick="showAdvanceFeats()"><h4>⚔ New Combat or Defense Feat</h4><p>Unlock one feat you don\'t yet have.</p></div>'
-    +'<div class="advance-option" onclick="showAdvancePowers()"><h4>✨ New Power</h4><p>Unlock a power in your divine playbook, or level up an existing one.</p></div>'+'<div class="advance-option" onclick="advanceHeroPool()"><h4>💪 Hero Ability (Bank +1)</h4><p>Add a point to your pool — spend it to buy or swap a Hero Ability anytime.</p></div>';
+  content.innerHTML=`
+    <div style="font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);margin-bottom:6px;text-align:center">✦ Advance ✦</div>
+    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px">Choose one advancement:</div>
+    <div class="advance-option" onclick="advanceSkill()">
+      <h4>📈 New Skill Point</h4>
+      <p>Add one check to any skill, increasing your dice pool for that skill by 1. Also increases your Mortality and Favor max.</p>
+    </div>
+    <div class="advance-option" onclick="showAdvanceFeats()">
+      <h4>⚔ New Combat or Defense Feat</h4>
+      <p>Unlock one feat you don't yet have.</p>
+    </div>
+    <div class="advance-option" onclick="showAdvancePowers()">
+      <h4>🔥 New Divine Power</h4>
+      <p>Unlock the next available power in your divine playbook, or level up an existing one.</p>
+    </div>`;
   modal.classList.add('vis');
 }
 function closeAdvanceModal(){
   document.getElementById('advance-modal').classList.remove('vis');
 }
-function minimizeAdvanceModal(){
-  document.getElementById('advance-modal').classList.remove('vis');
-  const pill=document.getElementById('advance-pill');
-  if(pill){pill.style.display='flex';}
-}
-function restoreAdvanceModal(){
-  const pill=document.getElementById('advance-pill');
-  if(pill){pill.style.display='none';}
-  document.getElementById('advance-modal').classList.add('vis');
-}
-
 function advanceSkill(){
-  const content=document.getElementById('advance-modal-content');
-  const skillRows=SKILLS.map(sk=>{
-    const cur=skillData[sk]||0;
-    const maxed=cur>=4;
-    const onclk=maxed?'':'onclick="pickSkillAdvance(\'' +sk+ '\')"';
-    const dimStyle=maxed?'style="opacity:.35;cursor:default"':'';
-    const body=maxed
-      ?'<p style="margin:4px 0 0;font-size:11px;color:#606080">Already at maximum</p>'
-      :'<p style="margin:4px 0 0">+1 die &middot; '+cur+'d6 &rarr; '+(cur+1)+'d6</p>';
-    return '<div class="advance-option'+(maxed?' advance-option-disabled':'')+'" '+dimStyle+' '+onclk+'>'
-      +'<div style="display:flex;justify-content:space-between;align-items:center">'
-      +'<h4 style="margin:0">'+sk+'</h4>'
-      +'<span style="font-size:12px;color:#d4a84b;font-weight:700">'+cur+'/4</span>'
-      +'</div>'+body+'</div>';
-  }).join('');
-  content.innerHTML='<div style="font-family:Cinzel,serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#606080;margin-bottom:10px">Choose a Skill to Increase</div>'
-    +'<div class="advance-power-list">'+skillRows+'</div>'
-    +'<button class="advance-back-btn" onclick="showAdvanceModal()">← Back</button>';
-}
-async function pickSkillAdvance(skill){
-  const cur=skillData[skill]||0;
-  if(cur>=4){showToast('That skill is already maxed');return;}
-  const newVal=cur+1;
-  skillData[skill]=newVal;
-  // Write to DB
-  const{data:existing}=await db.from('character_skills').select('id').eq('character_id',CHAR_ID).eq('skill',skill).limit(1);
-  if(existing&&existing.length){
-    await db.from('character_skills').update({dice:newVal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('skill',skill);
-  } else {
-    await db.from('character_skills').insert({character_id:CHAR_ID,skill,dice:newVal});
-  }
-  buildSkillsGrid();
-  updateMortalityDisplay();
   closeAdvanceModal();
+  switchPlaybook('hero');
+  showToast('Add a check to any skill below');
+  // Highlight skill section briefly
+  const skillsGrid=document.getElementById('skills-grid');
+  if(skillsGrid){
+    skillsGrid.style.boxShadow='0 0 0 2px var(--gold)';
+    setTimeout(()=>{skillsGrid.style.boxShadow='';},3000);
+  }
   completeAdvance();
-  showToast(`${skill} increased to ${newVal}d6!`);
 }
 function showAdvanceFeats(){
   const content=document.getElementById('advance-modal-content');
@@ -3024,7 +2710,7 @@ function showAdvancePowers(){
     return;
   }
   content.innerHTML=`
-    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Choose a Power</div>
+    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Choose a Divine Power</div>
     <div class="advance-power-list">
       ${available.map(p=>`
         <div class="advance-power-item" onclick="advancePower('${p.id}','${p.action}')">
@@ -3058,29 +2744,12 @@ async function advancePower(id,action){
   completeAdvance();
 }
 async function completeAdvance(){
+  const newXP=0;
   const newTotal=(advancementData.total_advances||0)+1;
   advancementData.xp_current=0;
   advancementData.total_advances=newTotal;
   await db.from('advancement').update({xp_current:0,total_advances:newTotal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID);
   renderXP();
-
-  // Decrement pending_advances on characters table
-  const remaining=Math.max(0,(charData.pending_advances||1)-1);
-  charData.pending_advances=remaining;
-  await db.from('characters').update({pending_advances:remaining,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
-
-  _pendingAdvDone++;
-
-  if(_pendingAdvDone<_pendingAdvTotal){
-    // More advances pending — show modal again immediately for next one
-    showAdvanceModal();
-  } else {
-    // All done — close the modal
-    _pendingAdvTotal=0;
-    _pendingAdvDone=0;
-    closeAdvanceModal();
-    showToast('All advancements applied!');
-  }
 }
 
 // ── JURY SYSTEM ──
@@ -3255,11 +2924,9 @@ let combatParticipantData=null;
 let myQueueItem=null;
 let combatQueueData=[];
 let combatParticipantsAll=[];
-let gritResultShowing=false; // true for 3.2s after rolling initiative — prevents premature hide
-let actionSubmittedThisTurn=false; // true after player locks in action — hides panel until next turn
 
 async function loadCombatState(){
-  const{data:_dsRows}=await db.from('dm_settings').select('combat_active,combat_session_id').eq('id',1).limit(1);
+  const{data:_dsRows}=await db.from('dm_settings').select('combat_active,combat_session_id,current_round').eq('id',1).limit(1);
   const data=_dsRows?.[0]||null;
   if(!data){hideCombatOverlay();return;}
   console.log('[Combat] dm_settings: active='+data.combat_active+' session='+data.combat_session_id);
@@ -3302,18 +2969,15 @@ function updateCombatOverlay(){
   const miniRound=document.getElementById('co-mini-round');
   if(miniRound)miniRound.textContent=`Rd ${round}`;
 
-  // Grit initiative section
-  // Show when: round 1 and not yet rolled.
-  // Stay visible when: gritResultShowing=true (result animating — don't yank it away).
+  // Grit initiative section — show on round 1 if not yet rolled
   const initSec=document.getElementById('co-grit-init-section');
   const isRound1=round===1;
   const gritRolled=combatParticipantData?.grit_rolled||false;
-  if(initSec) initSec.style.display=(isRound1&&(!gritRolled||gritResultShowing))?'block':'none';
-  if(isRound1&&!gritRolled&&!gritResultShowing){
-    // Pre-roll state: show dice count, hide any previous result
+  if(initSec) initSec.style.display=(isRound1&&!gritRolled)?'block':'none';
+  if(isRound1&&!gritRolled){
     const grit=charData.grit||0;
     const dc=document.getElementById('co-grit-dice-display');
-    if(dc) dc.textContent=grit===0?'2d6 — take lower':`${grit}d6`;
+    if(dc) dc.textContent=`${grit}d6`;
     document.getElementById('co-grit-roll-result').style.display='none';
   }
 
@@ -3367,14 +3031,9 @@ function updateCombatOverlay(){
   const actionPanel=document.getElementById('co-action-panel');
   if(actionPanel){
     const noActions=combatParticipantData&&combatParticipantData.actions_used>=combatParticipantData.actions_max;
-    const waitingForInit=(isRound1&&!gritRolled)||gritResultShowing;
-    // Reset submit lock when it's no longer this player's turn
-    if(!isMyTurn) actionSubmittedThisTurn=false;
-    const showActions=isMyTurn&&!noActions&&!waitingForInit&&!actionSubmittedThisTurn;
-    // Only rebuild the grid when transitioning from hidden → shown (avoids resetting subpanels on every subscription fire)
-    const wasHidden=actionPanel.style.display==='none';
-    actionPanel.style.display=showActions?'block':'none';
-    if(showActions&&wasHidden) buildCombatActionGrid();
+    const waitingForInit=isRound1&&!gritRolled;
+    actionPanel.style.display=(isMyTurn&&!noActions&&!waitingForInit)?'block':'none';
+    if(isMyTurn&&!noActions&&!waitingForInit) buildCombatActionGrid();
   }
 
   // Join button
@@ -3382,7 +3041,7 @@ function updateCombatOverlay(){
   if(joinBtn){
     const inQueue=combatQueueData.some(q=>q.character_id===CHAR_ID&&q.status!=='done');
     const noActs=combatParticipantData&&combatParticipantData.actions_used>=combatParticipantData.actions_max;
-    const waitingForInit=(isRound1&&!gritRolled)||gritResultShowing;
+    const waitingForInit=isRound1&&!gritRolled;
     joinBtn.disabled=inQueue||noActs||isMyTurn||waitingForInit;
     joinBtn.textContent=inQueue?'⏳ In Queue…':noActs?'No Actions Left':waitingForInit?'Roll Initiative First':'⚔ I Want to Act';
   }
@@ -3391,7 +3050,7 @@ function updateCombatOverlay(){
   const helpBtn=document.getElementById('co-help-ally-btn');
   if(helpBtn){
     const hasBond=(charData.bond||0)>0;
-    const waitingForInit=(isRound1&&!gritRolled)||gritResultShowing;
+    const waitingForInit=isRound1&&!gritRolled;
     helpBtn.disabled=isMyTurn||!hasBond||waitingForInit;
     helpBtn.title=!hasBond?'No Bond to spend':isMyTurn?'Cannot help on your own turn':'Help the current actor (+1 die)';
   }
@@ -3443,47 +3102,22 @@ function renderCombatInventory(){
   });
 }
 async function rollGritInitiative(){
-  const grit=charData.grit||0;
-  const isZeroGrit=grit===0;
-  // 0 Grit: roll 2d6 take lower. Otherwise roll Grit dice take highest.
-  const diceCount=isZeroGrit?2:grit;
-  const dice=Array.from({length:diceCount},()=>Math.ceil(Math.random()*6));
-  const relevant=isZeroGrit?Math.min(...dice):Math.max(...dice);
-  let actions=relevant>=6?3:relevant>=4?2:1;
-  const outcomeText=relevant>=6?'✦ Success — 3 Actions':relevant>=4?'◈ Mixed — 2 Actions':'✕ Fail — 1 Action';
-  const outcomeColor=relevant>=6?'var(--success)':relevant>=4?'var(--partial)':'var(--fail)';
-
-  // Render visual dice — highlight the chosen die (lowest for 0-grit, highest otherwise)
-  const diceRow=document.getElementById('co-grit-dice-row');
-  const resultWrap=document.getElementById('co-grit-dice-result');
-  const outcomeLabel=document.getElementById('co-grit-outcome-label');
-  const rollBtn=document.getElementById('co-grit-roll-btn');
-  if(diceRow&&resultWrap&&outcomeLabel){
-    diceRow.innerHTML='';
-    dice.forEach((val,i)=>{
-      const isChosen=isZeroGrit?(val===relevant&&dice.indexOf(val)===i || (val===Math.min(...dice)&&dice.filter(d=>d===val).length>1?i===dice.lastIndexOf(val):i===dice.indexOf(val))):val===relevant&&i===dice.indexOf(val);
-      const span=document.createElement('div');
-      // Style matches .roll-die from the playbook tab
-      span.style.cssText=`width:44px;height:44px;border-radius:8px;border:2px solid ${isChosen?(isZeroGrit?'#ef4444':'var(--gold)'):'#c4a87a'};background:rgba(255,248,235,.85);display:flex;align-items:center;justify-content:center;font-family:'Cinzel Decorative',serif;font-size:20px;font-weight:700;color:${isChosen?(isZeroGrit?'#ef4444':'var(--gold)'):'#5c2d0a'};${isChosen?`box-shadow:0 0 10px ${isZeroGrit?'#ef444440':'#d4a84b60'};`:''}animation:diceSpinIn .4s ease ${i*80}ms both`;
-      span.textContent=val;
-      diceRow.appendChild(span);
-    });
-    outcomeLabel.textContent=outcomeText;
-    outcomeLabel.style.color=outcomeColor;
-    resultWrap.style.display='block';
-    if(rollBtn)rollBtn.style.display='none'; // hide roll button once rolled
-  }
-
+  const grit=Math.max(1,charData.grit||0);
+  const dice=Array.from({length:grit},()=>Math.ceil(Math.random()*6));
+  const highest=Math.max(...dice);
+  let actions=highest>=6?3:highest>=4?2:1;
+  const outcome=highest>=6?'Success — 3 Actions!':highest>=4?'Mixed — 2 Actions':'Fail — 1 Action';
+  const resEl=document.getElementById('co-grit-roll-result');
+  resEl.textContent=`${dice.join(', ')} → ${outcome}`;
+  resEl.style.display='block';
   // Update participant row
   if(combatParticipantData){
     await db.from('combat_participants').update({actions_max:actions,grit_rolled:true,updated_at:new Date().toISOString()}).eq('id',combatParticipantData.id);
     combatParticipantData.actions_max=actions;
     combatParticipantData.grit_rolled=true;
   }
-  showToast(`Initiative: ${outcomeText}`);
-  // Hold the result on screen for 3.2s before transitioning to main combat UI
-  gritResultShowing=true;
-  setTimeout(()=>{gritResultShowing=false;updateCombatOverlay();},3200);
+  showToast(`Initiative: ${outcome}`);
+  setTimeout(()=>updateCombatOverlay(),800);
 }
 async function joinCombatQueue(){
   if(!combatSessionData)return;
@@ -3515,31 +3149,29 @@ function buildCombatActionGrid(){
   const hasClose=tags.some(t=>t.includes('close'));
   const hasFar=tags.some(t=>t.includes('far'));
   const hasIntimate=tags.some(t=>t.includes('intimate'));
+  const hasReach=tags.some(t=>t.includes('reach'));
   const attackCount=(combatParticipantData?.actions_used||0);
   const hasMultipleWeapons=inventoryData.filter(i=>i.is_weapon).length>1;
-  const grit=charData.grit||0;
-
-  // Range-eligible combat feats (hidden entirely if weapon doesn't qualify)
-  const eligibleFeats=FEATS.filter(f=>{
-    if(f.type!=='combat'||!unlockedFeats.has(f.id)) return false;
-    if(f.id==='cleave') return hasClose;
-    if(f.id==='cover_shot') return hasFar;
-    if(f.id==='disarm') return hasClose||hasIntimate;
-    if(f.id==='stun') return hasClose;
-    return true;
-  });
 
   const actions=[
-    {icon:'⚔',label:'Attack',desc:equipped?`${equipped.name}${attackCount>0?' — Rushed':''}`:`Unarmed (1d4 harm)${attackCount>0?' — Rushed':''}`,cost:attackCount>0?'Disadvantage':'',onclick:()=>showAttackFlow(attackCount>0)},
+    {icon:'⚔',label:'Attack',desc:'Roll weapon damage',cost:attackCount>0?'Rushed (Disadvantage)':'',onclick:()=>showAttackFlow(attackCount>0)},
     {icon:'🏃',label:'Move',desc:'Reposition in scene',cost:'',onclick:()=>showMoveFlow()},
     {icon:'🔍',label:'Scope',desc:'Investigate surroundings',cost:'',onclick:()=>submitCombatAction('scope','Scope the surroundings')},
     {icon:'🎒',label:'Use Item',desc:'Use inventory item or interact with scene object',cost:'',onclick:()=>showItemFlow()},
-    {icon:'✨',label:'Use Ability',desc:'Trigger a divine or hero power',cost:'',onclick:()=>showAbilityFlow()},
+    {icon:'✨',label:'Use Ability',desc:'Hero or divine ability',cost:'Uses Favor for divine',onclick:()=>submitCombatAction('ability','Use ability — switching to playbook tab')},
   ];
   if(hasMultipleWeapons) actions.push({icon:'🔄',label:'Swap Weapon',desc:'Switch equipped weapon',cost:'',onclick:()=>showSwapWeaponFlow()});
-  if(eligibleFeats.length){
-    actions.push({icon:'⚡',label:'Combat Feat',desc:`${eligibleFeats.length} available`,cost:'1 Grit each',disabled:grit<=0,onclick:()=>showFeatSubPanel()});
-  }
+
+  // Combat feats (filtered by range)
+  FEATS.filter(f=>f.type==='combat'&&unlockedFeats.has(f.id)).forEach(f=>{
+    let available=true;
+    if(f.id==='cleave'&&!hasClose) available=false;
+    if(f.id==='cover_shot'&&!hasFar) available=false;
+    if(f.id==='disarm'&&!hasClose&&!hasIntimate) available=false;
+    if(f.id==='stun'&&!hasClose) available=false;
+    const grit=charData.grit||0;
+    actions.push({icon:'⚡',label:f.name,desc:f.desc,cost:'1 Grit',disabled:!available||(grit<=0),onclick:()=>showFeatFlow(f)});
+  });
 
   actions.forEach(a=>{
     const btn=document.createElement('button');
@@ -3561,8 +3193,8 @@ function showAttackFlow(isRushed){
 }
 async function executeAttack(targetId,targetType,targetName,isRushed){
   const equipped=getEquippedWeapon();
-  const weaponName=equipped?equipped.name:'Unarmed';
-  const harmTag=equipped?(equipped.tags||[]).find(t=>/\dd\d|\d+harm/i.test(t))||'1d6':'1d4';
+  if(!equipped){showToast('No weapon equipped');return;}
+  const harmTag=(equipped.tags||[]).find(t=>/\dd\d|\d+harm/i.test(t))||'1d6';
   const dieMatch=harmTag.match(/(\d+)d(\d+)/i);
   let result;
   if(dieMatch){
@@ -3578,11 +3210,10 @@ async function executeAttack(targetId,targetType,targetName,isRushed){
   }
   await db.from('combat_actions').insert({
     session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-    action_type:'attack',action_label:`Attacks ${targetName} with ${weaponName}`,
+    action_type:'attack',action_label:`Attacks ${targetName} with ${equipped.name}`,
     target_id:targetId,target_type:targetType,target_name:targetName,
     harm_dealt:result,resolved:false
   });
-  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast(`Attack on ${targetName}: ${result} harm — waiting for DM`);
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3598,7 +3229,6 @@ function showMoveFlow(){
 async function submitMoveAction(){
   const desc=document.getElementById('co-move-desc')?.value||'Moving';
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'move',action_label:desc,resolved:false});
-  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast('Move submitted');
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3617,7 +3247,6 @@ function showItemFlow(){
 async function submitSceneInteract(){
   const obj=document.getElementById('co-scene-obj')?.value||'Scene object';
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'item',action_label:`Interacts with: ${obj}`,resolved:false});
-  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast('Interaction submitted');
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3636,332 +3265,32 @@ async function swapWeapon(itemId){
     w.equipped=w.id===itemId;
   }
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'swap_weapon',action_label:`Swapped weapon`,resolved:false});
-  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   renderInventory();renderCombatWeapon();
   showToast('Weapon swapped');
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
 }
-// ── DIVINE ABILITY SIDE PANEL ──
-const DIVINE_PANEL_CFG={
-  acc:'#6ee7b7',glow:'#10b98144',border:'#10b981',bg:'linear-gradient(135deg,#0a1f0f,#050e07)',particles:'sparks'
-};
-
-function showAbilityFlow(){
-  // Instead of replacing action panel — open the side panel
-  openAbilityPanel();
-}
-
-function openAbilityPanel(){
-  const panel=document.getElementById('co-ability-panel');if(!panel)return;
-  // Apply character theme
-  panel.style.background=DIVINE_PANEL_CFG.bg;
-  panel.style.borderColor=DIVINE_PANEL_CFG.border;
-  panel.style.boxShadow=`0 8px 40px ${DIVINE_PANEL_CFG.glow},0 0 0 1px ${DIVINE_PANEL_CFG.border}`;
-
-  // Header title color
-  const title=document.getElementById('cap-title');
-  if(title)title.style.color=DIVINE_PANEL_CFG.acc;
-
-  // Favor display
-  const favVal=document.getElementById('cap-favor-val');
-  const favMax=document.getElementById('cap-favor-max');
-  const favor=charData.favor_current||0;
-  const mort=getMortality()||0;
-  if(favVal){favVal.textContent=favor;favVal.style.color=DIVINE_PANEL_CFG.acc;}
-  if(favMax)favMax.textContent=`/ ${mort}`;
-  
-  // Fire Track (Murphy only — same as favor_current, displayed as flame count)
-  const flameEl=document.getElementById('cap-flame-val');
-  if(flameEl){
-    flameEl.textContent=charData.favor_current||0;
-  }
-
-  // Build cards
-  buildAbilityCards();
-  panel.classList.add('vis');
-}
-
-function closeAbilityPanel(){
-  const panel=document.getElementById('co-ability-panel');
-  if(panel)panel.classList.remove('vis');
-}
-
-function buildAbilityCards(){
-  const list=document.getElementById('cap-list');if(!list)return;
-  const favor=charData.favor_current||0;
-  const entries=[...unlockedPowers].map(id=>{
-    const nd=ND[id];if(!nd)return null;
-    const costMatch=nd.meta.match(/(\d+)\s+Favor/);
-    const cost=costMatch?parseInt(costMatch[1]):0;
-    return{id,nd,cost};
-  }).filter(Boolean).sort((a,b)=>a.nd.meta.localeCompare(b.nd.meta));
-
-  if(!entries.length){
-    list.innerHTML=`<div style="text-align:center;padding:20px;font-size:12px;opacity:.5;font-style:italic">No abilities unlocked yet.</div>`;
-    return;
-  }
-
-  list.innerHTML='';
-  entries.forEach(({id,nd,cost})=>{
-    const canAfford=favor>=cost||cost===0;
-    const isPassive=nd.content.type==='passive';
-    const costLabel=cost?`${cost} Favor`:isPassive?'Passive':'Free';
-    const costColor=!canAfford&&cost>0?'#ef4444':DIVINE_PANEL_CFG.acc;
-    const card=document.createElement('div');
-    card.className=`cap-card ${canAfford?'can-afford':'cannot-afford'}`;
-    card.dataset.nodeId=id;
-
-    // Build outcomes HTML
-    let outcomesHtml='';
-    if(nd.content.outcomes){
-      outcomesHtml=`<div class="cap-card-outcomes">${nd.content.outcomes.map(o=>`<div class="cap-outcome ${o.cls}"><div class="cap-outcome-lbl">${o.label}</div>${o.text}</div>`).join('')}</div>`;
-    } else if(nd.content.desc){
-      outcomesHtml=`<div style="margin-bottom:8px">${nd.content.desc}</div>`;
-    }
-
-    const triggerHtml=nd.content.trigger?`<div class="cap-card-trigger">${nd.content.trigger}</div>`:'';
-    const rollHtml=nd.content.roll?`<div style="font-size:11px;margin-bottom:8px;padding:5px 8px;background:rgba(255,255,255,.06);border-radius:4px;font-style:italic">${nd.content.roll}</div>`:'';
-        const isTargeted=nd.content.targeted===true;
-    const inCombat=typeof combatSessionData!=='undefined'&&combatSessionData;
-    const useBtnHtml=canAfford
-      ?(isTargeted&&inCombat
-        ?`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="showAbilityTargetPicker('${id}',${cost},this)">⚔ Choose Target — ${costLabel}</button>`
-        :`<button class="cap-use-btn" style="background:${DIVINE_PANEL_CFG.acc};color:#0a0a0f" onclick="useCombatAbilityFromPanel('${id}',${cost})">✦ Use — ${costLabel}</button>`)
-      :`<div style="font-size:10px;text-align:center;color:#ef4444;padding:6px">Need ${cost} Favor (have ${favor})</div>`;
-
-    card.innerHTML=`
-      <div class="cap-card-hdr" onclick="toggleAbilityCard('${id}')">
-        <span class="cap-card-name" style="color:${DIVINE_PANEL_CFG.acc}">${nd.name}</span>
-        <span class="cap-card-cost" style="background:${costColor}20;border:1px solid ${costColor}60;color:${costColor}">${costLabel}</span>
-        <span class="cap-card-chevron">▾</span>
-      </div>
-      <div class="cap-card-meta">${nd.meta}</div>
-      <div class="cap-card-body">
-        ${triggerHtml}${rollHtml}${outcomesHtml}
-        ${useBtnHtml}
-      </div>`;
-    list.appendChild(card);
-  });
-}
-
-function toggleAbilityCard(nodeId){
-  const cards=document.querySelectorAll('.cap-card');
-  cards.forEach(c=>{
-    if(c.dataset.nodeId===nodeId){
-      c.classList.toggle('expanded');
-    } else {
-      c.classList.remove('expanded'); // close others (accordion)
-    }
-  });
-}
-
-// ── TARGET PICKER (for abilities that deal damage to a specific combatant) ──
-function showAbilityTargetPicker(nodeId, cost, btn){
-  // Replace the "Choose Target" button with an inline target list
-  const card=btn.closest('.cap-card');if(!card)return;
-  // Remove existing picker if re-opening
-  card.querySelector('.cap-target-section')?.remove();
-
-  const targets=combatParticipantsAll.filter(p=>p.participant_id!==CHAR_ID&&p.is_active&&!p.is_dead);
-  const acc=DIVINE_PANEL_CFG.acc;
-
-  const section=document.createElement('div');
-  section.className='cap-target-section';
-  section.innerHTML=`<div class="cap-target-lbl">Choose Target</div>`;
-
-  // Combat participant buttons
-  targets.forEach(t=>{
-    const b=document.createElement('button');
-    b.className='cap-target-btn';
-    b.innerHTML=`${t.participant_type==='npc'?'👹':'🧑'} ${t.participant_name}`;
-    b.onclick=()=>confirmAbilityTarget(nodeId,cost,t.participant_id,t.participant_type,t.participant_name);
-    section.appendChild(b);
-  });
-
-  // "Other" option — environmental/custom target
-  const otherBtn=document.createElement('button');
-  otherBtn.className='cap-target-btn';
-  otherBtn.innerHTML='✏️ Other (environment / object)';
-  otherBtn.onclick=()=>{
-    otherBtn.style.display='none';
-    const inp=document.createElement('input');
-    inp.className='cap-other-input';
-    inp.placeholder="Describe what you're targeting…";
-    inp.autofocus=true;
-    const confirm=document.createElement('button');
-    confirm.className='cap-other-confirm';
-    confirm.style.cssText=`background:${acc};color:#0a0a0f`;
-    confirm.textContent='✦ Confirm Target';
-    confirm.onclick=()=>{
-      const val=inp.value.trim()||'Unknown target';
-      confirmAbilityTarget(nodeId,cost,'environment','environment',val);
-    };
-    inp.onkeydown=e=>{if(e.key==='Enter')confirm.click();};
-    section.appendChild(inp);
-    section.appendChild(confirm);
-    setTimeout(()=>inp.focus(),50);
-  };
-  section.appendChild(otherBtn);
-
-  // Replace the use button with the picker
-  btn.replaceWith(section);
-}
-
-async function confirmAbilityTarget(nodeId, cost, targetId, targetType, targetName){
-  closeAbilityPanel();
-  await playDivineAnimation();
-  // Pass target into useFavor → useAbility via a temporary global so useAbility can thread it
-  window._abilityTarget={id:targetId,type:targetType,name:targetName};
-  await useFavor(cost,nodeId);
-  window._abilityTarget=null;
-  if(combatSessionData&&myQueueItem){
-    await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
-  }
-  actionSubmittedThisTurn=true;
-  document.getElementById('co-action-panel').style.display='none';
-}
-
-async function useCombatAbilityFromPanel(nodeId,cost){
-  closeAbilityPanel();
-  // Play divine animation, then run the ability
-  await playDivineAnimation();
-  await useFavor(cost,nodeId);
-  // Queue update: mark as active so DM knows player has acted
-  if(combatSessionData&&myQueueItem){
-    await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
-  }
-  // Note: the rich combat_action with full outcome data is written inside useAbility().
-  // No duplicate write here — that would overwrite the good card on the DM screen.
-  actionSubmittedThisTurn=true;
-  document.getElementById('co-action-panel').style.display='none';
-}
-
-// useCombatAbility removed — call useCombatAbilityFromPanel directly
-
-// ── DIVINE PARTICLE ANIMATION ──
-function playDivineAnimation(){
-  return new Promise(resolve=>{
-    const canvas=document.getElementById('ability-anim-canvas');
-    if(!canvas){resolve();return;}
-    canvas.width=window.innerWidth;canvas.height=window.innerHeight;
-    canvas.classList.add('vis');
-    const ctx=canvas.getContext('2d');
-    const cx=window.innerWidth/2, cy=window.innerHeight*0.42;
-    const particles=[];
-    const BURST=220;
-
-    // Central flash glow at start
-    let flashAlpha=0.7;
-    function drawFlash(){
-      if(flashAlpha<=0)return;
-      const g=ctx.createRadialGradient(cx,cy,0,cx,cy,180);
-      g.addColorStop(0,`rgba(245,158,11,${flashAlpha*0.55})`);
-      g.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
-      flashAlpha-=0.03;
-    }
-
-    function spawnParticle(x,y){
-      const a=Math.random()*Math.PI*2;
-      const spd=Math.random()*3.5+2.0;
-      return{x, y:y+(Math.random()-0.5)*40,
-        vx:Math.cos(a)*spd*0.6,
-        vy:-(Math.random()*4+2.5),
-        life:1, decay:Math.random()*0.005+0.003,
-        r:Math.random()*5+3,
-        color:`hsl(${Math.random()*40+10},100%,${Math.random()*25+50}%)`
-      };
-    }
-
-    // Stagger initial burst — fire in waves
-    let spawnedCount=0;
-    const spawnInterval=setInterval(()=>{
-      const wave=Math.min(30, BURST-spawnedCount);
-      for(let i=0;i<wave;i++){
-        particles.push(spawnParticle(
-          cx+(Math.random()-0.5)*120,
-          cy+(Math.random()-0.5)*60
-        ));
-        spawnedCount++;
-      }
-      if(spawnedCount>=BURST)clearInterval(spawnInterval);
-    },40);
-
-    let raf;
-    function draw(){
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      drawFlash();
-      for(let i=particles.length-1;i>=0;i--){
-        const p=particles[i];
-      p.x+=p.vx; p.y+=p.vy; p.vy*=0.97; p.vx*=0.98; p.life-=p.decay;
-        if(p.life<=0){particles.splice(i,1);continue;}
-      ctx.globalAlpha=p.life*0.85; ctx.fillStyle=p.color;
-      ctx.shadowBlur=16; ctx.shadowColor=p.color;
-      ctx.beginPath(); ctx.arc(p.x,p.y,p.r*(0.4+p.life*0.6),0,Math.PI*2); ctx.fill();
-      ctx.shadowBlur=0;
-      }
-      if(particles.length>0||spawnedCount<BURST){
-        raf=requestAnimationFrame(draw);
-      } else {
-        canvas.classList.remove('vis');
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        resolve();
-      }
-    }
-    draw();
-    // Safety resolve after 3s
-    setTimeout(()=>{
-      clearInterval(spawnInterval);
-      if(raf)cancelAnimationFrame(raf);
-      canvas.classList.remove('vis');
-      resolve();
-    },3000);
-  });
-}
-
-// ── FEAT SUBPANEL ──
-function showFeatSubPanel(){
+function showFeatFlow(feat){
   const inner=document.getElementById('co-action-panel-inner');if(!inner)return;
-  const equipped=getEquippedWeapon();
-  const tags=equipped?(equipped.tags||[]).map(t=>t.toLowerCase()):[];
-  const hasClose=tags.some(t=>t.includes('close'));
-  const hasFar=tags.some(t=>t.includes('far'));
-  const hasIntimate=tags.some(t=>t.includes('intimate'));
-  const grit=charData.grit||0;
-  const targets=combatParticipantsAll.filter(p=>p.participant_id!==CHAR_ID&&p.is_active&&!p.is_dead);
-
-  const feats=FEATS.filter(f=>f.type==='combat'&&unlockedFeats.has(f.id)).filter(f=>{
-    if(f.id==='cleave') return hasClose;
-    if(f.id==='cover_shot') return hasFar;
-    if(f.id==='disarm') return hasClose||hasIntimate;
-    if(f.id==='stun') return hasClose;
-    return true;
-  });
-
-  if(!feats.length){
-    inner.innerHTML=`<button class="co-action-back" onclick="buildCombatActionGrid()">← Back</button><div class="co-action-title">⚡ Combat Feats</div><div style="color:#7a5c2e;font-size:12px;font-style:italic;padding:8px">No feats available with your current weapon.</div>`;
-    return;
+  // Feats that need a target
+  const needsTarget=['cleave','disarm','stun','cover_shot'];
+  if(needsTarget.includes(feat.id)){
+    const targets=combatParticipantsAll.filter(p=>p.participant_id!==CHAR_ID&&p.is_active&&!p.is_dead);
+    inner.innerHTML=`
+      <button class="co-action-back" onclick="buildCombatActionGrid()">← Back</button>
+      <div class="co-action-title">⚡ ${feat.name} — Choose Target</div>
+      <div style="font-size:11px;color:#7a5c2e;margin-bottom:10px">${feat.desc}</div>
+      ${feat.id==='cleave'?'<div style="font-size:11px;color:#8b4513;margin-bottom:8px">Select two targets:</div>':''}
+      ${targets.map(t=>`<button class="co-target-btn" onclick="executeFeat('${feat.id}','${feat.name}','${t.participant_id}','${t.participant_type}','${t.participant_name}')">${t.participant_type==='npc'?'👹':'🧑'} ${t.participant_name}</button>`).join('')}`;
+  } else {
+    // Bash — no target needed, just deals 5 harm to declared target
+    inner.innerHTML=`
+      <button class="co-action-back" onclick="buildCombatActionGrid()">← Back</button>
+      <div class="co-action-title">⚡ ${feat.name}</div>
+      <div style="font-size:11px;color:#7a5c2e;margin-bottom:10px">${feat.desc}</div>
+      ${combatParticipantsAll.filter(p=>p.participant_id!==CHAR_ID&&p.is_active&&!p.is_dead).map(t=>`<button class="co-target-btn" onclick="executeFeat('${feat.id}','${feat.name}','${t.participant_id}','${t.participant_type}','${t.participant_name}')">${t.participant_type==='npc'?'👹':'🧑'} ${t.participant_name}</button>`).join('')}`;
   }
-
-  const noGrit=grit<=0;
-  const tgtBtns=(featId,featName)=>targets.map(t=>`<button class="co-target-btn" style="font-size:11px;padding:5px 10px;margin:2px" onclick="executeFeat('${featId}','${featName}','${t.participant_id}','${t.participant_type}','${t.participant_name}')">${t.participant_type==='npc'?'👹':'🧑'} ${t.participant_name}</button>`).join('');
-
-  const cards=feats.map(f=>`
-    <div class="co-ability-card" style="${noGrit?'opacity:.45;pointer-events:none':''}">
-      <div class="co-ab-header"><span class="co-ab-name">${f.name}</span><span class="co-ab-cost">1 Grit</span></div>
-      <div class="co-ab-meta" style="margin-bottom:6px">${f.desc}</div>
-      ${noGrit?'<div style="font-size:9px;color:#c0392b">No Grit remaining</div>':`<div style="display:flex;flex-wrap:wrap;gap:4px">${tgtBtns(f.id,f.name)}</div>`}
-    </div>`).join('');
-
-  inner.innerHTML=`
-    <button class="co-action-back" onclick="buildCombatActionGrid()">← Back</button>
-    <div class="co-action-title">⚡ Combat Feats <span style="font-size:10px;color:#7a5c2e;font-family:'Inter',sans-serif;font-weight:400">${grit} Grit remaining</span></div>
-    <div class="co-ability-list">${cards}</div>`;
 }
-
-// showFeatFlow removed — target selection inline in showFeatSubPanel
-
 async function executeFeat(featId,featName,targetId,targetType,targetName){
   const grit=charData.grit||0;
   if(grit<=0){showToast('Not enough Grit');return;}
@@ -3976,7 +3305,6 @@ async function executeFeat(featId,featName,targetId,targetType,targetName){
   } else {
     await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'feat',action_label:`${featName} on ${targetName}${extraLabel}`,target_id:targetId,target_type:targetType,target_name:targetName,harm_dealt:harm||null,resolved:false});
   }
-  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast(`${featName} on ${targetName} — waiting for DM`);
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3984,7 +3312,6 @@ async function executeFeat(featId,featName,targetId,targetType,targetName){
 async function submitCombatAction(type,label){
   if(!combatSessionData)return;
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:type,action_label:label,resolved:false});
-  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast(`Action submitted: ${label}`);
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -4186,26 +3513,21 @@ function subscribeNotifications(){
       if(ev.rest_type==='long'){await loadConditions();renderConditions();}
     }
   }).subscribe();
-  // ── dm_settings changes: combat start/end and markup mode toggle
+  // Combat session changes
   db.channel(CHAR_ID+'-dm-settings').on('postgres_changes',{event:'*',schema:'public',table:'dm_settings'},async()=>{
     await loadCombatState();
     await loadMarkupMode();
   }).subscribe();
-
-  // ── Combat session updates: round advances, turn changes, reaction_pending
+  // Combat session updates (round changes, turn changes)
   db.channel(`${CHAR_ID}-combat-sess`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'combat_sessions'},async(payload)=>{
     if(combatSessionData&&payload.new?.id===combatSessionData.id){
-      combatSessionData=payload.new;
-      updateCombatOverlay();
+      combatSessionData=payload.new;updateCombatOverlay();
     }
   }).subscribe();
-
   // ── All participant changes: refresh strip + update my row
   db.channel(`${CHAR_ID}-combat-parts`).on('postgres_changes',{event:'*',schema:'public',table:'combat_participants'},async(payload)=>{
     if(!combatSessionData)return;
-    // Fast-path: if this is my row, update immediately
     if(payload.new?.participant_id===CHAR_ID) combatParticipantData=payload.new;
-    // Always reload full list for combatants strip
     const{data}=await db.from('combat_participants').select('*').eq('session_id',combatSessionData.id).order('position');
     combatParticipantsAll=data||[];
     const myRow=data?.find(p=>p.participant_id===CHAR_ID)||null;
@@ -4213,18 +3535,14 @@ function subscribeNotifications(){
     renderCombatantsStrip();
     updateCombatOverlay();
   }).subscribe();
-
-  // ── Combat queue changes
-  db.channel(`${CHAR_ID}-combat-q`).on('postgres_changes',{event:'*',schema:'public',table:'combat_queue'},async()=>{
+  db.channel(`${CHAR_ID}-combat-q`).on('postgres_changes',{event:'*',schema:'public',table:'combat_queue'},async(payload)=>{
     if(!combatSessionData)return;
     const{data}=await db.from('combat_queue').select('*').eq('session_id',combatSessionData.id).in('status',['waiting','active']).order('created_at');
     combatQueueData=data||[];
     myQueueItem=combatQueueData.find(q=>q.character_id===CHAR_ID)||null;
-    renderCombatQueue();
-    updateCombatOverlay();
+    renderCombatQueue();updateCombatOverlay();
   }).subscribe();
-
-  }
+}
 
 function showRestPopup(type){
   const modal=document.getElementById('roll-modal');
@@ -4261,6 +3579,7 @@ function showUndoNotification(changeType){
     </div>`;
   modal.classList.add('vis');
 }
+
 
 
 // ── JURY OVERLAY ──
@@ -4307,6 +3626,92 @@ async function castJuryVote(queueItemId,vote){
   await updateJuryOverlay();
 }
 
+// ── MURPHY FLAME TRACK ──
+const FLAME_MAX=5;
+const FLAME_NODE_IDS=['h4','h6','c2','c4','c6','c8'];
+
+function buildFlameTokens(){
+  const container=document.getElementById('flame-tokens');
+  const numEl=document.getElementById('flame-num');
+  if(!container)return;
+  const current=charData.flame_current||0;
+  container.innerHTML='';
+  for(let i=1;i<=FLAME_MAX;i++){
+    const t=document.createElement('div');
+    t.className='ftok '+(i<=current?'flame-on':'flame-empty');
+    container.appendChild(t);
+  }
+  if(numEl)numEl.textContent=current;
+}
+
+async function markFlame(marks){
+  const current=charData.flame_current||0;
+  const newVal=Math.min(FLAME_MAX,current+marks);
+  charData.flame_current=newVal;
+  await db.from('characters').update({flame_current:newVal,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+  buildFlameTokens();
+  await rollCatastropheCheck(newVal);
+}
+
+async function clearFlame(amount){
+  const current=charData.flame_current||0;
+  if(current<=0){showToast('No Flame to clear');return;}
+  const newVal=Math.max(0,current-amount);
+  charData.flame_current=newVal;
+  await db.from('characters').update({flame_current:newVal,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+  buildFlameTokens();
+  showToast('Flame cleared: '+current+' to '+newVal);
+}
+
+async function rollCatastropheCheck(flameCount){
+  if(flameCount<=0)return;
+  const dice=Array.from({length:flameCount},()=>Math.ceil(Math.random()*6));
+  const hasOne=dice.some(d=>d===1);
+  if(!hasOne){showToast('Flame check: ['+dice.join(', ')+'] — Safe');return;}
+  const burnHarm=Math.ceil(Math.random()*6);
+  const{data:condRow}=await db.from('conditions').insert({
+    character_id:CHAR_ID,label:'Burned',harm:burnHarm,unstable:false
+  }).select().single();
+  if(condRow){conditions.push(condRow);renderConditions();}
+  await db.from('ability_log').insert({
+    character_id:CHAR_ID,
+    ability_name:'Catastrophe — Burned',
+    ability_meta:'Flame check ['+dice.join(', ')+']',
+    cost_str:burnHarm+' harm',
+    created_at:new Date().toISOString()
+  });
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  const diceHtml=dice.map(d=>'<div class="roll-die'+(d===1?' one':'')+'">'+''+d+'</div>').join('');
+  content.innerHTML=
+    '<div style="text-align:center">'
+    +'<div style="font-size:36px;margin-bottom:8px">&#128293;</div>'
+    +'<div style="font-size:20px;font-weight:700;color:var(--fail);margin-bottom:8px">Catastrophe!</div>'
+    +'<div style="font-size:13px;color:var(--muted);margin-bottom:14px">Flame roll: '+flameCount+'d6 = ['+dice.join(', ')+']</div>'
+    +'<div class="roll-dice-display">'+diceHtml+'</div>'
+    +'<div style="margin:12px 0;padding:12px 16px;background:#ef444415;border:1px solid #ef444440;border-radius:6px">'
+    +'<div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--fail);margin-bottom:4px">BURNED</div>'
+    +'<div style="font-size:26px;color:var(--harm)">'+burnHarm+' Harm</div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-top:4px">Condition applied. The room may catch fire — Weaver notified.</div>'
+    +'</div>'
+    +'<button class="add-cond-btn" onclick="closeRollModal()">Acknowledged</button>'
+    +'</div>';
+  modal.classList.add('vis');
+}
+
+async function sacrificeItem(itemId,itemName){
+  await db.from('ability_log').insert({
+    character_id:CHAR_ID,
+    ability_name:'Sacrifice: '+itemName,
+    ability_meta:'Item sacrificed to clear Flame — Weaver decides amount',
+    cost_str:'Flame: '+(charData.flame_current||0),
+    created_at:new Date().toISOString()
+  });
+  await db.from('equipment').delete().eq('id',itemId);
+  inventoryData=inventoryData.filter(i=>i.id!==itemId);
+  renderInventory();
+  showToast(itemName+' sacrificed — Weaver will clear Flame',4000);
+}
 // ── HERO ADVANCEMENTS ──
 const HERO_ADVANCES=[
   // COMBAT
@@ -4426,6 +3831,44 @@ function renderHeroAdvancements(){
     }
     grid.appendChild(card);
   }
+}
+
+function browseAllHeroAbilities(){
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  modal.classList.add('hadv-browse-modal');
+
+  function renderGroup(label,items){
+    if(!items.length)return'';
+    return'<div class="hadv-browse-group">'
+      +'<div class="hadv-browse-label">'+label+'</div>'
+      +items.map(a=>{
+        const typeIcon=a.type==='passive'?'\u2605':'\u25b6';
+        const catColor=a.cat==='combat'?'#f87171':'#60a5fa';
+        return'<div style="padding:9px 12px;background:var(--surf2);border:1px solid var(--border);border-radius:5px;margin-bottom:5px">'
+          +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">'
+          +'<span style="color:'+catColor+';font-size:12px">'+typeIcon+'</span>'
+          +'<span class="hadv-name" style="flex:1">'+a.name+'</span>'
+          +'<span class="hadv-cost">'+a.cost+'pt</span>'
+          +'</div>'
+          +'<div style="font-size:11px;color:var(--muted);line-height:1.5">'+a.desc+'</div>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }
+
+  const combat=HERO_ADVANCES.filter(a=>a.cat==='combat');
+  const narrative=HERO_ADVANCES.filter(a=>a.cat==='narrative');
+
+  content.innerHTML=
+    '<div style="font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:4px">All Hero Abilities</div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Read-only \u2014 plan ahead. \u2605 = Passive \u00a0\u00b7\u00a0 \u25b6 = Active</div>'
+    +'<div style="max-height:480px;overflow-y:auto">'
+    +renderGroup('\u2694 Combat',combat)
+    +renderGroup('\u25c8 Narrative',narrative)
+    +'</div>'
+    +'<button class="add-cond-btn" style="margin-top:10px" onclick="closeRollModal()">Close</button>';
+  modal.classList.add('vis');
 }
 
 function browseHeroAdvancements(targetSlot){
@@ -4564,6 +4007,17 @@ async function advanceHeroPool(){
 
 // ── BOOT ──
 init().catch(e=>{console.error(e);setSyncDot(false);});
+
+function minimizeCombat(){
+  const ov=document.getElementById('combat-overlay');if(!ov)return;
+  ov.classList.add('minimized');
+  document.body.style.overflow='';
+}
+function restoreCombat(){
+  const ov=document.getElementById('combat-overlay');if(!ov)return;
+  ov.classList.remove('minimized');
+  document.body.style.overflow='hidden';
+}
 </script>
 </body>
 </html>

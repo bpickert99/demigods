@@ -1085,6 +1085,7 @@ body.markup .hadv-remove-btn{display:flex}
     <div class="section-title">💪 Hero Abilities</div>
     <div class="hadv-pool-row">
       <span class="hadv-pool-badge">Pool: <span id="hero-adv-pool">0</span> pt</span>
+      <button onclick="browseAllHeroAbilities()" style="padding:4px 12px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">📖 Browse All</button>
       <span style="font-size:11px;color:var(--dim)">Spend points to equip. Swap anytime.</span>
     </div>
     <div class="hadv-names-strip" id="hadv-names-strip"></div>
@@ -1442,11 +1443,14 @@ async function init(){
   subscribeNotifications();
   setSyncDot(true);
   startCanvas();
-  // Re-open advance modal if there were pending advances at time of page load/refresh
+  // Re-open advance modal on refresh only if genuinely pending (not yet acted on)
   const pending=charData.pending_advances||0;
+  const xp=advancementData.xp_current||0;
   if(pending>0){
     _pendingAdvTotal=pending;
     _pendingAdvDone=0;
+    showAdvanceModal();
+  } else if(xp>=4&&!document.getElementById('advance-modal').classList.contains('vis')){
     showAdvanceModal();
   }
 }
@@ -1522,9 +1526,10 @@ function subscribeAll(){
     if(payload.new?.id===CHAR_ID){
       charData={...charData,...payload.new};
       applyCharData();
-      // Handle pending advances grant from DM
+      // Handle pending advances grant from DM — only trigger on fresh grant
       const pending=payload.new?.pending_advances||0;
-      if(pending>0&&pending!==_pendingAdvDone){
+      const wasZero=(payload.old?.pending_advances||0)===0;
+      if(pending>0&&wasZero){
         _pendingAdvTotal=pending;
         _pendingAdvDone=0;
         showAdvanceModal();
@@ -2840,7 +2845,10 @@ function renderXP(){
     pip.className=`xp-pip${i<=xp?' filled':''}`;
     pips.appendChild(pip);
   }
-  if(xp>=4) showAdvanceModal();
+  // Only open modal if XP just hit 4 AND modal is not already open AND no DM-granted advance pending
+  if(xp>=4&&!document.getElementById('advance-modal').classList.contains('vis')&&!(charData.pending_advances>0)){
+    showAdvanceModal();
+  }
 }
 async function awardXP(){
   const current=advancementData.xp_current||0;
@@ -4400,6 +4408,44 @@ function renderHeroAdvancements(){
     }
     grid.appendChild(card);
   }
+}
+
+function browseAllHeroAbilities(){
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  modal.classList.add('hadv-browse-modal');
+
+  function renderGroup(label,items){
+    if(!items.length)return'';
+    return'<div class="hadv-browse-group">'
+      +'<div class="hadv-browse-label">'+label+'</div>'
+      +items.map(a=>{
+        const typeIcon=a.type==='passive'?'\u2605':'\u25b6';
+        const catColor=a.cat==='combat'?'#f87171':'#60a5fa';
+        return'<div style="padding:9px 12px;background:var(--surf2);border:1px solid var(--border);border-radius:5px;margin-bottom:5px">'
+          +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">'
+          +'<span style="color:'+catColor+';font-size:12px">'+typeIcon+'</span>'
+          +'<span class="hadv-name" style="flex:1">'+a.name+'</span>'
+          +'<span class="hadv-cost">'+a.cost+'pt</span>'
+          +'</div>'
+          +'<div style="font-size:11px;color:var(--muted);line-height:1.5">'+a.desc+'</div>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }
+
+  const combat=HERO_ADVANCES.filter(a=>a.cat==='combat');
+  const narrative=HERO_ADVANCES.filter(a=>a.cat==='narrative');
+
+  content.innerHTML=
+    '<div style="font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:4px">All Hero Abilities</div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Read-only \u2014 plan ahead. \u2605 = Passive \u00a0\u00b7\u00a0 \u25b6 = Active</div>'
+    +'<div style="max-height:480px;overflow-y:auto">'
+    +renderGroup('\u2694 Combat',combat)
+    +renderGroup('\u25c8 Narrative',narrative)
+    +'</div>'
+    +'<button class="add-cond-btn" style="margin-top:10px" onclick="closeRollModal()">Close</button>';
+  modal.classList.add('vis');
 }
 
 function browseHeroAdvancements(targetSlot){
