@@ -1103,8 +1103,8 @@ body.markup .hadv-remove-btn{display:flex}
       <div class="favor-num-big" id="favor-num" style="color:#c4b5fd">0</div>
       <div class="favor-slash">/ <span id="fmax-disp">0</span></div>
       <div class="favor-btns">
-        <button class="favor-btn" style="border-color:#8b5cf640;color:#c4b5fd" onclick="changeFavor(-1)">−</button>
-        <button class="favor-btn" style="border-color:#8b5cf640;color:#c4b5fd" onclick="changeFavor(1)">+</button>
+        <button class="favor-btn" style="border-color:#8b5cf640;color:#c4b5fd" onclick="setFavor((charData.favor_current||0)-1)">−</button>
+        <button class="favor-btn" style="border-color:#8b5cf640;color:#c4b5fd" onclick="setFavor((charData.favor_current||0)+1)">+</button>
       </div>
     </div>
     <div class="favor-tokens" id="favor-tokens"></div>
@@ -1169,11 +1169,11 @@ body.markup .hadv-remove-btn{display:flex}
         <div class="ndesc">Create a full sensory illusion — a place, a person, a creature, or an event — that fools all senses. Lasts until dawn or until you choose to end it.</div>
         <div class="npre">Requires: Mislead + Curse Misfortune</div>
       </div>
-      <div class="node locked" id="t7" data-b="trickery" data-prereq="t5,s1" data-favor="3" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518" onclick="toggleNode(this)">
+      <div class="node locked" id="t7" data-b="trickery" data-prereq="t5,an-stallion" data-favor="3" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Sneak</span><span class="badge b-fav">3 Favor</span><span class="badge b-cross">🐺 Shifting T1</span></div>
         <div class="npip"></div><div class="nname">Vanish</div>
         <div class="ndesc">Teleport up to 20 feet to any location you can see. No sound. No trace. Leave behind only the faint smell of wilderness.</div>
-        <div class="npre">Requires: Shadow Step + Beast Shape (Shifting)</div>
+        <div class="npre">Requires: Shadow Step + Black Stallion (Shifting)</div>
       </div>
     </div></div>
     <div class="tier"><div class="tier-head"><span>Tier IV · Apex</span><div class="tier-rule"></div></div>
@@ -1220,7 +1220,7 @@ body.markup .hadv-remove-btn{display:flex}
       </div>
     </div></div>
 
-    <div class="tier"><div class="tier-head"><span>Expanded Forms — Require Beast Shape Unlocked</span><div class="tier-rule"></div></div>
+    <div class="tier"><div class="tier-head"><span>Expanded Forms — Require Black Stallion Unlocked</span><div class="tier-rule"></div></div>
     <div class="tgrid c3">
       <!-- COW -->
       <div class="node locked" id="an-cow" data-b="shapeshifting" data-animal="cow" data-prereq="an-stallion" style="--nc:#059669;--na:#34d399;--ng:#10b98155;--nb:#06402418" onclick="toggleNode(this)">
@@ -1403,7 +1403,7 @@ const SKILLS=['Notice','Persuade','Search','Wits','Might','Nimble','Sneak','Toug
 
 // ── COMPUTED ──
 function getTotalDice(){return SKILLS.reduce((s,sk)=>s+(skillData[sk]||0),0);}
-function getMortality(){return getTotalDice();}
+function getMortality(){return getTotalDice()+getHeroMortalityBonus();}
 function getTotalHarm(){return conditions.reduce((s,c)=>s+c.harm,0);}
 
 // ── INIT ──
@@ -1480,6 +1480,26 @@ function applyCharData(){
 }
 
 // ── SUBSCRIPTIONS ──
+
+function flashConditionReceived(){
+  // Flash the overlay red-tinted to signal harm landed on this character
+  const overlay=document.getElementById('combat-overlay');
+  if(overlay&&overlay.classList.contains('vis')){
+    overlay.classList.remove('harm-hit');
+    void overlay.offsetWidth; // force reflow so re-trigger works
+    overlay.classList.add('harm-hit');
+    setTimeout(()=>overlay.classList.remove('harm-hit'),700);
+  }
+  // Briefly highlight the newest condition row
+  const rows=document.querySelectorAll('.condition-row');
+  const last=rows[rows.length-1];
+  if(last){
+    last.classList.add('harm-flash');
+    setTimeout(()=>last.classList.remove('harm-flash'),800);
+  }
+}
+
+// ── SUBSCRIPTIONS ──
 function subscribeAll(){
   db.channel('finn-char').on('postgres_changes',{event:'*',schema:'public',table:'characters'},async payload=>{
     if(payload.new?.id===CHAR_ID){
@@ -1494,8 +1514,8 @@ function subscribeAll(){
     }
   }).subscribe();
   db.channel('finn-cond').on('postgres_changes',{event:'*',schema:'public',table:'conditions'},payload=>{
-    const id=payload.new?.character_id||payload.old?.character_id;
-    if(id===CHAR_ID)loadConditions();
+    const id=payload.new?.character_id||payload.old?.character_id||null;
+    if(!id||id===CHAR_ID)loadConditions();
   }).subscribe();
   db.channel('finn-powers').on('postgres_changes',{event:'*',schema:'public',table:'unlocked_powers'},payload=>{
     const id=payload.new?.character_id||payload.old?.character_id;
@@ -1521,7 +1541,7 @@ function buildSkillsGrid(){
     row.className='skill-row';
     row.innerHTML=`<span class="skill-name">${sk}</span>
       <div class="skill-boxes" id="sboxes-${sk}"></div>
-      <span class="skill-dice" id="sdice-${sk}">${dice}d6</span>
+      <span class="skill-dice" id="sdice-${sk}">${dice||'0'}d6</span>
       <button class="skill-roll-btn" title="Roll ${sk}" onclick="initiateRoll('${sk}',event)">🎲</button>`;
     grid.appendChild(row);
     buildSkillBoxes(sk,dice);
@@ -1530,15 +1550,15 @@ function buildSkillsGrid(){
 }
 
 async function saveSkillMarkup(skill, newVal){
-  const existing = skillsData.find(s=>s.skill_name===skill);
-  if(existing){
-    existing.dice_count = newVal;
-    await db.from('character_skills').update({dice_count:newVal, updated_at:new Date().toISOString()}).eq('id', existing.id);
+  skillData[skill] = newVal;
+  const{data:existing}=await db.from('character_skills').select('id').eq('character_id',CHAR_ID).eq('skill',skill).limit(1);
+  if(existing&&existing.length){
+    await db.from('character_skills').update({dice:newVal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('skill',skill);
   } else {
-    const{data}=await db.from('character_skills').insert({character_id:CHAR_ID, skill_name:skill, dice_count:newVal}).select().single();
-    if(data) skillsData.push(data);
+    await db.from('character_skills').insert({character_id:CHAR_ID,skill,dice:newVal});
   }
   buildSkillBoxes(skill, newVal);
+  updateMortalityDisplay();
 }
 
 function buildSkillBoxes(skill,checked){
@@ -1572,16 +1592,39 @@ function updateMortalityDisplay(){
 }
 
 // ── STAT PIPS ──
+// Return extra track slots from hero abilities
+function getHeroTrackBonus(track){
+  const equippedIds=Object.values(heroSlots||{}).filter(Boolean);
+  let bonus=0;
+  if(track==='grit'&&equippedIds.includes('gritty')) bonus+=1;
+  return bonus;
+}
+// Return extra mortality from hero abilities
+function getHeroMortalityBonus(){
+  const equippedIds=Object.values(heroSlots||{}).filter(Boolean);
+  return equippedIds.includes('unkillable')?3:0;
+}
+
 function buildStatPips(){
   ['wisdom','grit','bond'].forEach(track=>{
     const container=document.getElementById(`${track}-pips`);
     if(!container) return;
     container.innerHTML='';
     const val=charData[track]||0;
-    for(let i=1;i<=4;i++){
+    const maxSlots=4+getHeroTrackBonus(track);
+    for(let i=1;i<=maxSlots;i++){
       const pip=document.createElement('div');
       pip.className=`stat-pip${i<=val?' on '+track:''}`;
-      // read-only — momentum only from roll results
+      if(markupMode){
+        const iVal=i;
+        pip.style.cursor='pointer';
+        pip.onclick=()=>{
+          const newVal=iVal<=val?iVal-1:iVal;
+          charData[track]=newVal;
+          db.from('characters').update({[track]:newVal,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+          buildStatPips();
+        };
+      }
       container.appendChild(pip);
     }
   });
@@ -1710,8 +1753,6 @@ async function setFavor(n){
   animateFavorChange(oldVal,val,max);
   await db.from('characters').update({favor_current:val,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
 }
-function changeFavor(d){setFavor((charData.favor_current||0)+d);}
-function refillFavor(){setFavor(getMortality()||0);}
 async function useFavor(cost,nodeId){
   // Deduct favor
   await setFavor((charData.favor_current||0)-cost);
@@ -1981,6 +2022,7 @@ async function resolveWisdomPrompt(skill,useWisdom){
 }
 
 async function fireRollRequest(skill,wisdomBoost){
+  if(pendingRollId){showToast('⏳ A roll is already pending — wait for the Weaver to resolve it');return;}
   const baseDice=skillData[skill]||0;
   // 0 dice = roll 2d6 take lower — send as special flag
   const sendDice=baseDice===0?-2:baseDice+(wisdomBoost?1:0);
@@ -2063,8 +2105,10 @@ function showRollResult(skill,results,highest,outcome,outcomeClass,ones,modifier
       </div>
     </div>`;
   }
+  const skillDesc=SKILL_DESCS[skill]||'';
   content.innerHTML=`
-    <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:4px;color:var(--muted);margin-bottom:6px;text-transform:uppercase">${skill}</div>
+    <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:4px;color:var(--muted);margin-bottom:2px;text-transform:uppercase">${skill}</div>
+    ${skillDesc?`<div style="font-size:11px;color:var(--dim);font-style:italic;margin-bottom:8px">${skillDesc}</div>`:''}
     ${modHtml}${zeroHtml}
     <div class="roll-dice-display">${diceHtml}</div>
     <div class="roll-outcome ${outcomeClass}">${outcome}</div>
@@ -2139,7 +2183,7 @@ async function logMomentumChange(track,oldVal,newVal,desc){
   });
 }
 
-function closeRollModal(){document.getElementById('roll-modal').classList.remove('vis');}
+function closeRollModal(){const m=document.getElementById('roll-modal');m.classList.remove('vis','hadv-browse-modal');}
 async function logRoll(skill,diceRolled,results,highest,outcome,ones,modifier){
   const outcomeKey=outcome.includes('Full')?'success':outcome.includes('Mixed')?'mixed':'fail';
   await db.from('roll_log').insert({character_id:CHAR_ID,skill,dice_rolled:diceRolled,results,highest,outcome:outcomeKey,ones_count:ones,modifier});
@@ -2267,6 +2311,37 @@ function applyPowerStates(){
     refreshDice(n,id);
   });
   updateSpread();updateProgress();
+}
+
+function refreshNodeBadge(el,id){
+  let badge=el.querySelector('.node-badge');
+  if(!badge){
+    badge=document.createElement('div');
+    badge.className='node-badge';
+    el.appendChild(badge);
+  }
+  const isUnlocked=unlockedPowers.has(id);
+  const levelsStr=el.dataset.levels;
+  const levelsArr=levelsStr?levelsStr.split(','):null;
+  const lvl=nodeLevels[id]||0;
+
+  if(isUnlocked){
+    badge.textContent=levelsArr?`Lv ${lvl+1}/${levelsArr.length}`:'✦';
+    badge.title=levelsArr?`Level ${lvl+1} of ${levelsArr.length} — click to change in markup`:'Unlocked';
+  } else {
+    badge.textContent='—';
+    badge.title='Not unlocked';
+  }
+
+  // Markup mode: make badge clickable to toggle/cycle
+  badge.className='node-badge'+(markupMode?' markup-edit':'');
+  badge.onclick=null;
+  if(markupMode){
+    badge.onclick=(e)=>{
+      e.stopPropagation();
+      cycleNodeInMarkup(id,el);
+    };
+  }
 }
 
 function refreshDice(el,id){
@@ -2432,6 +2507,37 @@ async function toggleNode(el){
     await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:nodeLevels[id]||0});
   }
   updateAllLocks();refreshDice(el,id);updateSpread();updateProgress();
+}
+
+async function cycleNodeInMarkup(id,el){
+  const isUnlocked=unlockedPowers.has(id);
+  const levelsStr=el.dataset.levels;
+  const levelsArr=levelsStr?levelsStr.split(','):null;
+  const lvl=nodeLevels[id]||0;
+
+  if(!isUnlocked){
+    // In markup mode: unlock regardless of prereqs
+    unlockedPowers.add(id);
+    nodeLevels[id]=0;
+    el.classList.remove('avail','locked');el.classList.add('unlocked');
+    await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:0});
+    updateAllLocks();refreshDice(el,id);refreshNodeBadge(el,id);updateSpread();updateProgress();
+  } else if(levelsArr&&lvl<levelsArr.length-1){
+    // Level up
+    const next=lvl+1;
+    nodeLevels[id]=next;
+    refreshDice(el,id);refreshNodeBadge(el,id);
+    await db.from('unlocked_powers').update({level:next,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('power_id',id);
+  } else {
+    // Re-lock
+    if(hasDependent(id)){showToast('Another power depends on this one');return;}
+    unlockedPowers.delete(id);
+    delete nodeLevels[id];
+    el.classList.remove('unlocked');
+    el.classList.add(prereqsMet(el)?'avail':'locked');
+    await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
+    updateAllLocks();refreshDice(el,id);refreshNodeBadge(el,id);updateSpread();updateProgress();
+  }
 }
 
 function showAnimalDetail(nodeId){
@@ -2636,9 +2742,9 @@ function setMarkupMode(on){
   document.body.classList.toggle('markup', on);
   const banner = document.getElementById('markup-banner');
   if(banner) banner.classList.toggle('vis', on);
-  // Rebuild skill boxes with/without click
-  if(typeof buildAllSkillBoxes === 'function') buildAllSkillBoxes();
-  else if(typeof renderSkills === 'function') renderSkills();
+  buildSkillsGrid();       // skill boxes pick up / lose markup click handlers
+  buildStatPips();          // momentum track pips pick up / lose markup handlers
+  applyPowerStates();       // node badges pick up / lose markup click handlers
 }
 
 
@@ -2806,6 +2912,7 @@ function renderXP(){
     pip.className=`xp-pip${i<=xp?' filled':''}`;
     pips.appendChild(pip);
   }
+  // Only open modal if XP just hit 4 AND modal is not already open AND no DM-granted advance pending
   if(xp>=4&&!document.getElementById('advance-modal').classList.contains('vis')&&!(charData.pending_advances>0)){
     showAdvanceModal();
   }
@@ -2824,26 +2931,31 @@ async function awardXP(){
 function showAdvanceModal(){
   const modal=document.getElementById('advance-modal');
   const content=document.getElementById('advance-modal-content');
-  content.innerHTML=`
-    <div style="font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);margin-bottom:6px;text-align:center">✦ Advance ✦</div>
-    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px">Choose one advancement:</div>
-    <div class="advance-option" onclick="advanceSkill()">
-      <h4>📈 New Skill Point</h4>
-      <p>Add one check to any skill, increasing your dice pool for that skill by 1. Also increases your Mortality and Favor max.</p>
-    </div>
-    <div class="advance-option" onclick="showAdvanceFeats()">
-      <h4>⚔ New Combat or Defense Feat</h4>
-      <p>Unlock one feat you don't yet have.</p>
-    </div>
-    <div class="advance-option" onclick="showAdvancePowers()">
-      <h4>🔥 New Divine Power</h4>
-      <p>Unlock the next available power in your divine playbook, or level up an existing one.</p>
-    </div>`;
+  const countHtml=_pendingAdvTotal>1
+    ?'<div style="position:absolute;top:14px;right:52px;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--gold);background:var(--gold2);border:1px solid var(--gold);border-radius:12px;padding:2px 9px">#'+(_pendingAdvDone+1)+' / '+_pendingAdvTotal+'</div>'
+    :'';
+  content.innerHTML=countHtml
+    +'<div style="font-size:20px;color:var(--gold);margin-bottom:6px;text-align:center;font-weight:700">✦ Advance ✦</div>'
+    +'<div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px">Choose one advancement:</div>'
+    +'<div class="advance-option" onclick="advanceSkill()"><h4>📈 New Skill Point</h4><p>Add one check to any skill — increases your dice pool, Mortality, and Favor max.</p></div>'
+    +'<div class="advance-option" onclick="showAdvanceFeats()"><h4>⚔ New Combat or Defense Feat</h4><p>Unlock one feat you don\'t yet have.</p></div>'
+    +'<div class="advance-option" onclick="showAdvancePowers()"><h4>✨ New Power</h4><p>Unlock a power in your divine playbook, or level up an existing one.</p></div>'+'<div class="advance-option" onclick="advanceHeroPool()"><h4>💪 Hero Ability (Bank +1)</h4><p>Add a point to your pool — spend it to buy or swap a Hero Ability anytime.</p></div>';
   modal.classList.add('vis');
 }
 function closeAdvanceModal(){
   document.getElementById('advance-modal').classList.remove('vis');
 }
+function minimizeAdvanceModal(){
+  document.getElementById('advance-modal').classList.remove('vis');
+  const pill=document.getElementById('advance-pill');
+  if(pill){pill.style.display='flex';}
+}
+function restoreAdvanceModal(){
+  const pill=document.getElementById('advance-pill');
+  if(pill){pill.style.display='none';}
+  document.getElementById('advance-modal').classList.add('vis');
+}
+
 function advanceSkill(){
   const content=document.getElementById('advance-modal-content');
   const skillRows=SKILLS.map(sk=>{
@@ -2852,15 +2964,15 @@ function advanceSkill(){
     const onclk=maxed?'':'onclick="pickSkillAdvance(\'' +sk+ '\')"';
     const dimStyle=maxed?'style="opacity:.35;cursor:default"':'';
     const body=maxed
-      ?'<p style="margin:4px 0 0;font-size:11px;color:var(--dim)">Already at maximum</p>'
+      ?'<p style="margin:4px 0 0;font-size:11px;color:#606080">Already at maximum</p>'
       :'<p style="margin:4px 0 0">+1 die &middot; '+cur+'d6 &rarr; '+(cur+1)+'d6</p>';
     return '<div class="advance-option'+(maxed?' advance-option-disabled':'')+'" '+dimStyle+' '+onclk+'>'
       +'<div style="display:flex;justify-content:space-between;align-items:center">'
       +'<h4 style="margin:0">'+sk+'</h4>'
-      +'<span style="font-size:12px;color:var(--gold);font-weight:700">'+cur+'/4</span>'
+      +'<span style="font-size:12px;color:#d4a84b;font-weight:700">'+cur+'/4</span>'
       +'</div>'+body+'</div>';
   }).join('');
-  content.innerHTML='<div style="font-family:Cinzel,serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Choose a Skill to Increase</div>'
+  content.innerHTML='<div style="font-family:Cinzel,serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#606080;margin-bottom:10px">Choose a Skill to Increase</div>'
     +'<div class="advance-power-list">'+skillRows+'</div>'
     +'<button class="advance-back-btn" onclick="showAdvanceModal()">← Back</button>';
 }
@@ -2870,6 +2982,7 @@ async function pickSkillAdvance(skill){
   if(cur>=4){showToast('That skill is already maxed');return;}
   const newVal=cur+1;
   skillData[skill]=newVal;
+  // Write to DB
   const{data:existing}=await db.from('character_skills').select('id').eq('character_id',CHAR_ID).eq('skill',skill).limit(1);
   if(existing&&existing.length){
     await db.from('character_skills').update({dice:newVal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('skill',skill);
@@ -2880,7 +2993,7 @@ async function pickSkillAdvance(skill){
   updateMortalityDisplay();
   closeAdvanceModal();
   completeAdvance();
-  showToast(skill+' increased to '+newVal+'d6!');
+  showToast(`${skill} increased to ${newVal}d6!`);
 }
 function showAdvanceFeats(){
   const content=document.getElementById('advance-modal-content');
@@ -2978,9 +3091,29 @@ async function advancePower(id,action,animal){
   completeAdvance();
 }
 async function completeAdvance(){
-  advancementData.xp_current=0;advancementData.total_advances=(advancementData.total_advances||0)+1;
-  await db.from('advancement').update({xp_current:0,total_advances:advancementData.total_advances,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID);
+  const newTotal=(advancementData.total_advances||0)+1;
+  advancementData.xp_current=0;
+  advancementData.total_advances=newTotal;
+  await db.from('advancement').update({xp_current:0,total_advances:newTotal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID);
   renderXP();
+
+  // Decrement pending_advances on characters table
+  const remaining=Math.max(0,(charData.pending_advances||1)-1);
+  charData.pending_advances=remaining;
+  await db.from('characters').update({pending_advances:remaining,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
+
+  _pendingAdvDone++;
+
+  if(_pendingAdvDone<_pendingAdvTotal){
+    // More advances pending — show modal again immediately for next one
+    showAdvanceModal();
+  } else {
+    // All done — close the modal
+    _pendingAdvTotal=0;
+    _pendingAdvDone=0;
+    closeAdvanceModal();
+    showToast('All advancements applied!');
+  }
 }
 
 // ── JURY SYSTEM ──
@@ -3200,15 +3333,18 @@ function updateCombatOverlay(){
   const miniRound=document.getElementById('co-mini-round');
   if(miniRound)miniRound.textContent=`Rd ${round}`;
 
-  // Grit initiative section — show on round 1 if not yet rolled
+  // Grit initiative section
+  // Show when: round 1 and not yet rolled.
+  // Stay visible when: gritResultShowing=true (result animating — don't yank it away).
   const initSec=document.getElementById('co-grit-init-section');
   const isRound1=round===1;
   const gritRolled=combatParticipantData?.grit_rolled||false;
-  if(initSec) initSec.style.display=(isRound1&&!gritRolled)?'block':'none';
-  if(isRound1&&!gritRolled){
+  if(initSec) initSec.style.display=(isRound1&&(!gritRolled||gritResultShowing))?'block':'none';
+  if(isRound1&&!gritRolled&&!gritResultShowing){
+    // Pre-roll state: show dice count, hide any previous result
     const grit=charData.grit||0;
     const dc=document.getElementById('co-grit-dice-display');
-    if(dc) dc.textContent=`${grit}d6`;
+    if(dc) dc.textContent=grit===0?'2d6 — take lower':`${grit}d6`;
     document.getElementById('co-grit-roll-result').style.display='none';
   }
 
@@ -3262,9 +3398,14 @@ function updateCombatOverlay(){
   const actionPanel=document.getElementById('co-action-panel');
   if(actionPanel){
     const noActions=combatParticipantData&&combatParticipantData.actions_used>=combatParticipantData.actions_max;
-    const waitingForInit=isRound1&&!gritRolled;
-    actionPanel.style.display=(isMyTurn&&!noActions&&!waitingForInit)?'block':'none';
-    if(isMyTurn&&!noActions&&!waitingForInit) buildCombatActionGrid();
+    const waitingForInit=(isRound1&&!gritRolled)||gritResultShowing;
+    // Reset submit lock when it's no longer this player's turn
+    if(!isMyTurn) actionSubmittedThisTurn=false;
+    const showActions=isMyTurn&&!noActions&&!waitingForInit&&!actionSubmittedThisTurn;
+    // Only rebuild the grid when transitioning from hidden → shown (avoids resetting subpanels on every subscription fire)
+    const wasHidden=actionPanel.style.display==='none';
+    actionPanel.style.display=showActions?'block':'none';
+    if(showActions&&wasHidden) buildCombatActionGrid();
   }
 
   // Join button
@@ -3272,7 +3413,7 @@ function updateCombatOverlay(){
   if(joinBtn){
     const inQueue=combatQueueData.some(q=>q.character_id===CHAR_ID&&q.status!=='done');
     const noActs=combatParticipantData&&combatParticipantData.actions_used>=combatParticipantData.actions_max;
-    const waitingForInit=isRound1&&!gritRolled;
+    const waitingForInit=(isRound1&&!gritRolled)||gritResultShowing;
     joinBtn.disabled=inQueue||noActs||isMyTurn||waitingForInit;
     joinBtn.textContent=inQueue?'⏳ In Queue…':noActs?'No Actions Left':waitingForInit?'Roll Initiative First':'⚔ I Want to Act';
   }
@@ -3281,7 +3422,7 @@ function updateCombatOverlay(){
   const helpBtn=document.getElementById('co-help-ally-btn');
   if(helpBtn){
     const hasBond=(charData.bond||0)>0;
-    const waitingForInit=isRound1&&!gritRolled;
+    const waitingForInit=(isRound1&&!gritRolled)||gritResultShowing;
     helpBtn.disabled=isMyTurn||!hasBond||waitingForInit;
     helpBtn.title=!hasBond?'No Bond to spend':isMyTurn?'Cannot help on your own turn':'Help the current actor (+1 die)';
   }
@@ -3333,22 +3474,47 @@ function renderCombatInventory(){
   });
 }
 async function rollGritInitiative(){
-  const grit=Math.max(1,charData.grit||0);
-  const dice=Array.from({length:grit},()=>Math.ceil(Math.random()*6));
-  const highest=Math.max(...dice);
-  let actions=highest>=6?3:highest>=4?2:1;
-  const outcome=highest>=6?'Success — 3 Actions!':highest>=4?'Mixed — 2 Actions':'Fail — 1 Action';
-  const resEl=document.getElementById('co-grit-roll-result');
-  resEl.textContent=`${dice.join(', ')} → ${outcome}`;
-  resEl.style.display='block';
+  const grit=charData.grit||0;
+  const isZeroGrit=grit===0;
+  // 0 Grit: roll 2d6 take lower. Otherwise roll Grit dice take highest.
+  const diceCount=isZeroGrit?2:grit;
+  const dice=Array.from({length:diceCount},()=>Math.ceil(Math.random()*6));
+  const relevant=isZeroGrit?Math.min(...dice):Math.max(...dice);
+  let actions=relevant>=6?3:relevant>=4?2:1;
+  const outcomeText=relevant>=6?'✦ Success — 3 Actions':relevant>=4?'◈ Mixed — 2 Actions':'✕ Fail — 1 Action';
+  const outcomeColor=relevant>=6?'var(--success)':relevant>=4?'var(--partial)':'var(--fail)';
+
+  // Render visual dice — highlight the chosen die (lowest for 0-grit, highest otherwise)
+  const diceRow=document.getElementById('co-grit-dice-row');
+  const resultWrap=document.getElementById('co-grit-dice-result');
+  const outcomeLabel=document.getElementById('co-grit-outcome-label');
+  const rollBtn=document.getElementById('co-grit-roll-btn');
+  if(diceRow&&resultWrap&&outcomeLabel){
+    diceRow.innerHTML='';
+    dice.forEach((val,i)=>{
+      const isChosen=isZeroGrit?(val===relevant&&dice.indexOf(val)===i || (val===Math.min(...dice)&&dice.filter(d=>d===val).length>1?i===dice.lastIndexOf(val):i===dice.indexOf(val))):val===relevant&&i===dice.indexOf(val);
+      const span=document.createElement('div');
+      // Style matches .roll-die from the playbook tab
+      span.style.cssText=`width:44px;height:44px;border-radius:8px;border:2px solid ${isChosen?(isZeroGrit?'#ef4444':'var(--gold)'):'#c4a87a'};background:rgba(255,248,235,.85);display:flex;align-items:center;justify-content:center;font-family:'Cinzel Decorative',serif;font-size:20px;font-weight:700;color:${isChosen?(isZeroGrit?'#ef4444':'var(--gold)'):'#5c2d0a'};${isChosen?`box-shadow:0 0 10px ${isZeroGrit?'#ef444440':'#d4a84b60'};`:''}animation:diceSpinIn .4s ease ${i*80}ms both`;
+      span.textContent=val;
+      diceRow.appendChild(span);
+    });
+    outcomeLabel.textContent=outcomeText;
+    outcomeLabel.style.color=outcomeColor;
+    resultWrap.style.display='block';
+    if(rollBtn)rollBtn.style.display='none'; // hide roll button once rolled
+  }
+
   // Update participant row
   if(combatParticipantData){
     await db.from('combat_participants').update({actions_max:actions,grit_rolled:true,updated_at:new Date().toISOString()}).eq('id',combatParticipantData.id);
     combatParticipantData.actions_max=actions;
     combatParticipantData.grit_rolled=true;
   }
-  showToast(`Initiative: ${outcome}`);
-  setTimeout(()=>updateCombatOverlay(),800);
+  showToast(`Initiative: ${outcomeText}`);
+  // Hold the result on screen for 3.2s before transitioning to main combat UI
+  gritResultShowing=true;
+  setTimeout(()=>{gritResultShowing=false;updateCombatOverlay();},3200);
 }
 async function joinCombatQueue(){
   if(!combatSessionData)return;
@@ -3433,8 +3599,9 @@ function showAttackFlow(isRushed){
 }
 async function executeAttack(targetId,targetType,targetName,isRushed){
   const equipped=getEquippedWeapon();
-  if(!equipped){showToast('No weapon equipped');return;}
-  const harmTag=(equipped.tags||[]).find(t=>/\dd\d|\d+harm/i.test(t))||'1d6';
+  // No weapon equipped: unarmed attack rolls 1d4
+  const weaponName=equipped?equipped.name:'Unarmed';
+  const harmTag=equipped?(equipped.tags||[]).find(t=>/\dd\d|\d+harm/i.test(t))||'1d6':'1d4';
   const dieMatch=harmTag.match(/(\d+)d(\d+)/i);
   let result;
   if(dieMatch){
@@ -3450,10 +3617,11 @@ async function executeAttack(targetId,targetType,targetName,isRushed){
   }
   await db.from('combat_actions').insert({
     session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-    action_type:'attack',action_label:`Attacks ${targetName} with ${equipped.name}`,
+    action_type:'attack',action_label:`Attacks ${targetName} with ${weaponName}`,
     target_id:targetId,target_type:targetType,target_name:targetName,
     harm_dealt:result,resolved:false
   });
+  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast(`Attack on ${targetName}: ${result} harm — waiting for DM`);
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3469,6 +3637,7 @@ function showMoveFlow(){
 async function submitMoveAction(){
   const desc=document.getElementById('co-move-desc')?.value||'Moving';
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'move',action_label:desc,resolved:false});
+  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast('Move submitted');
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3487,6 +3656,7 @@ function showItemFlow(){
 async function submitSceneInteract(){
   const obj=document.getElementById('co-scene-obj')?.value||'Scene object';
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'item',action_label:`Interacts with: ${obj}`,resolved:false});
+  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast('Interaction submitted');
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3505,6 +3675,7 @@ async function swapWeapon(itemId){
     w.equipped=w.id===itemId;
   }
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'swap_weapon',action_label:`Swapped weapon`,resolved:false});
+  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   renderInventory();renderCombatWeapon();
   showToast('Weapon swapped');
@@ -3545,6 +3716,7 @@ async function executeFeat(featId,featName,targetId,targetType,targetName){
   } else {
     await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'feat',action_label:`${featName} on ${targetName}${extraLabel}`,target_id:targetId,target_type:targetType,target_name:targetName,harm_dealt:harm||null,resolved:false});
   }
+  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast(`${featName} on ${targetName} — waiting for DM`);
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3552,6 +3724,7 @@ async function executeFeat(featId,featName,targetId,targetType,targetName){
 async function submitCombatAction(type,label){
   if(!combatSessionData)return;
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:type,action_label:label,resolved:false});
+  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast(`Action submitted: ${label}`);
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3823,6 +3996,27 @@ function showUndoNotification(changeType){
 
 
 // ── JURY OVERLAY ──
+function showStyledConfirm(title, message, onConfirm, onCancel){
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  content.innerHTML=`
+    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Confirm</div>
+    <div style="font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--text);margin-bottom:10px">${title}</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">${message}</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeRollModal()" style="padding:8px 18px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s">Cancel</button>
+      <button id="styled-confirm-btn" style="padding:8px 18px;border-radius:4px;border:1px solid var(--success);background:transparent;color:var(--success);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s">Confirm</button>
+    </div>`;
+  document.getElementById('styled-confirm-btn').onclick=()=>{closeRollModal();onConfirm();};
+  modal.classList.add('vis');
+}
+
+// showStyledAlert removed
+
+
+
+// ── JURY OVERLAY ──
+
 async function updateJuryOverlay(){
   const{data:sess}=await db.from('jury_sessions').select('*').in('status',['open','voting']).order('created_at',{ascending:false}).limit(1);
   const overlay=document.getElementById('jury-overlay');if(!overlay)return;
@@ -4057,6 +4251,8 @@ const HERO_ADVANCES=[
 ];
 
 let heroSlots={};    // slot index (0-7) -> advancement_id or null
+let _pendingAdvTotal=0;  // how many were granted this session
+let _pendingAdvDone=0;   // how many have been completed
 let heroPool=0;      // unspent pool points
 
 async function loadHeroAdvancements(){

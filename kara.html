@@ -1674,8 +1674,8 @@ function subscribeAll(){
     }
   }).subscribe();
   db.channel('kara-cond').on('postgres_changes',{event:'*',schema:'public',table:'conditions'},payload=>{
-    const id=payload.new?.character_id||payload.old?.character_id;
-    if(id!==CHAR_ID)return;
+    const id=payload.new?.character_id||payload.old?.character_id||null;
+    if(id&&id!==CHAR_ID)return;
     const wasInsert=payload.eventType==='INSERT';
     loadConditions().then(()=>{
       if(wasInsert)flashConditionReceived();
@@ -1705,7 +1705,7 @@ function buildSkillsGrid(){
     row.className='skill-row';
     row.innerHTML=`<span class="skill-name">${sk}</span>
       <div class="skill-boxes" id="sboxes-${sk}"></div>
-      <span class="skill-dice" id="sdice-${sk}">${dice}d6</span>
+      <span class="skill-dice" id="sdice-${sk}">${dice||'0'}d6</span>
       <button class="skill-roll-btn" title="Roll ${sk}" onclick="initiateRoll('${sk}',event)">🎲</button>`;
     grid.appendChild(row);
     buildSkillBoxes(sk,dice);
@@ -2224,6 +2224,7 @@ async function resolveWisdomPrompt(skill,useWisdom){
 }
 
 async function fireRollRequest(skill,wisdomBoost){
+  if(pendingRollId){showToast('⏳ A roll is already pending — wait for the Weaver to resolve it');return;}
   const baseDice=skillData[skill]||0;
   // 0 dice = roll 2d6 take lower — send as special flag
   const sendDice=baseDice===0?-2:baseDice+(wisdomBoost?1:0);
@@ -4512,6 +4513,27 @@ async function logFavorChange(oldFavor,newFavor,desc){
 
 
 // ── JURY OVERLAY ──
+function showStyledConfirm(title, message, onConfirm, onCancel){
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  content.innerHTML=`
+    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Confirm</div>
+    <div style="font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--text);margin-bottom:10px">${title}</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">${message}</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeRollModal()" style="padding:8px 18px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s">Cancel</button>
+      <button id="styled-confirm-btn" style="padding:8px 18px;border-radius:4px;border:1px solid var(--success);background:transparent;color:var(--success);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s">Confirm</button>
+    </div>`;
+  document.getElementById('styled-confirm-btn').onclick=()=>{closeRollModal();onConfirm();};
+  modal.classList.add('vis');
+}
+
+// showStyledAlert removed
+
+
+
+// ── JURY OVERLAY ──
+
 async function updateJuryOverlay(){
   const{data:sess}=await db.from('jury_sessions').select('*').in('status',['open','voting']).order('created_at',{ascending:false}).limit(1);
   const overlay=document.getElementById('jury-overlay');if(!overlay)return;
