@@ -1456,8 +1456,11 @@ function subscribeAll(){
       charData={...charData,...payload.new};
       applyCharData();
       const pending=payload.new?.pending_advances||0;
-      const wasZero=(payload.old?.pending_advances||0)===0;
-      if(pending>0&&wasZero){_pendingAdvTotal=pending;_pendingAdvDone=0;showAdvanceModal();}
+      if(pending>0&&pending>(_pendingAdvTotal-_pendingAdvDone)){
+        _pendingAdvTotal=pending;
+        _pendingAdvDone=0;
+        if(!document.getElementById('advance-modal').classList.contains('vis'))showAdvanceModal();
+      }
     }
   }).subscribe();
   db.channel('murphy-cond').on('postgres_changes',{event:'*',schema:'public',table:'conditions'},payload=>{

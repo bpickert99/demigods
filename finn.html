@@ -1486,8 +1486,11 @@ function subscribeAll(){
       charData={...charData,...payload.new};
       applyCharData();
       const pending=payload.new?.pending_advances||0;
-      const wasZero=(payload.old?.pending_advances||0)===0;
-      if(pending>0&&wasZero){_pendingAdvTotal=pending;_pendingAdvDone=0;showAdvanceModal();}
+      if(pending>0&&pending>(_pendingAdvTotal-_pendingAdvDone)){
+        _pendingAdvTotal=pending;
+        _pendingAdvDone=0;
+        if(!document.getElementById('advance-modal').classList.contains('vis'))showAdvanceModal();
+      }
     }
   }).subscribe();
   db.channel('finn-cond').on('postgres_changes',{event:'*',schema:'public',table:'conditions'},payload=>{
@@ -1545,7 +1548,13 @@ function buildSkillBoxes(skill,checked){
   for(let i=1;i<=4;i++){
     const box=document.createElement('div');
     box.className='sbox'+(i<=checked?' checked':'');
-    // read-only — no onclick
+    if(markupMode){
+      const iVal=i;
+      box.onclick=()=>{
+        const newVal=iVal<=checked?iVal-1:iVal;
+        saveSkillMarkup(skill,newVal);
+      };
+    }
     container.appendChild(box);
   }
 }
@@ -2836,16 +2845,42 @@ function closeAdvanceModal(){
   document.getElementById('advance-modal').classList.remove('vis');
 }
 function advanceSkill(){
-  closeAdvanceModal();
-  switchPlaybook('hero');
-  showToast('Add a check to any skill below');
-  // Highlight skill section briefly
-  const skillsGrid=document.getElementById('skills-grid');
-  if(skillsGrid){
-    skillsGrid.style.boxShadow='0 0 0 2px var(--gold)';
-    setTimeout(()=>{skillsGrid.style.boxShadow='';},3000);
+  const content=document.getElementById('advance-modal-content');
+  const skillRows=SKILLS.map(sk=>{
+    const cur=skillData[sk]||0;
+    const maxed=cur>=4;
+    const onclk=maxed?'':'onclick="pickSkillAdvance(\'' +sk+ '\')"';
+    const dimStyle=maxed?'style="opacity:.35;cursor:default"':'';
+    const body=maxed
+      ?'<p style="margin:4px 0 0;font-size:11px;color:var(--dim)">Already at maximum</p>'
+      :'<p style="margin:4px 0 0">+1 die &middot; '+cur+'d6 &rarr; '+(cur+1)+'d6</p>';
+    return '<div class="advance-option'+(maxed?' advance-option-disabled':'')+'" '+dimStyle+' '+onclk+'>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+      +'<h4 style="margin:0">'+sk+'</h4>'
+      +'<span style="font-size:12px;color:var(--gold);font-weight:700">'+cur+'/4</span>'
+      +'</div>'+body+'</div>';
+  }).join('');
+  content.innerHTML='<div style="font-family:Cinzel,serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Choose a Skill to Increase</div>'
+    +'<div class="advance-power-list">'+skillRows+'</div>'
+    +'<button class="advance-back-btn" onclick="showAdvanceModal()">← Back</button>';
+}
+
+async function pickSkillAdvance(skill){
+  const cur=skillData[skill]||0;
+  if(cur>=4){showToast('That skill is already maxed');return;}
+  const newVal=cur+1;
+  skillData[skill]=newVal;
+  const{data:existing}=await db.from('character_skills').select('id').eq('character_id',CHAR_ID).eq('skill',skill).limit(1);
+  if(existing&&existing.length){
+    await db.from('character_skills').update({dice:newVal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('skill',skill);
+  } else {
+    await db.from('character_skills').insert({character_id:CHAR_ID,skill,dice:newVal});
   }
+  buildSkillsGrid();
+  updateMortalityDisplay();
+  closeAdvanceModal();
   completeAdvance();
+  showToast(skill+' increased to '+newVal+'d6!');
 }
 function showAdvanceFeats(){
   const content=document.getElementById('advance-modal-content');

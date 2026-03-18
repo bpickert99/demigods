@@ -1528,11 +1528,10 @@ function subscribeAll(){
       applyCharData();
       // Handle pending advances grant from DM — only trigger on fresh grant
       const pending=payload.new?.pending_advances||0;
-      const wasZero=(payload.old?.pending_advances||0)===0;
-      if(pending>0&&wasZero){
+      if(pending>0&&pending>(_pendingAdvTotal-_pendingAdvDone)){
         _pendingAdvTotal=pending;
         _pendingAdvDone=0;
-        showAdvanceModal();
+        if(!document.getElementById('advance-modal').classList.contains('vis'))showAdvanceModal();
       }
     }
   }).subscribe();
