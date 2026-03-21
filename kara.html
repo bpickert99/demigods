@@ -1674,8 +1674,8 @@ function subscribeAll(){
     }
   }).subscribe();
   db.channel('kara-cond').on('postgres_changes',{event:'*',schema:'public',table:'conditions'},payload=>{
-    const id=payload.new?.character_id||payload.old?.character_id||null;
-    if(id&&id!==CHAR_ID)return;
+    const id=payload.new?.character_id||payload.old?.character_id;
+    if(id!==CHAR_ID)return;
     const wasInsert=payload.eventType==='INSERT';
     loadConditions().then(()=>{
       if(wasInsert)flashConditionReceived();
@@ -2224,7 +2224,6 @@ async function resolveWisdomPrompt(skill,useWisdom){
 }
 
 async function fireRollRequest(skill,wisdomBoost){
-  if(pendingRollId){showToast('⏳ A roll is already pending — wait for the Weaver to resolve it');return;}
   const baseDice=skillData[skill]||0;
   // 0 dice = roll 2d6 take lower — send as special flag
   const sendDice=baseDice===0?-2:baseDice+(wisdomBoost?1:0);
@@ -2451,8 +2450,8 @@ a7:{name:"Signal Mask",meta:"Automaton · Tier III · Roll: Wits · 3 Favor",con
 a8:{name:"True Form",meta:"Automaton · Apex · Roll: Tough · 5 Favor · Once/Session",content:{type:"move",trigger:"When you shed all pretense and become fully what Goibniu built you to be,",roll:"Roll Tough. Spend 5 Favor. Once per session.",outcomes:[{cls:"success",label:"6 — Full",text:"For one full scene: all current Conditions suppressed (return after); immune to mundane physical damage; attacks treat as divine (affect supernatural immune creatures); you may spend actions to permanently remove suppressed Conditions."},{cls:"partial",label:"4–5 — Mixed",text:"First three benefits, but the form costs 1 Harm per action you take."},{cls:"fail",label:"1–3 — Fail",text:"The form activates but directives conflict. You cannot distinguish ally from threat. The Keeper controls your actions for 3 rounds."}]},prereq:"Overclock Body + Signal Mask",levels:null}
 };
 
-function getPrereqs(el){const p=el.dataset.prereq;return p?p.split(','):[];}
-function prereqsMet(el){return getPrereqs(el).every(id=>unlockedPowers.has(id));}
+function getPrereqs(el){const p=el.dataset.prereq;return p?p.split(','):[]}
+function prereqsMet(el){return getPrereqs(el).every(id=>unlockedPowers.has(id))}
 function hasDependent(id){for(const n of document.querySelectorAll('.node')){if(getPrereqs(n).includes(id)&&unlockedPowers.has(n.id))return true;}return false;}
 function updateAllLocks(){document.querySelectorAll('.node').forEach(n=>{if(unlockedPowers.has(n.id))return;if(prereqsMet(n)){n.classList.remove('locked');n.classList.add('avail');}else{n.classList.remove('avail','unlocked');n.classList.add('locked');}});}
 
@@ -4513,27 +4512,6 @@ async function logFavorChange(oldFavor,newFavor,desc){
 
 
 // ── JURY OVERLAY ──
-function showStyledConfirm(title, message, onConfirm, onCancel){
-  const modal=document.getElementById('roll-modal');
-  const content=document.getElementById('roll-modal-content');
-  content.innerHTML=`
-    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Confirm</div>
-    <div style="font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--text);margin-bottom:10px">${title}</div>
-    <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">${message}</div>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button onclick="closeRollModal()" style="padding:8px 18px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s">Cancel</button>
-      <button id="styled-confirm-btn" style="padding:8px 18px;border-radius:4px;border:1px solid var(--success);background:transparent;color:var(--success);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s">Confirm</button>
-    </div>`;
-  document.getElementById('styled-confirm-btn').onclick=()=>{closeRollModal();onConfirm();};
-  modal.classList.add('vis');
-}
-
-// showStyledAlert removed
-
-
-
-// ── JURY OVERLAY ──
-
 async function updateJuryOverlay(){
   const{data:sess}=await db.from('jury_sessions').select('*').in('status',['open','voting']).order('created_at',{ascending:false}).limit(1);
   const overlay=document.getElementById('jury-overlay');if(!overlay)return;

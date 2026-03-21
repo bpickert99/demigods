@@ -1103,8 +1103,8 @@ body.markup .hadv-remove-btn{display:flex}
       <div class="favor-num-big" id="favor-num" style="color:#c4b5fd">0</div>
       <div class="favor-slash">/ <span id="fmax-disp">0</span></div>
       <div class="favor-btns">
-        <button class="favor-btn" style="border-color:#8b5cf640;color:#c4b5fd" onclick="setFavor((charData.favor_current||0)-1)">−</button>
-        <button class="favor-btn" style="border-color:#8b5cf640;color:#c4b5fd" onclick="setFavor((charData.favor_current||0)+1)">+</button>
+        <button class="favor-btn" style="border-color:#8b5cf640;color:#c4b5fd" onclick="changeFavor(-1)">−</button>
+        <button class="favor-btn" style="border-color:#8b5cf640;color:#c4b5fd" onclick="changeFavor(1)">+</button>
       </div>
     </div>
     <div class="favor-tokens" id="favor-tokens"></div>
@@ -1169,11 +1169,11 @@ body.markup .hadv-remove-btn{display:flex}
         <div class="ndesc">Create a full sensory illusion — a place, a person, a creature, or an event — that fools all senses. Lasts until dawn or until you choose to end it.</div>
         <div class="npre">Requires: Mislead + Curse Misfortune</div>
       </div>
-      <div class="node locked" id="t7" data-b="trickery" data-prereq="t5,an-stallion" data-favor="3" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518" onclick="toggleNode(this)">
+      <div class="node locked" id="t7" data-b="trickery" data-prereq="t5,s1" data-favor="3" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Sneak</span><span class="badge b-fav">3 Favor</span><span class="badge b-cross">🐺 Shifting T1</span></div>
         <div class="npip"></div><div class="nname">Vanish</div>
         <div class="ndesc">Teleport up to 20 feet to any location you can see. No sound. No trace. Leave behind only the faint smell of wilderness.</div>
-        <div class="npre">Requires: Shadow Step + Black Stallion (Shifting)</div>
+        <div class="npre">Requires: Shadow Step + Beast Shape (Shifting)</div>
       </div>
     </div></div>
     <div class="tier"><div class="tier-head"><span>Tier IV · Apex</span><div class="tier-rule"></div></div>
@@ -1220,7 +1220,7 @@ body.markup .hadv-remove-btn{display:flex}
       </div>
     </div></div>
 
-    <div class="tier"><div class="tier-head"><span>Expanded Forms — Require Black Stallion Unlocked</span><div class="tier-rule"></div></div>
+    <div class="tier"><div class="tier-head"><span>Expanded Forms — Require Beast Shape Unlocked</span><div class="tier-rule"></div></div>
     <div class="tgrid c3">
       <!-- COW -->
       <div class="node locked" id="an-cow" data-b="shapeshifting" data-animal="cow" data-prereq="an-stallion" style="--nc:#059669;--na:#34d399;--ng:#10b98155;--nb:#06402418" onclick="toggleNode(this)">
@@ -1479,8 +1479,6 @@ function applyCharData(){
   }
 }
 
-// ── SUBSCRIPTIONS ──
-
 function flashConditionReceived(){
   // Flash the overlay red-tinted to signal harm landed on this character
   const overlay=document.getElementById('combat-overlay');
@@ -1514,8 +1512,8 @@ function subscribeAll(){
     }
   }).subscribe();
   db.channel('finn-cond').on('postgres_changes',{event:'*',schema:'public',table:'conditions'},payload=>{
-    const id=payload.new?.character_id||payload.old?.character_id||null;
-    if(!id||id===CHAR_ID)loadConditions();
+    const id=payload.new?.character_id||payload.old?.character_id;
+    if(id===CHAR_ID)loadConditions();
   }).subscribe();
   db.channel('finn-powers').on('postgres_changes',{event:'*',schema:'public',table:'unlocked_powers'},payload=>{
     const id=payload.new?.character_id||payload.old?.character_id;
@@ -1550,8 +1548,9 @@ function buildSkillsGrid(){
 }
 
 async function saveSkillMarkup(skill, newVal){
+  // character_skills uses columns: skill, dice (not skill_name / dice_count)
   skillData[skill] = newVal;
-  const{data:existing}=await db.from('character_skills').select('id').eq('character_id',CHAR_ID).eq('skill',skill).limit(1);
+  const{data:existing} = await db.from('character_skills').select('id').eq('character_id',CHAR_ID).eq('skill',skill).limit(1);
   if(existing&&existing.length){
     await db.from('character_skills').update({dice:newVal,updated_at:new Date().toISOString()}).eq('character_id',CHAR_ID).eq('skill',skill);
   } else {
@@ -1592,19 +1591,6 @@ function updateMortalityDisplay(){
 }
 
 // ── STAT PIPS ──
-// Return extra track slots from hero abilities
-function getHeroTrackBonus(track){
-  const equippedIds=Object.values(heroSlots||{}).filter(Boolean);
-  let bonus=0;
-  if(track==='grit'&&equippedIds.includes('gritty')) bonus+=1;
-  return bonus;
-}
-// Return extra mortality from hero abilities
-function getHeroMortalityBonus(){
-  const equippedIds=Object.values(heroSlots||{}).filter(Boolean);
-  return equippedIds.includes('unkillable')?3:0;
-}
-
 function buildStatPips(){
   ['wisdom','grit','bond'].forEach(track=>{
     const container=document.getElementById(`${track}-pips`);
@@ -1753,6 +1739,8 @@ async function setFavor(n){
   animateFavorChange(oldVal,val,max);
   await db.from('characters').update({favor_current:val,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
 }
+
+
 async function useFavor(cost,nodeId){
   // Deduct favor
   await setFavor((charData.favor_current||0)-cost);
@@ -2022,7 +2010,6 @@ async function resolveWisdomPrompt(skill,useWisdom){
 }
 
 async function fireRollRequest(skill,wisdomBoost){
-  if(pendingRollId){showToast('⏳ A roll is already pending — wait for the Weaver to resolve it');return;}
   const baseDice=skillData[skill]||0;
   // 0 dice = roll 2d6 take lower — send as special flag
   const sendDice=baseDice===0?-2:baseDice+(wisdomBoost?1:0);
@@ -2297,8 +2284,8 @@ o8:{name:"Open the Way",meta:"Otherworld · Apex · Roll: Notice · 5 Favor · O
 };
 
 
-function getPrereqs(el){const p=el.dataset.prereq;return p?p.split(','):[];}
-function prereqsMet(el){return getPrereqs(el).every(id=>unlockedPowers.has(id));}
+function getPrereqs(el){const p=el.dataset.prereq;return p?p.split(','):[]}
+function prereqsMet(el){return getPrereqs(el).every(id=>unlockedPowers.has(id))}
 function hasDependent(id){for(const n of document.querySelectorAll('.node')){if(getPrereqs(n).includes(id)&&unlockedPowers.has(n.id))return true;}return false;}
 function updateAllLocks(){document.querySelectorAll('.node').forEach(n=>{if(unlockedPowers.has(n.id))return;if(prereqsMet(n)){n.classList.remove('locked');n.classList.add('avail');}else{n.classList.remove('avail','unlocked');n.classList.add('locked');}});}
 
@@ -2311,37 +2298,6 @@ function applyPowerStates(){
     refreshDice(n,id);
   });
   updateSpread();updateProgress();
-}
-
-function refreshNodeBadge(el,id){
-  let badge=el.querySelector('.node-badge');
-  if(!badge){
-    badge=document.createElement('div');
-    badge.className='node-badge';
-    el.appendChild(badge);
-  }
-  const isUnlocked=unlockedPowers.has(id);
-  const levelsStr=el.dataset.levels;
-  const levelsArr=levelsStr?levelsStr.split(','):null;
-  const lvl=nodeLevels[id]||0;
-
-  if(isUnlocked){
-    badge.textContent=levelsArr?`Lv ${lvl+1}/${levelsArr.length}`:'✦';
-    badge.title=levelsArr?`Level ${lvl+1} of ${levelsArr.length} — click to change in markup`:'Unlocked';
-  } else {
-    badge.textContent='—';
-    badge.title='Not unlocked';
-  }
-
-  // Markup mode: make badge clickable to toggle/cycle
-  badge.className='node-badge'+(markupMode?' markup-edit':'');
-  badge.onclick=null;
-  if(markupMode){
-    badge.onclick=(e)=>{
-      e.stopPropagation();
-      cycleNodeInMarkup(id,el);
-    };
-  }
 }
 
 function refreshDice(el,id){
@@ -2508,7 +2464,6 @@ async function toggleNode(el){
   }
   updateAllLocks();refreshDice(el,id);updateSpread();updateProgress();
 }
-
 async function cycleNodeInMarkup(id,el){
   const isUnlocked=unlockedPowers.has(id);
   const levelsStr=el.dataset.levels;
@@ -2716,18 +2671,7 @@ function animateFavorChange(oldVal, newVal, max){
 }
 
 // ── DICE ROLL ANIMATION ──
-function animateDiceRoll(resultsArr, container){
-  if(!container)return;
-  container.innerHTML='';
-  resultsArr.forEach((val,i)=>{
-    const span=document.createElement('span');
-    span.className='dice-tumble';
-    span.style.animationDelay=`${i*60}ms`;
-    span.style.cssText+=`;display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;border-radius:6px;border:1px solid var(--border2);background:var(--surf2);font-family:'Cinzel',serif;font-weight:700;font-size:14px;margin:2px`;
-    span.textContent=val;
-    container.appendChild(span);
-  });
-}
+
 
 
 // ── MARKUP MODE ──
@@ -2955,7 +2899,6 @@ function restoreAdvanceModal(){
   if(pill){pill.style.display='none';}
   document.getElementById('advance-modal').classList.add('vis');
 }
-
 function advanceSkill(){
   const content=document.getElementById('advance-modal-content');
   const skillRows=SKILLS.map(sk=>{
@@ -3599,9 +3542,8 @@ function showAttackFlow(isRushed){
 }
 async function executeAttack(targetId,targetType,targetName,isRushed){
   const equipped=getEquippedWeapon();
-  // No weapon equipped: unarmed attack rolls 1d4
-  const weaponName=equipped?equipped.name:'Unarmed';
-  const harmTag=equipped?(equipped.tags||[]).find(t=>/\dd\d|\d+harm/i.test(t))||'1d6':'1d4';
+  if(!equipped){showToast('No weapon equipped');return;}
+  const harmTag=(equipped.tags||[]).find(t=>/\dd\d|\d+harm/i.test(t))||'1d6';
   const dieMatch=harmTag.match(/(\d+)d(\d+)/i);
   let result;
   if(dieMatch){
@@ -3617,11 +3559,10 @@ async function executeAttack(targetId,targetType,targetName,isRushed){
   }
   await db.from('combat_actions').insert({
     session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-    action_type:'attack',action_label:`Attacks ${targetName} with ${weaponName}`,
+    action_type:'attack',action_label:`Attacks ${targetName} with ${equipped.name}`,
     target_id:targetId,target_type:targetType,target_name:targetName,
     harm_dealt:result,resolved:false
   });
-  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast(`Attack on ${targetName}: ${result} harm — waiting for DM`);
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3675,7 +3616,6 @@ async function swapWeapon(itemId){
     w.equipped=w.id===itemId;
   }
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'swap_weapon',action_label:`Swapped weapon`,resolved:false});
-  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   renderInventory();renderCombatWeapon();
   showToast('Weapon swapped');
@@ -3996,27 +3936,6 @@ function showUndoNotification(changeType){
 
 
 // ── JURY OVERLAY ──
-function showStyledConfirm(title, message, onConfirm, onCancel){
-  const modal=document.getElementById('roll-modal');
-  const content=document.getElementById('roll-modal-content');
-  content.innerHTML=`
-    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Confirm</div>
-    <div style="font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--text);margin-bottom:10px">${title}</div>
-    <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">${message}</div>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button onclick="closeRollModal()" style="padding:8px 18px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s">Cancel</button>
-      <button id="styled-confirm-btn" style="padding:8px 18px;border-radius:4px;border:1px solid var(--success);background:transparent;color:var(--success);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s">Confirm</button>
-    </div>`;
-  document.getElementById('styled-confirm-btn').onclick=()=>{closeRollModal();onConfirm();};
-  modal.classList.add('vis');
-}
-
-// showStyledAlert removed
-
-
-
-// ── JURY OVERLAY ──
-
 async function updateJuryOverlay(){
   const{data:sess}=await db.from('jury_sessions').select('*').in('status',['open','voting']).order('created_at',{ascending:false}).limit(1);
   const overlay=document.getElementById('jury-overlay');if(!overlay)return;
@@ -4251,8 +4170,6 @@ const HERO_ADVANCES=[
 ];
 
 let heroSlots={};    // slot index (0-7) -> advancement_id or null
-let _pendingAdvTotal=0;  // how many were granted this session
-let _pendingAdvDone=0;   // how many have been completed
 let heroPool=0;      // unspent pool points
 
 async function loadHeroAdvancements(){
