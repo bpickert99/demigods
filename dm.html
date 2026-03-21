@@ -276,6 +276,7 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 <div class="hdr">
   <div><div class="hdr-title">Weaver Screen</div><div class="hdr-sub">Demigods Campaign</div></div>
   <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+    <span id="markup-hdr-badge" style="display:none;padding:3px 10px;background:#f59e0b20;border:1px solid #f59e0b;border-radius:12px;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;color:#f59e0b;text-transform:uppercase">📝 Markup ON</span>
     <button class="btn sm gold" onclick="promptShortRest()">☽ Short Rest</button>
     <button class="btn sm gold" onclick="promptLongRest()">☀ Long Rest</button>
     <span class="sync off" id="sync-dot"></span>
@@ -478,8 +479,15 @@ footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel'
 <!-- LOG -->
 <div id="tab-log" class="tab-panel">
   <div class="section">
-    <div class="row" style="margin-bottom:12px">
+    <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:6px">
       <button class="btn sm" onclick="loadLog()">↺ Refresh</button>
+      <select class="inp sm" id="log-filter" onchange="renderLog()" style="min-width:110px">
+        <option value="">All Players</option>
+        <option value="lewis">Lewis</option>
+        <option value="murphy">Murphy</option>
+        <option value="kara">Kara</option>
+        <option value="finn">Finn</option>
+      </select>
       <span style="font-size:12px;color:var(--dim);margin-left:auto">Click Undo to revert and notify the player.</span>
     </div>
     <div class="log-list" id="log-list"></div>
@@ -628,7 +636,7 @@ const TAG_DEFS=[
 
 // State
 let charData={},condData={},skillData={},powerData={},invData={};
-let pendingRolls=[],rollLogData=[],npcData=[],npcCondData={},npcWpnData={};
+let pendingRolls=[],rollLogData=[],npcData=[],npcCondData={},npcWpnData={},tdData={};
 let dmSettings={kara_revealed:false, markup_mode:false};
 let combatSess=null,combatParts=[],combatQ=[];
 let jurySess=null,juryQ=[],juryVotes={},dmVotes={};
@@ -645,16 +653,18 @@ async function init(){
 }
 
 async function loadChars(){
-  const[c,co,sk,pw]=await Promise.all([
+  const[c,co,sk,pw,td]=await Promise.all([
     db.from('characters').select('*'),
     db.from('conditions').select('*').order('created_at'),
     db.from('character_skills').select('*'),
-    db.from('unlocked_powers').select('*')
+    db.from('unlocked_powers').select('*'),
+    db.from('traits_drives').select('*').order('created_at')
   ]);
   if(c.data) c.data.forEach(r=>{charData[r.id]=r;});
   condData={};if(co.data)co.data.forEach(r=>{if(!condData[r.character_id])condData[r.character_id]=[];condData[r.character_id].push(r);});
   skillData={};if(sk.data)sk.data.forEach(r=>{if(!skillData[r.character_id])skillData[r.character_id]={};skillData[r.character_id][r.skill]=r.dice;});
   powerData={};if(pw.data)pw.data.forEach(r=>{if(!powerData[r.character_id])powerData[r.character_id]=[];powerData[r.character_id].push(r);});
+  tdData={};if(td.data)td.data.forEach(r=>{if(!tdData[r.character_id])tdData[r.character_id]=[];tdData[r.character_id].push(r);});
 }
 async function loadDMSettings(){const{data:_rows}=await db.from('dm_settings').select('*').eq('id',1).limit(1);const data=_rows?.[0]||null;if(data){dmSettings=data;markupMode=!!data.markup_mode;updateMarkupBtn();}}
 async function loadPendingRolls(){const{data}=await db.from('pending_rolls').select('*').eq('status','waiting').order('created_at');pendingRolls=data||[];}
@@ -736,9 +746,14 @@ function renderPartyGrid(){
           <div class="pip-grp"><span class="pip-lbl" style="color:#4ade80">Bond</span><div class="pips">${pipHtml('bond',bo)}</div></div>
         </div>
         <div style="margin-bottom:6px;display:flex;flex-wrap:wrap">${condHtml||'<span style="color:var(--dim);font-size:11px;font-style:italic">No conditions</span>'}</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid var(--border)">
-          <span style="font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--fc);text-transform:uppercase">Favor</span>
-          <span class="favor-val">${ch.favor_current||0} / ${mort}</span>
+        <div style="padding-top:6px;border-top:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--fc);text-transform:uppercase">Favor</span>
+            <span class="favor-val">${ch.favor_current||0} / ${mort}</span>
+          </div>
+          <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${mort>0?Math.min(100,((ch.favor_current||0)/mort)*100):0}%;background:var(--fc);border-radius:2px;transition:width .3s"></div>
+          </div>
         </div>
         ${p.id==='finn'?(()=>{
           const ff=FINN_FORMS[ch.current_form||'human']||FINN_FORMS.human;
@@ -752,6 +767,19 @@ function renderPartyGrid(){
             +`<div style="font-size:10px;color:var(--dim);line-height:1.4">${ff.desc}</div>`
             +'</div>';
         })():''}
+      </div>
+      <div style="padding:0 12px 8px">
+        ${(()=>{
+          const tds=tdData[p.id]||[];
+          if(!tds.length) return '';
+          const traits=tds.filter(t=>t.item_type==='trait');
+          const drives=tds.filter(t=>t.item_type==='drive');
+          const id='td-'+p.id;
+          let html=`<div style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:6px;margin-bottom:4px" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">▸ Traits & Drives</div><div style="display:none">`;
+          if(traits.length) html+=traits.map(t=>`<div style="font-size:11px;color:var(--muted);padding:2px 0;border-left:2px solid #60a5fa;padding-left:6px;margin-bottom:3px"><span style="color:#60a5fa;font-size:9px;font-family:'Cinzel',serif;letter-spacing:1px">TRAIT</span> ${t.text||'—'}</div>`).join('');
+          if(drives.length) html+=drives.map(d=>`<div style="font-size:11px;color:var(--muted);padding:2px 0;border-left:2px solid #4ade80;padding-left:6px;margin-bottom:3px"><span style="color:#4ade80;font-size:9px;font-family:'Cinzel',serif;letter-spacing:1px">DRIVE</span> ${d.text||'—'}</div>`).join('');
+          return html+'</div>';
+        })()}
       </div>
       <div class="pcard-ftr">
         <button class="btn sm" onclick="openAddCond('${p.id}')">+ Condition</button>
@@ -967,11 +995,23 @@ function renderCombatants(){
     const pcConf=PLAYERS.find(pl=>pl.id===p.participant_id);
     const nameColor=pcConf?pcConf.acc:(dead?'var(--fail)':'var(--text)');
     let pips='';for(let i=1;i<=p.actions_max;i++){const u=i<=p.actions_used;pips+=`<div class="apip ${u?'used':'avail'}" onclick="toggleAction('${p.id}',${i})">${u?'✓':'◆'}</div>`;}
+    // NPC conditions inline
+    let condHtml='';
+    if(p.participant_type==='npc'){
+      const npc=npcData.find(n=>n.id===p.participant_id);
+      if(npc){
+        const conds=npcCondData[npc.id]||[];
+        if(conds.length) condHtml=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">${conds.map(c=>`<span class="cond-chip" title="${c.harm} harm">${c.label}</span>`).join('')}</div>`;
+      }
+    } else {
+      const pConds=condData[p.participant_id]||[];
+      if(pConds.length) condHtml=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">${pConds.map(c=>`<span class="cond-chip${c.is_permanent?' perm':c.unstable?' unstable':''}" title="${c.harm} harm">${c.label}</span>`).join('')}</div>`;
+    }
     const row=document.createElement('div');
     row.className=`comb-row${done?' done':''}${dead?' dead':''}`;
     row.draggable=true;
     row.dataset.partId=p.id;
-    row.innerHTML=`<span style="color:var(--dim);font-size:14px;cursor:grab;margin-right:2px">⋮⋮</span><div class="comb-name" style="color:${nameColor}">${p.participant_name}${dead?'<span class="comb-dead-badge">DEAD</span>':''}</div><span class="comb-type">${p.participant_type}</span><div class="apips">${pips}</div>${dead?'':`<button class="btn sm" onclick="activateTurn('${p.id}')" ${done?'disabled':''}>▶</button>`}<button class="btn sm ${dead?'':'red'}" style="font-size:9px" onclick="${dead?`reviveCombatant('${p.id}')`:`markDead('${p.id}')`}">${dead?'↩ Revive':'✕ Dead'}</button>`;
+    row.innerHTML=`<span style="color:var(--dim);font-size:14px;cursor:grab;margin-right:2px">⋮⋮</span><div style="flex:1;min-width:0"><div class="comb-name" style="color:${nameColor}">${p.participant_name}${dead?'<span class="comb-dead-badge">DEAD</span>':''}</div>${condHtml}</div><span class="comb-type">${p.participant_type}</span><div class="apips">${pips}</div>${dead?'':`<button class="btn sm" onclick="activateTurn('${p.id}')" ${done?'disabled':''}>▶</button>`}<button class="btn sm ${dead?'':'red'}" style="font-size:9px" onclick="${dead?`reviveCombatant('${p.id}')`:`markDead('${p.id}')`}">${dead?'↩ Revive':'✕ Dead'}</button>`;
     addCombatantDrag(row);
     list.appendChild(row);
   });
@@ -1542,6 +1582,20 @@ async function endCombat(){
       combat_session_id:null,
       updated_at:new Date().toISOString()
     }).eq('id',1);
+    // Clear Stun conditions from all PC participants — Stun only lasts through end of combat
+    const pcIds=combatParts.filter(p=>p.participant_type==='pc').map(p=>p.participant_id);
+    if(pcIds.length){
+      const{data:stunConds}=await db.from('conditions')
+        .select('id,character_id')
+        .in('character_id',pcIds)
+        .ilike('label','%stun%');
+      if(stunConds&&stunConds.length){
+        for(const c of stunConds){
+          await db.from('conditions').delete().eq('id',c.id);
+        }
+        showToast(`Combat ended — ${stunConds.length} Stun condition${stunConds.length>1?'s':''} cleared`);
+      }
+    }
   }
   combatSess=null;combatParts=[];combatQ=[];
   playDMCombatCinematic('end');
@@ -1789,12 +1843,15 @@ async function logChange(charId,type,desc,oldVal,newVal){
 }
 function renderLog(){
   const list=document.getElementById('log-list');if(!list)return;
-  if(!logData.length){list.innerHTML='<div style="color:var(--dim);font-style:italic;text-align:center;padding:12px">No changes yet.</div>';return;}
+  const filterEl=document.getElementById('log-filter');
+  const filter=filterEl?filterEl.value:'';
+  const filtered=filter?logData.filter(e=>e.character_id===filter):logData;
+  if(!filtered.length){list.innerHTML=`<div style="color:var(--dim);font-style:italic;text-align:center;padding:12px">${filter?'No entries for '+filter+'.':'No changes yet.'}</div>`;return;}
   list.innerHTML='';
-  logData.forEach(e=>{
+  filtered.forEach(e=>{
     const p=PLAYERS.find(pl=>pl.id===e.character_id);const time=new Date(e.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     const item=document.createElement('div');item.className=`log-item${e.undone?' undone':''}`;
-    item.innerHTML=`<span class="log-char" style="color:${p?.acc||'var(--muted)'}">${e.character_id}</span><span class="log-desc">${e.description}</span><span class="log-time">${time}</span>${!e.undone?`<button class="btn sm red" onclick="undoChange('${e.id}','${e.character_id}','${e.change_type}',${e.old_value?`\`${e.old_value.replace(/`/g,"'")}\``:'null'})">Undo</button>`:''}`;
+    item.innerHTML=`<span class="log-char" style="color:${p?.acc||'var(--muted)'}">${e.character_id}</span><span class="log-desc">${e.description}</span><span class="log-time">${time}</span>${!e.undone?`<button class="btn sm red" onclick="undoChange('${e.id}','${e.character_id}','${e.change_type}',${e.old_value?`\`${e.old_value.replace(/\`/g,"'")}\``:'null'})">Undo</button>`:''}`;
     list.appendChild(item);
   });
 }
@@ -1847,6 +1904,8 @@ function updateMarkupBtn(){
   if(!btn) return;
   btn.textContent = markupMode ? '⬤ Markup Mode: ON' : '⬤ Markup Mode: Off';
   btn.className = 'markup-toggle-btn' + (markupMode ? ' active' : '');
+  const badge = document.getElementById('markup-hdr-badge');
+  if(badge) badge.style.display = markupMode ? 'inline' : 'none';
 }
 
 // ── WIPE CHARACTER SHEET ──

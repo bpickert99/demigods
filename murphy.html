@@ -775,6 +775,7 @@ body.markup .hadv-remove-btn{display:flex}
     <div class="jury-title">⚖ End of Session — Jury</div>
     <div class="jury-status" id="jury-status-badge">Open</div>
   </div>
+  <div id="jury-step-indicator" style="font-size:11px;font-family:'Cinzel',serif;font-weight:700;letter-spacing:1px;padding:6px 0 2px;color:var(--dim)"></div>
   <div id="jury-active-display" style="display:none">
     <div class="jury-active-item">
       <div class="jury-item-who">
@@ -1090,10 +1091,10 @@ body.markup .hadv-remove-btn{display:flex}
       <div class="favor-lbl" style="color:#f87171">&#128293; Flame</div>
       <div class="favor-num-big" id="flame-num" style="color:#f87171">0</div>
       <div class="favor-slash">/ <span id="flame-max">5</span></div>
-      <button onclick="clearFlame(1)" style="margin-left:auto;padding:5px 12px;border-radius:4px;border:1px solid #ef444460;background:transparent;color:#f87171;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;cursor:pointer">&#8722; Clear 1</button>
+      <button onclick="clearFlame(1)" style="margin-left:auto;padding:5px 12px;border-radius:4px;border:1px solid #ef444460;background:transparent;color:#f87171;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;cursor:pointer"" title="Remove 1 Flame mark — requires Weaver approval">&#8722; Clear 1</button>
     </div>
     <div class="favor-tokens" id="flame-tokens"></div>
-    <div style="font-size:11px;color:var(--dim);margin-top:8px;line-height:1.5">&#128293; powers mark this track. On each use, roll d6 per mark &#8212; any 1 = Burned (1d6 harm, stable). Sacrifice items to clear marks.</div>
+    <div style="font-size:11px;color:var(--dim);margin-top:8px;line-height:1.5">&#128293; powers mark this track — it has no cap. After each mark, roll 1d6 per mark: any 1 triggers <strong style="color:#f87171">Burned</strong> (1d6 harm). The track only clears when you <strong style="color:#f59e0b">Sacrifice</strong> an inventory item (use the &#8722; button on an item) or the Weaver grants a rest. <em style="color:#9090b0">Clear 1</em> removes one mark with Weaver approval.</div>
   </div>
 
   <!-- DETAIL PANEL -->
@@ -1600,8 +1601,13 @@ function renderConditions(){
   conditions.forEach(c=>{
     const row=document.createElement('div');
     row.className='condition-row';
+    const sev=c.harm<=2?'Fleeting':c.harm<=4?'Lasting':'Severe';
+    const sevColor=c.harm<=2?'#22c55e':c.harm<=4?'#f59e0b':'#ef4444';
     row.innerHTML=`
-      <span class="cond-label">${c.label}</span>
+      <div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0">
+        <span class="cond-label">${c.label}${c.is_permanent?' 🔒':''}</span>
+        <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:1px;color:${sevColor};text-transform:uppercase">${sev}</span>
+      </div>
       <span class="cond-harm">${c.harm}</span>
       <button class="cond-unstable ${c.unstable?'':'stable'}" onclick="toggleUnstable('${c.id}',${c.unstable})">${c.unstable?'⚠ Unstable':'Stable'}</button>
       <div style="display:flex;gap:4px">
@@ -1920,7 +1926,7 @@ function renderInventory(){
     }
     // Transfer button
     btns+=`<button class="item-send-btn" onclick="openTransferItem('${item.id}')" title="Transfer to another player">⇄</button>`;
-    btns+=`<button class="item-send-btn" style="border-color:#ef444460;color:#f87171" onclick="sacrificeItem('${item.id}',${JSON.stringify(item.name)})">&#128293; Sacrifice</button>`;
+    btns+=`<button class="item-send-btn" style="border-color:#ef444460;color:#f87171" onclick="sacrificeItem('${item.id}',${JSON.stringify(item.name)})" title="Burn this item to extinguish Flame marks — Weaver decides how many clear">&#128293; Sacrifice</button>`;
     // Delete
     if(markupMode) btns+=`<button class="item-del" onclick="deleteItem('${item.id}')">✕</button>`;
 
@@ -2697,6 +2703,12 @@ function showAdvanceModal(){
   modal.classList.add('vis');
 }
 function closeAdvanceModal(){
+  // If there are still pending advances, minimize rather than dismiss
+  if(_pendingAdvTotal>0&&_pendingAdvDone<_pendingAdvTotal){
+    minimizeAdvanceModal();
+    showToast('Advancement pending — tap the banner to resume');
+    return;
+  }
   document.getElementById('advance-modal').classList.remove('vis');
 }
 function minimizeAdvanceModal(){
@@ -2888,6 +2900,19 @@ async function loadJuryQueue(){
   renderJuryPanel();
 }
 function renderJuryPanel(){
+  // Show current jury phase as a step indicator
+  const stepEl=document.getElementById('jury-step-indicator');
+  if(stepEl&&jurySession){
+    const hasActive=juryQueue.some(q=>q.status==='active');
+    const allDone=juryQueue.length>0&&juryQueue.every(q=>q.status!=='waiting'&&q.status!=='active');
+    const myItem=juryQueue.find(q=>q.character_id===CHAR_ID);
+    let step='',color='var(--dim)';
+    if(!myItem||myItem.status==='waiting'){step='Step 1 of 3 — Submit your Trait or Drive below';color='#60a5fa';}
+    else if(hasActive){step='Step 2 of 3 — Voting in progress';color='var(--gold)';}
+    else if(allDone){step='Step 3 of 3 — All votes complete';color='#22c55e';}
+    else{step='Waiting for Weaver to activate next item';color='var(--muted)';}
+    stepEl.textContent=step;stepEl.style.color=color;
+  }
   renderJuryQueue();
   renderJuryActiveItem();
   renderJurySubmitList();
@@ -3270,11 +3295,18 @@ function renderCombatQueue(){
   const active=combatQueueData.filter(q=>q.status!=='done');
   if(!active.length){list.innerHTML='<div style="color:#7a5c2e;font-size:12px;font-style:italic">No one in queue.</div>';return;}
   list.innerHTML='';
+  const myPos=active.findIndex(q=>q.character_id===CHAR_ID);
+  if(myPos>=0&&myPos>0){
+    const posDiv=document.createElement('div');
+    posDiv.style.cssText='font-family:Cinzel,serif;font-size:10px;font-weight:700;letter-spacing:2px;color:#8b6340;text-transform:uppercase;text-align:center;margin-bottom:6px;padding:4px 8px;background:#c4a87a20;border-radius:4px';
+    posDiv.textContent='You are #'+(myPos+1)+' in line';
+    list.appendChild(posDiv);
+  }
   active.forEach((q,i)=>{
     const isMe=q.character_id===CHAR_ID;
     const div=document.createElement('div');
     div.className=`co-queue-item${isMe?' my-turn':''}${q.status==='active'?' active':''}`;
-    div.innerHTML=`<span style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--lewis-acc)">#${i+1}</span><span style="font-size:13px;color:${isMe?'var(--gold)':'var(--text)'}">${q.character_name||q.character_id}${isMe?' (you)':''}</span>`;
+    div.innerHTML=`<span style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--lewis-acc)">#${i+1}</span><span style="font-size:13px;color:${isMe?'var(--gold)':'var(--text)'}">${q.character_name||q.character_id}${isMe?' ← you':''}</span>`;
     list.appendChild(div);
   });
 }
@@ -3283,7 +3315,7 @@ function renderCombatQueue(){
 function buildCombatActionGrid(){
   const inner=document.getElementById('co-action-panel-inner');if(!inner)return;
   inner.innerHTML='<div class="co-action-title">Choose Your Action</div><div class="co-action-grid" id="co-action-grid"></div>';
-  const grid=document.getElementById('co-action-grid');
+  const grid=inner.querySelector('#co-action-grid');
   const equipped=getEquippedWeapon();
   const tags=equipped?(equipped.tags||[]).map(t=>t.toLowerCase()):[];
   const hasClose=tags.some(t=>t.includes('close'));
@@ -3584,17 +3616,78 @@ async function useItem(itemId){
   );
 }
 async function useHealingItem(item){
-  if(!conditions.length){showToast('No conditions to heal');return;}
-  // Show condition picker
   const modal=document.getElementById('roll-modal');
   const content=document.getElementById('roll-modal-content');
-  const condHtml=conditions.map(c=>`<button onclick="applyHealing('${item.id}','${c.id}','${item.healing_value}')" style="display:block;width:100%;padding:8px 12px;margin-bottom:6px;background:var(--surf2);border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;text-align:left;font-size:13px;transition:all .18s" onmouseover="this.style.borderColor='var(--success)'" onmouseout="this.style.borderColor='var(--border)'">${c.label} — ${c.harm} harm</button>`).join('');
+  // Step 1: choose target
+  const OTHER_PCS=[
+    {id:'lewis',name:'Lewis',emoji:'🐦‍⬛'},
+    {id:'murphy',name:'Murphy',emoji:'🔥'},
+    {id:'kara',name:'Kara',emoji:'⚙️'},
+    {id:'finn',name:'Finn',emoji:'🐺'}
+  ].filter(p=>p.id!==CHAR_ID);
+  const selfBtn=`<button onclick="useHealingItemSelf('${item.id}','${item.healing_value}')" style="display:block;width:100%;padding:10px 14px;margin-bottom:8px;background:var(--surf2);border:2px solid var(--success);border-radius:6px;color:var(--text);cursor:pointer;text-align:left;font-size:14px;font-weight:600;transition:all .18s">✦ Yourself</button>`;
+  const pcBtns=OTHER_PCS.map(p=>`<button onclick="useHealingItemPC('${item.id}','${item.healing_value}','${p.id}','${p.name}')" style="display:block;width:100%;padding:10px 14px;margin-bottom:8px;background:var(--surf2);border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;text-align:left;font-size:13px;transition:all .18s" onmouseover="this.style.borderColor='var(--success)'" onmouseout="this.style.borderColor='var(--border)'">${p.emoji} ${p.name}</button>`).join('');
+  const npcBtn=`<button onclick="useHealingItemNPC('${item.id}','${item.healing_value}')" style="display:block;width:100%;padding:10px 14px;margin-bottom:8px;background:var(--surf2);border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;text-align:left;font-size:13px;transition:all .18s" onmouseover="this.style.borderColor='var(--success)'" onmouseout="this.style.borderColor='var(--border)'">👹 An NPC</button>`;
   content.innerHTML=`
     <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--success);margin-bottom:10px">Apply ${item.healing_value} Healing</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Which condition are you healing?</div>
-    ${condHtml}
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Who are you healing?</div>
+    ${selfBtn}${pcBtns}${npcBtn}
     <button class="add-cond-btn" style="margin-top:8px" onclick="closeRollModal()">Cancel</button>`;
   modal.classList.add('vis');
+}
+
+async function useHealingItemSelf(itemId,healVal){
+  if(!conditions.length){showToast('No conditions to heal');return;}
+  const item=inventoryData.find(i=>i.id===itemId);if(!item)return;
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  const condHtml=conditions.map(c=>`<button onclick="applyHealing('${itemId}','${c.id}','${healVal}')" style="display:block;width:100%;padding:8px 12px;margin-bottom:6px;background:var(--surf2);border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;text-align:left;font-size:13px;transition:all .18s" onmouseover="this.style.borderColor='var(--success)'" onmouseout="this.style.borderColor='var(--border)'">${c.label} — ${c.harm} harm</button>`).join('');
+  content.innerHTML=`
+    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--success);margin-bottom:10px">Heal Yourself — ${healVal}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Which condition?</div>
+    ${condHtml||'<div style="color:var(--dim);font-style:italic;margin-bottom:8px">No conditions to heal</div>'}
+    <button class="add-cond-btn" style="margin-top:8px" onclick="closeRollModal()">Cancel</button>`;
+}
+
+async function useHealingItemPC(itemId,healVal,targetId,targetName){
+  const{data:theirConds}=await db.from('conditions').select('*').eq('character_id',targetId).order('created_at');
+  if(!theirConds||!theirConds.length){showToast(targetName+' has no conditions');return;}
+  const item=inventoryData.find(i=>i.id===itemId);if(!item)return;
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  const condHtml=theirConds.map(c=>`<button onclick="applyHealingPC('${itemId}','${c.id}','${healVal}','${targetId}','${targetName}')" style="display:block;width:100%;padding:8px 12px;margin-bottom:6px;background:var(--surf2);border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;text-align:left;font-size:13px;transition:all .18s" onmouseover="this.style.borderColor='var(--success)'" onmouseout="this.style.borderColor='var(--border)'">${c.label} — ${c.harm} harm</button>`).join('');
+  content.innerHTML=`
+    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--success);margin-bottom:10px">Heal ${targetName} — ${healVal}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Which condition?</div>
+    ${condHtml}
+    <button class="add-cond-btn" style="margin-top:8px" onclick="closeRollModal()">Cancel</button>`;
+}
+
+async function applyHealingPC(itemId,condId,healVal,targetId,targetName){
+  const cond=(await db.from('conditions').select('*').eq('id',condId).single()).data;
+  if(!cond)return;
+  const item=inventoryData.find(i=>i.id===itemId);if(!item)return;
+  const healAmt=rollDieStr(healVal);
+  const newHarm=Math.max(0,cond.harm-healAmt);
+  if(newHarm<=0){
+    await db.from('conditions').delete().eq('id',condId);
+    showToast(targetName+': '+cond.label+' healed — removed ('+healAmt+' healing)');
+  } else {
+    await db.from('conditions').update({harm:newHarm,updated_at:new Date().toISOString()}).eq('id',condId);
+    showToast(targetName+': '+healAmt+' healing applied to '+cond.label);
+  }
+  await decrementItem(item);
+  closeRollModal();
+}
+
+function useHealingItemNPC(itemId,healVal){
+  const modal=document.getElementById('roll-modal');
+  const content=document.getElementById('roll-modal-content');
+  content.innerHTML=`
+    <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--success);margin-bottom:10px">Heal NPC — ${healVal}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Tell the Weaver who you're healing and which condition. The Weaver will apply it from their screen.</div>
+    <div style="padding:10px 14px;background:var(--surf2);border:1px solid var(--gold)40;border-radius:6px;font-size:12px;color:var(--muted);margin-bottom:12px">Healing value: <strong style="color:var(--success)">${healVal}</strong></div>
+    <button class="add-cond-btn" style="margin-top:8px" onclick="closeRollModal()">Done</button>`;
 }
 async function applyHealing(itemId,condId,healVal){
   const item=inventoryData.find(i=>i.id===itemId);
@@ -3875,7 +3968,7 @@ const HERO_ADVANCES=[
   {id:'intercept_ha',  name:'Intercept',          cost:2, cat:'combat',    type:'passive', desc:'Gain Combat Feat "Intercept" — take all harm meant for a nearby ally.'},
   {id:'riposte_ha',    name:'Riposte',            cost:2, cat:'combat',    type:'passive', desc:'After a successful Parry, immediately counterattack for half Harm as a free Defense Feat.'},
   {id:'analytical',    name:'Analytical',         cost:2, cat:'combat',    type:'active',  resource:null, desc:'Gain Combat Action "Analyze Enemy." On your turn, study a target to learn one tactical fact (weakness, plan, or vulnerability) — no roll.', dm_prompt:'Player is analyzing an enemy. Tell them one useful tactical fact: a weakness, what the enemy is planning this round, or something that can hurt them.'},
-  {id:'allies_act',    name:'Allies',             cost:3, cat:'combat',    type:'passive', desc:'At the start of a combat round, give one of your Actions to another player. This is not itself an Action.'},
+  {id:'allies_act',    name:'Allies',             cost:3, cat:'combat',    type:'passive', desc:'At the start of each combat round, you may choose to give one of your Actions to another player. Declare this when the round begins — before anyone rolls Grit. This choice is made each round; it is not automatic.'},
   // NARRATIVE
   {id:'body_language', name:'Body Language',      cost:1, cat:'narrative', type:'active',  resource:'bond', resource_cost:1, desc:'Spend 1 Bond to sense whether someone is lying or glimpse their concealed emotions and motivations.', dm_prompt:'Player is reading this person. Tell them honestly: are they lying? What emotion is underneath? What do they actually want?'},
   {id:'study',         name:'Study',              cost:1, cat:'narrative', type:'active',  resource:'bond', resource_cost:1, desc:'In a library, archive, or place of knowledge, spend 1 Bond to ask the Weaver one yes/no question.', dm_prompt:'Player is researching. Answer their yes/no question honestly based on what could be found here.'},
