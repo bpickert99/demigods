@@ -1870,17 +1870,22 @@ async function adjustCondHarm(id,current,delta){
   await loadConditions();
 }
 async function deleteConditionUI(id){
-  const cond=conditions.find(c=>c.id===id);if(!cond)return;
+  const cond=conditions.find(c=>c.id===id);
+  if(!cond) return;
+  // Request DM approval to remove condition
   showStyledConfirm(
-    'Request condition removal?',
-    cond.label+' ('+cond.harm+' harm) — The Weaver must approve this.',
+    `Request to remove condition: "${cond.label}"`,
+    'This will send a request to the Weaver to approve the condition removal.',
     async()=>{
+      // Insert a pending removal request into change_log for DM to see
       await db.from('change_log').insert({
-        character_id:CHAR_ID,change_type:'condition_remove',
-        description:'Player requests removal of "'+cond.label+'" ('+cond.harm+' harm)',
-        old_value:JSON.stringify({id,label:cond.label,harm:cond.harm}),new_value:null
+        character_id:CHAR_ID,
+        change_type:'condition_remove',
+        description:`Player requests removal of "${cond.label}" (${cond.harm} harm)`,
+        old_value:JSON.stringify({id,label:cond.label,harm:cond.harm}),
+        new_value:null
       });
-      showToast('Request sent to Weaver');
+      showToast('Removal request sent to Weaver');
     }
   );
 }
@@ -3636,17 +3641,18 @@ function buildCombatActionGrid(){
     if(f.id==='cover_shot') return hasFar;
     if(f.id==='disarm') return hasClose||hasIntimate;
     if(f.id==='stun') return hasClose;
-    return true;
+    return true; // bash etc. always eligible
   });
 
   const actions=[
-    {icon:'⚔',label:'Attack',desc:equipped?`${equipped.name}${attackCount>0?' — Rushed':''}`:`Unarmed (1d4 harm)${attackCount>0?' — Rushed':''}`,cost:attackCount>0?'Disadvantage':'',onclick:()=>showAttackFlow(attackCount>0)},
+    {icon:'⚔',label:'Attack',desc:equipped?`${equipped.name}${attackCount>0?' — Rushed':''}`:attackCount>0?'Unarmed — Rushed':'Unarmed (1d4 harm)',cost:attackCount>0?'Disadvantage':'',onclick:()=>showAttackFlow(attackCount>0)},
     {icon:'🏃',label:'Move',desc:'Reposition in scene',cost:'',onclick:()=>showMoveFlow()},
     {icon:'🔍',label:'Scope',desc:'Investigate surroundings',cost:'',onclick:()=>submitCombatAction('scope','Scope the surroundings')},
     {icon:'🎒',label:'Use Item',desc:'Use inventory item or interact with scene object',cost:'',onclick:()=>showItemFlow()},
     {icon:'✨',label:'Use Ability',desc:'Trigger a divine or hero power',cost:'',onclick:()=>showAbilityFlow()},
   ];
   if(hasMultipleWeapons) actions.push({icon:'🔄',label:'Swap Weapon',desc:'Switch equipped weapon',cost:'',onclick:()=>showSwapWeaponFlow()});
+  // Combat feats as a single subpanel button (only shown if any are range-eligible)
   if(eligibleFeats.length){
     actions.push({icon:'⚡',label:'Combat Feat',desc:`${eligibleFeats.length} available`,cost:'1 Grit each',disabled:grit<=0,onclick:()=>showFeatSubPanel()});
   }
@@ -3671,6 +3677,7 @@ function showAttackFlow(isRushed){
 }
 async function executeAttack(targetId,targetType,targetName,isRushed){
   const equipped=getEquippedWeapon();
+  // No weapon equipped: unarmed attack rolls 1d4
   const weaponName=equipped?equipped.name:'Unarmed';
   const harmTag=equipped?(equipped.tags||[]).find(t=>/\dd\d|\d+harm/i.test(t))||'1d6':'1d4';
   const dieMatch=harmTag.match(/(\d+)d(\d+)/i);
