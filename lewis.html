@@ -5,7 +5,87 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lewis — Demigods Campaign · v3.19</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">// ── TREE CANVAS ──────────────────────────
+(function(){
+  var wrap=document.getElementById('tree-wrap');
+  var inner=document.getElementById('tree-inner');
+  if(!wrap||!inner)return;
+  var scale=1,tx=0,ty=0,dragging=false,sx=0,sy=0,stx=0,sty=0;
+
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+  function commit(){
+    var minTX=Math.min(0,-(inner.offsetWidth*scale-wrap.offsetWidth));
+    var minTY=Math.min(0,-(inner.offsetHeight*scale-wrap.offsetHeight));
+    tx=clamp(tx,minTX,0); ty=clamp(ty,minTY,0);
+    inner.style.transform='translate('+tx+'px,'+ty+'px) scale('+scale+')';
+    inner.style.transformOrigin='0 0';
+  }
+
+  function focusUnlocked(){
+    var unlocked=inner.querySelectorAll('.node.unlocked');
+    if(!unlocked.length){
+      // Fit to screen if nothing unlocked
+      var pw=wrap.offsetWidth,ph=wrap.offsetHeight;
+      scale=Math.min(pw/inner.offsetWidth,ph/inner.offsetHeight,0.85);
+      tx=(pw-inner.offsetWidth*scale)/2; ty=(ph-inner.offsetHeight*scale)/2;
+      commit(); return;
+    }
+    var xs=[],ys=[];
+    unlocked.forEach(function(n){
+      var l=parseInt(n.style.left||0),t=parseInt(n.style.top||0);
+      xs.push(l); xs.push(l+148); ys.push(t); ys.push(t+72);
+    });
+    var minX=Math.min.apply(null,xs),maxX=Math.max.apply(null,xs);
+    var minY=Math.min.apply(null,ys),maxY=Math.max.apply(null,ys);
+    var pad=80;
+    var pw=wrap.offsetWidth,ph=wrap.offsetHeight;
+    var fw=maxX-minX+pad*2,fh=maxY-minY+pad*2;
+    scale=Math.min(pw/fw,ph/fh,1.2);
+    tx=pw/2-(minX+fw/2)*scale; ty=ph/2-(minY+fh/2)*scale;
+    commit();
+  }
+
+  setTimeout(focusUnlocked,80);
+  var divBtn=document.querySelector('[onclick="switchPlaybook('divine')"]');
+  if(divBtn)divBtn.addEventListener('click',function(){setTimeout(focusUnlocked,80);});
+
+  wrap.addEventListener('wheel',function(e){
+    e.preventDefault();
+    var r=wrap.getBoundingClientRect();
+    var mx=e.clientX-r.left,my=e.clientY-r.top;
+    var d=e.deltaY>0?0.88:1.12;
+    var ns=clamp(scale*d,0.25,2.5);
+    tx=mx-(mx-tx)*(ns/scale); ty=my-(my-ty)*(ns/scale);
+    scale=ns; commit();
+  },{passive:false});
+
+  wrap.addEventListener('mousedown',function(e){
+    if(e.target.closest('.node'))return;
+    dragging=true; sx=e.clientX; sy=e.clientY; stx=tx; sty=ty;
+    wrap.style.cursor='grabbing'; e.preventDefault();
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!dragging)return;
+    tx=stx+(e.clientX-sx); ty=sty+(e.clientY-sy); commit();
+  });
+  document.addEventListener('mouseup',function(){
+    dragging=false; wrap.style.cursor='grab';
+  });
+
+  var ltx=0,lty=0;
+  wrap.addEventListener('touchstart',function(e){
+    if(e.touches.length===1){ltx=e.touches[0].clientX;lty=e.touches[0].clientY;}
+  },{passive:true});
+  wrap.addEventListener('touchmove',function(e){
+    if(e.touches.length===1){
+      tx+=e.touches[0].clientX-ltx; ty+=e.touches[0].clientY-lty;
+      ltx=e.touches[0].clientX; lty=e.touches[0].clientY;
+      commit(); e.preventDefault();
+    }
+  },{passive:false});
+})();
+
+</script>
 <style>
 :root{
   --bg:#0a0a0f;--surf:#111118;--surf2:#1a1a26;--border:#2a2a40;--border2:#3a3a58;
@@ -750,6 +830,9 @@ body.markup .hadv-remove-btn{display:flex}
 .hadv-name-tag.combat{color:#f87171;border-color:#f8717140;background:#f871710a}
 .hadv-name-tag.narrative{color:#60a5fa;border-color:#60a5fa40;background:#60a5fa0a}
 
+
+.tree-wrap{-webkit-user-select:none;user-select:none;touch-action:none}
+.tree-inner{will-change:transform;transform-origin:0 0}
 </style>
 </head>
 <body>
@@ -1140,211 +1223,187 @@ body.markup .hadv-remove-btn{display:flex}
   <div id="dp-detail" class="dp-detail"></div>
 
   <!-- BRANCH TABS -->
-  <div class="tabs">
-    <button class="tab-btn active" data-b="prophecy" onclick="switchBranch('prophecy')"><span class="tglyph">☽</span>Prophecy</button>
-    <button class="tab-btn" data-b="war" onclick="switchBranch('war')"><span class="tglyph">⚔</span>War</button>
-    <button class="tab-btn" data-b="sovereignty" onclick="switchBranch('sovereignty')"><span class="tglyph">♛</span>Sovereignty</button>
-  </div>
+  <!-- TREE CANVAS -->
+  <div class="tree-wrap" id="tree-wrap" style="position:relative;overflow:hidden;width:100%;height:560px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:grab;user-select:none;touch-action:none">
+    <div class="tree-inner" id="tree-inner" style="position:relative;width:1300px;height:700px;transform-origin:0 0">
+      <svg style="position:absolute;inset:0;width:1300px;height:700px;pointer-events:none;z-index:1" overflow="visible">
+        <path d="M154,112 C154,166 114,166 114,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M154,112 C154,166 224,166 224,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M314,112 C314,166 314,166 314,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M114,292 C114,346 154,346 154,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M314,292 C314,346 314,346 314,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M154,472 C154,526 234,526 234,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M314,472 C314,526 234,526 234,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M594,112 C594,166 554,166 554,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M594,112 C594,166 664,166 664,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M754,112 C754,166 754,166 754,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M554,292 C554,346 594,346 594,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M664,292 C664,346 754,346 754,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M594,472 C594,526 674,526 674,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M754,472 C754,526 674,526 674,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1034,112 C1034,166 994,166 994,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1034,112 C1034,166 1104,166 1104,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1194,112 C1194,166 1194,166 1194,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M994,292 C994,346 1034,346 1034,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1194,292 C1194,346 1034,346 1034,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1104,292 C1104,346 1194,346 1194,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1034,472 C1034,526 1114,526 1114,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1194,472 C1194,526 1114,526 1114,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M594,112 C594,256 154,256 154,400" stroke="#f59e0b" stroke-width="1.5" fill="none" stroke-opacity="0.8" stroke-dasharray="4,4"/>
+<path d="M314,112 C314,256 594,256 594,400" stroke="#f59e0b" stroke-width="1.5" fill="none" stroke-opacity="0.8" stroke-dasharray="4,4"/>
+<path d="M314,112 C314,166 1104,166 1104,220" stroke="#f59e0b" stroke-width="1.5" fill="none" stroke-opacity="0.8" stroke-dasharray="4,4"/>
+<path d="M664,292 C664,346 1194,346 1194,400" stroke="#f59e0b" stroke-width="1.5" fill="none" stroke-opacity="0.8" stroke-dasharray="4,4"/>
+      </svg>
+      <div style="position:absolute;left:154px;top:8px;transform:translateX(-50%);color:#a78bfa;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;pointer-events:none;white-space:nowrap;text-shadow:0 0 12px #a78bfa44">☽ Prophecy</div>
+<div style="position:absolute;left:594px;top:8px;transform:translateX(-50%);color:#f87171;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;pointer-events:none;white-space:nowrap;text-shadow:0 0 12px #f8717144">⚔ War</div>
+<div style="position:absolute;left:1034px;top:8px;transform:translateX(-50%);color:#34d399;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;pointer-events:none;white-space:nowrap;text-shadow:0 0 12px #34d39944">♛ Sovereignty</div>
 
-  <!-- PROPHECY -->
-  <div id="panel-prophecy" class="bpanel active">
-    <div class="bhead">
-      <div><div class="btitle" style="color:var(--prophecy-acc)">Prophecy</div><div class="bsub">Bás is Beatha — Death and Life</div></div>
-      <div class="bprog" style="color:var(--prophecy-acc)"><span class="cnt" id="prog-prophecy">0</span>/ 8 powers</div>
-    </div>
-    <div class="tier"><div class="tier-head"><span>Tier I · Foundation</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node avail" id="p1" data-b="prophecy" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg)" onclick="toggleNode(this)">
+      <div style="position:absolute;inset:0;z-index:2">
+        <div class="node avail" id="p1" data-b="prophecy" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg);position:absolute;left:80px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span><span class="badge b-roll">Wits</span></div>
         <div class="npip"></div><div class="nname">Crow's Eye</div>
         <div class="ndesc">Perceive the spiritual weight of any place. Ask the Keeper questions about what lingers here.</div>
       </div>
-      <div class="node avail" id="p2" data-b="prophecy" data-favor="2" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg)" onclick="toggleNode(this)">
+<div class="node avail" id="p2" data-b="prophecy" data-favor="2" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg);position:absolute;left:240px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Search</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Read Intent</div>
         <div class="ndesc">Study a person to learn what they're about to do — before they do it.</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier II · Awakening</span><div class="tier-rule"></div></div>
-    <div class="tgrid c3">
-      <div class="node locked" id="p3" data-b="prophecy" data-prereq="p1" data-favor="2" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="p3" data-b="prophecy" data-prereq="p1" data-favor="2" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg);position:absolute;left:40px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Foretelling</div>
         <div class="ndesc">Enter a trance to see what's coming. Ask questions about the shape of what's fated.</div>
         <div class="npre">Requires: Crow's Eye</div>
       </div>
-      <div class="node locked" id="p4" data-b="prophecy" data-prereq="p2" data-favor="2" data-levels="1d6,2d6,3d6" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="p4" data-b="prophecy" data-prereq="p2" data-favor="2" data-levels="1d6,2d6,3d6" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg);position:absolute;left:240px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Nimble</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Fated Blow</div>
         <div class="ndice"><span class="dval" id="p4-dice">1d6</span></div>
         <div class="ndesc">Strike the instant fate lines up. A spectral crow dives alongside you, talons first.</div>
         <div class="npre">Requires: Read Intent</div>
       </div>
-      <div class="node locked" id="p5" data-b="prophecy" data-prereq="p1" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="p5" data-b="prophecy" data-prereq="p1" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg);position:absolute;left:150px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Omen Reading</div>
         <div class="ndesc">Crows tell you things. Once per scene, interpret a natural sign for a one-word warning.</div>
         <div class="npre">Requires: Crow's Eye</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier III · Mastery</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node locked" id="p6" data-b="prophecy" data-prereq="p3,w1" data-favor="3" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="p6" data-b="prophecy" data-prereq="p3,w1" data-favor="3" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg);position:absolute;left:80px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">3 Favor</span><span class="badge b-cross">⚔ War T1</span></div>
         <div class="npip"></div><div class="nname">Doom-Sight</div>
         <div class="ndesc">See the death-mark over a living person. Learn how and when they'll die.</div>
         <div class="npre">Requires: Foretelling + Crow's Presence (War)</div>
       </div>
-      <div class="node locked" id="p7" data-b="prophecy" data-prereq="p4" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="p7" data-b="prophecy" data-prereq="p4" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg);position:absolute;left:240px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Fulfilled Fate</div>
         <div class="ndesc">When you bring about the foretold end of someone you've prophesied about, immediately recover 3 Favor.</div>
         <div class="npre">Requires: Fated Blow</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier IV · Apex</span><div class="tier-rule"></div></div>
-    <div class="tgrid c1">
-      <div class="node locked" id="p8" data-b="prophecy" data-prereq="p6,p7" data-favor="5" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="p8" data-b="prophecy" data-prereq="p6,p7" data-favor="5" style="--nc:var(--prophecy);--na:var(--prophecy-acc);--ng:var(--prophecy-glow);--nb:var(--prophecy-bg);position:absolute;left:160px;top:580px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">5 Favor</span><span style="font-size:8px;letter-spacing:2px;color:var(--dim);font-family:'Cinzel',serif">Once Per Session</span></div>
         <div class="npip"></div><div class="nname">Warp the Thread</div>
         <div class="ndesc">Redirect a foretold event. You can't erase fate — but you can change who pays for it.</div>
         <div class="npre">Requires: Doom-Sight + Fulfilled Fate</div>
       </div>
-    </div></div>
-  </div>
-
-  <!-- WAR -->
-  <div id="panel-war" class="bpanel">
-    <div class="bhead">
-      <div><div class="btitle" style="color:var(--war-acc)">War</div><div class="bsub">Cath — Battle Without End</div></div>
-      <div class="bprog" style="color:var(--war-acc)"><span class="cnt" id="prog-war">0</span>/ 8 powers</div>
-    </div>
-    <div class="tier"><div class="tier-head"><span>Tier I · Foundation</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node avail" id="w1" data-b="war" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg)" onclick="toggleNode(this)">
+<div class="node avail" id="w1" data-b="war" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg);position:absolute;left:520px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Crow's Presence</div>
         <div class="ndesc">Allies within Close range gain +1 die on their first attack each scene. Automatic — no activation needed.</div>
       </div>
-      <div class="node avail" id="w2" data-b="war" data-favor="1" data-levels="1d6,2d6,3d6" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg)" onclick="toggleNode(this)">
+<div class="node avail" id="w2" data-b="war" data-favor="1" data-levels="1d6,2d6,3d6" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg);position:absolute;left:680px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Might</span><span class="badge b-fav">1 Favor</span></div>
         <div class="npip"></div><div class="nname">Raven's Talon</div>
         <div class="ndice"><span class="dval" id="w2-dice">1d6</span></div>
         <div class="ndesc">A spectral raven manifests and dives with you. Strike with phantom talons.</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier II · Awakening</span><div class="tier-rule"></div></div>
-    <div class="tgrid c3">
-      <div class="node locked" id="w3" data-b="war" data-prereq="w1" data-favor="2" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="w3" data-b="war" data-prereq="w1" data-favor="2" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg);position:absolute;left:480px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Intimidate</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">War Cry</div>
         <div class="ndesc">Release a battle-cry that carries the Morrigan's fury. Not entirely human.</div>
         <div class="npre">Requires: Crow's Presence</div>
       </div>
-      <div class="node locked" id="w4" data-b="war" data-prereq="w2" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="w4" data-b="war" data-prereq="w2" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg);position:absolute;left:680px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Crow Form</div>
         <div class="ndesc">Once per scene, transform into a large crow. Fly anywhere. Observe everything. Be seen by no one.</div>
         <div class="npre">Requires: Raven's Talon</div>
       </div>
-      <div class="node locked" id="w5" data-b="war" data-prereq="w1" data-favor="2" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="w5" data-b="war" data-prereq="w1" data-favor="2" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg);position:absolute;left:590px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Battlefield Insight</div>
         <div class="ndesc">Read a conflict before it unfolds. Ask pointed questions about the tactical reality.</div>
         <div class="npre">Requires: Crow's Presence</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier III · Mastery</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node locked" id="w6" data-b="war" data-prereq="w3,p2" data-favor="3" data-levels="1d8,2d8,3d8" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="w6" data-b="war" data-prereq="w3,p2" data-favor="3" data-levels="1d8,2d8,3d8" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg);position:absolute;left:520px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Tough</span><span class="badge b-fav">3 Favor</span><span class="badge b-cross">☽ Prophecy T1</span></div>
         <div class="npip"></div><div class="nname">Blood Frenzy</div>
         <div class="ndice"><span class="dval" id="w6-dice">1d8</span></div>
         <div class="ndesc">Draw first blood and surrender to the Morrigan's battle-madness. Pain stops mattering.</div>
         <div class="npre">Requires: War Cry + Read Intent (Prophecy)</div>
       </div>
-      <div class="node locked" id="w7" data-b="war" data-prereq="w5" data-favor="3" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="w7" data-b="war" data-prereq="w5" data-favor="3" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg);position:absolute;left:680px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Sneak</span><span class="badge b-fav">3 Favor</span></div>
         <div class="npip"></div><div class="nname">Supply Lines</div>
         <div class="ndesc">Send crow-scouts ahead. Map and disrupt enemy logistics before the conflict begins.</div>
         <div class="npre">Requires: Battlefield Insight</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier IV · Apex</span><div class="tier-rule"></div></div>
-    <div class="tgrid c1">
-      <div class="node locked" id="w8" data-b="war" data-prereq="w6,w7" data-favor="5" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="w8" data-b="war" data-prereq="w6,w7" data-favor="5" style="--nc:var(--war);--na:var(--war-acc);--ng:var(--war-glow);--nb:var(--war-bg);position:absolute;left:600px;top:580px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Intimidate</span><span class="badge b-fav">5 Favor</span><span style="font-size:8px;letter-spacing:2px;color:var(--dim);font-family:'Cinzel',serif">Once Per Session</span></div>
         <div class="npip"></div><div class="nname">Phantom Army</div>
         <div class="ndesc">Summon a vast cloud of crows that writhes into the shapes of an army. Break them before a sword is swung.</div>
         <div class="npre">Requires: Blood Frenzy + Supply Lines</div>
       </div>
-    </div></div>
-  </div>
-
-  <!-- SOVEREIGNTY -->
-  <div id="panel-sovereignty" class="bpanel">
-    <div class="bhead">
-      <div><div class="btitle" style="color:var(--sovereignty-acc)">Sovereignty</div><div class="bsub">Flaitheas — The Right to Rule</div></div>
-      <div class="bprog" style="color:var(--sovereignty-acc)"><span class="cnt" id="prog-sovereignty">0</span>/ 8 powers</div>
-    </div>
-    <div class="tier"><div class="tier-head"><span>Tier I · Foundation</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node avail" id="s1" data-b="sovereignty" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg)" onclick="toggleNode(this)">
+<div class="node avail" id="s1" data-b="sovereignty" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg);position:absolute;left:960px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Queen's Bearing</div>
         <div class="ndesc">You walk into any room like you own it. NPCs take you seriously — first social roll each scene gets +1 die.</div>
       </div>
-      <div class="node avail" id="s2" data-b="sovereignty" data-favor="2" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg)" onclick="toggleNode(this)">
+<div class="node avail" id="s2" data-b="sovereignty" data-favor="2" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg);position:absolute;left:1120px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Persuade</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">The Right Word</div>
         <div class="ndesc">Speak precisely to defuse, redirect, or reframe a tense confrontation before it becomes a fight.</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier II · Awakening</span><div class="tier-rule"></div></div>
-    <div class="tgrid c3">
-      <div class="node locked" id="s3" data-b="sovereignty" data-prereq="s1" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="s3" data-b="sovereignty" data-prereq="s1" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg);position:absolute;left:920px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Ally's Mark</div>
         <div class="ndesc">Formally mark up to 3 people as Allies of your bloodline. They gain +1 die on shared goals.</div>
         <div class="npre">Requires: Queen's Bearing</div>
       </div>
-      <div class="node locked" id="s4" data-b="sovereignty" data-prereq="s2" data-favor="2" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="s4" data-b="sovereignty" data-prereq="s2" data-favor="2" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg);position:absolute;left:1120px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Charm</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Blood Debt</div>
         <div class="ndesc">Call in a favor or formally establish a debt. The world remembers what is owed.</div>
         <div class="npre">Requires: The Right Word</div>
       </div>
-      <div class="node locked" id="s5" data-b="sovereignty" data-prereq="s1,p2" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="s5" data-b="sovereignty" data-prereq="s1,p2" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg);position:absolute;left:1030px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span><span class="badge b-cross">☽ Prophecy T1</span></div>
         <div class="npip"></div><div class="nname">Lay of the Land</div>
         <div class="ndesc">Read political terrain instinctively. Once per scene, ask who really holds power — and get a true answer.</div>
         <div class="npre">Requires: Queen's Bearing + Read Intent (Prophecy)</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier III · Mastery</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node locked" id="s6" data-b="sovereignty" data-prereq="s3,s4" data-favor="3" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="s6" data-b="sovereignty" data-prereq="s3,s4" data-favor="3" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg);position:absolute;left:960px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Deceive</span><span class="badge b-fav">3 Favor</span></div>
         <div class="npip"></div><div class="nname">Conflict Averted</div>
         <div class="ndesc">Stop a fight before it starts. There's always a price — but it's survivable.</div>
         <div class="npre">Requires: Ally's Mark + Blood Debt</div>
       </div>
-      <div class="node locked" id="s7" data-b="sovereignty" data-prereq="s5,w5" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="s7" data-b="sovereignty" data-prereq="s5,w5" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg);position:absolute;left:1120px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span><span class="badge b-cross">⚔ War T2</span></div>
         <div class="npip"></div><div class="nname">Territorial Claim</div>
         <div class="ndesc">Claim a place as yours. Sense hostile intruders. Locals protect you. The land remembers.</div>
         <div class="npre">Requires: Lay of the Land + Battlefield Insight (War)</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier IV · Apex</span><div class="tier-rule"></div></div>
-    <div class="tgrid c1">
-      <div class="node locked" id="s8" data-b="sovereignty" data-prereq="s6,s7" data-favor="5" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg)" onclick="toggleNode(this)">
+<div class="node locked" id="s8" data-b="sovereignty" data-prereq="s6,s7" data-favor="5" style="--nc:var(--sovereignty);--na:var(--sovereignty-acc);--ng:var(--sovereignty-glow);--nb:var(--sovereignty-bg);position:absolute;left:1040px;top:580px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Intimidate</span><span class="badge b-fav">5 Favor</span><span style="font-size:8px;letter-spacing:2px;color:var(--dim);font-family:'Cinzel',serif">Once Per Session</span></div>
         <div class="npip"></div><div class="nname">The Morrigan's Mandate</div>
         <div class="ndesc">Speak a decree that carries the weight of fate. All who hear it feel compelled to honor it.</div>
         <div class="npre">Requires: Conflict Averted + Territorial Claim</div>
       </div>
-    </div></div>
+
+      </div>
+    </div>
+    <div style="position:absolute;bottom:8px;right:10px;font-size:10px;color:var(--dim);pointer-events:none;opacity:.5">scroll to zoom · drag to pan</div>
   </div>
 
   <!-- SPREAD -->
@@ -2852,6 +2911,7 @@ function renderXP(){
   }
   // Only open modal if XP just hit 4 AND modal is not already open AND no DM-granted advance pending
   if(xp>=4&&!document.getElementById('advance-modal').classList.contains('vis')&&!(charData.pending_advances>0)){
+    if(_pendingAdvTotal===0){_pendingAdvTotal=1;_pendingAdvDone=0;}
     showAdvanceModal();
   }
 }
@@ -2881,13 +2941,7 @@ function showAdvanceModal(){
   modal.classList.add('vis');
 }
 function closeAdvanceModal(){
-  // If there are still pending advances, minimize rather than dismiss
-  if(_pendingAdvTotal>0&&_pendingAdvDone<_pendingAdvTotal){
-    minimizeAdvanceModal();
-    showToast('Advancement pending — tap the banner to resume');
-    return;
-  }
-  document.getElementById('advance-modal').classList.remove('vis');
+  minimizeAdvanceModal();
 }
 function minimizeAdvanceModal(){
   document.getElementById('advance-modal').classList.remove('vis');

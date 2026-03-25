@@ -5,7 +5,87 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy — Demigods Campaign · v3.19</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">// ── TREE CANVAS ──────────────────────────
+(function(){
+  var wrap=document.getElementById('tree-wrap');
+  var inner=document.getElementById('tree-inner');
+  if(!wrap||!inner)return;
+  var scale=1,tx=0,ty=0,dragging=false,sx=0,sy=0,stx=0,sty=0;
+
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+  function commit(){
+    var minTX=Math.min(0,-(inner.offsetWidth*scale-wrap.offsetWidth));
+    var minTY=Math.min(0,-(inner.offsetHeight*scale-wrap.offsetHeight));
+    tx=clamp(tx,minTX,0); ty=clamp(ty,minTY,0);
+    inner.style.transform='translate('+tx+'px,'+ty+'px) scale('+scale+')';
+    inner.style.transformOrigin='0 0';
+  }
+
+  function focusUnlocked(){
+    var unlocked=inner.querySelectorAll('.node.unlocked');
+    if(!unlocked.length){
+      // Fit to screen if nothing unlocked
+      var pw=wrap.offsetWidth,ph=wrap.offsetHeight;
+      scale=Math.min(pw/inner.offsetWidth,ph/inner.offsetHeight,0.85);
+      tx=(pw-inner.offsetWidth*scale)/2; ty=(ph-inner.offsetHeight*scale)/2;
+      commit(); return;
+    }
+    var xs=[],ys=[];
+    unlocked.forEach(function(n){
+      var l=parseInt(n.style.left||0),t=parseInt(n.style.top||0);
+      xs.push(l); xs.push(l+148); ys.push(t); ys.push(t+72);
+    });
+    var minX=Math.min.apply(null,xs),maxX=Math.max.apply(null,xs);
+    var minY=Math.min.apply(null,ys),maxY=Math.max.apply(null,ys);
+    var pad=80;
+    var pw=wrap.offsetWidth,ph=wrap.offsetHeight;
+    var fw=maxX-minX+pad*2,fh=maxY-minY+pad*2;
+    scale=Math.min(pw/fw,ph/fh,1.2);
+    tx=pw/2-(minX+fw/2)*scale; ty=ph/2-(minY+fh/2)*scale;
+    commit();
+  }
+
+  setTimeout(focusUnlocked,80);
+  var divBtn=document.querySelector('[onclick="switchPlaybook('divine')"]');
+  if(divBtn)divBtn.addEventListener('click',function(){setTimeout(focusUnlocked,80);});
+
+  wrap.addEventListener('wheel',function(e){
+    e.preventDefault();
+    var r=wrap.getBoundingClientRect();
+    var mx=e.clientX-r.left,my=e.clientY-r.top;
+    var d=e.deltaY>0?0.88:1.12;
+    var ns=clamp(scale*d,0.25,2.5);
+    tx=mx-(mx-tx)*(ns/scale); ty=my-(my-ty)*(ns/scale);
+    scale=ns; commit();
+  },{passive:false});
+
+  wrap.addEventListener('mousedown',function(e){
+    if(e.target.closest('.node'))return;
+    dragging=true; sx=e.clientX; sy=e.clientY; stx=tx; sty=ty;
+    wrap.style.cursor='grabbing'; e.preventDefault();
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!dragging)return;
+    tx=stx+(e.clientX-sx); ty=sty+(e.clientY-sy); commit();
+  });
+  document.addEventListener('mouseup',function(){
+    dragging=false; wrap.style.cursor='grab';
+  });
+
+  var ltx=0,lty=0;
+  wrap.addEventListener('touchstart',function(e){
+    if(e.touches.length===1){ltx=e.touches[0].clientX;lty=e.touches[0].clientY;}
+  },{passive:true});
+  wrap.addEventListener('touchmove',function(e){
+    if(e.touches.length===1){
+      tx+=e.touches[0].clientX-ltx; ty+=e.touches[0].clientY-lty;
+      ltx=e.touches[0].clientX; lty=e.touches[0].clientY;
+      commit(); e.preventDefault();
+    }
+  },{passive:false});
+})();
+
+</script>
 <style>
 :root{
   --bg:#0a0a0f;--surf:#111118;--surf2:#1a1a26;--border:#2a2a40;--border2:#3a3a58;
@@ -730,6 +810,9 @@ body.markup .hadv-remove-btn{display:flex}
 .hadv-name-tag.combat{color:#f87171;border-color:#f8717140;background:#f871710a}
 .hadv-n
 
+
+.tree-wrap{-webkit-user-select:none;user-select:none;touch-action:none}
+.tree-inner{will-change:transform;transform-origin:0 0}
 </style>
 </head>
 <body>
@@ -1101,213 +1184,189 @@ body.markup .hadv-remove-btn{display:flex}
   <div id="dp-detail" class="dp-detail"></div>
 
   <!-- BRANCH TABS -->
-  <div class="tabs">
-    <button class="tab-btn active" data-b="healing" onclick="switchBranch('healing')"><span class="tglyph">🌿</span>Healing</button>
-    <button class="tab-btn" data-b="craft" onclick="switchBranch('craft')"><span class="tglyph">🔥</span>Craft</button>
-    <button class="tab-btn" data-b="poetry" onclick="switchBranch('poetry')"><span class="tglyph">✦</span>Poetry</button>
-  </div>
+  <!-- TREE CANVAS -->
+  <div class="tree-wrap" id="tree-wrap" style="position:relative;overflow:hidden;width:100%;height:560px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:grab;user-select:none;touch-action:none">
+    <div class="tree-inner" id="tree-inner" style="position:relative;width:1300px;height:700px;transform-origin:0 0">
+      <svg style="position:absolute;inset:0;width:1300px;height:700px;pointer-events:none;z-index:1" overflow="visible">
+        <path d="M154,112 C154,166 114,166 114,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M154,112 C154,166 224,166 224,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M314,112 C314,166 314,166 314,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M114,292 C114,346 154,346 154,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M314,292 C314,346 154,346 154,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M224,292 C224,346 314,346 314,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M154,472 C154,526 234,526 234,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M314,472 C314,526 234,526 234,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M594,112 C594,166 554,166 554,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M594,112 C594,166 664,166 664,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M754,112 C754,166 754,166 754,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M554,292 C554,346 594,346 594,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M754,292 C754,346 594,346 594,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M664,292 C664,346 754,346 754,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M594,472 C594,526 674,526 674,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M754,472 C754,526 674,526 674,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1034,112 C1034,166 994,166 994,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1034,112 C1034,166 1104,166 1104,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1194,112 C1194,166 1194,166 1194,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M994,292 C994,346 1034,346 1034,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1194,292 C1194,346 1034,346 1034,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1104,292 C1104,346 1194,346 1194,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1034,472 C1034,526 1114,526 1114,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1194,472 C1194,526 1114,526 1114,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M314,112 C314,256 754,256 754,400" stroke="#f59e0b" stroke-width="1.5" fill="none" stroke-opacity="0.8" stroke-dasharray="4,4"/>
+<path d="M594,112 C594,256 1194,256 1194,400" stroke="#f59e0b" stroke-width="1.5" fill="none" stroke-opacity="0.8" stroke-dasharray="4,4"/>
+      </svg>
+      <div style="position:absolute;left:154px;top:8px;transform:translateX(-50%);color:#6ee7b7;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;pointer-events:none;white-space:nowrap;text-shadow:0 0 12px #6ee7b744">💚 Healing</div>
+<div style="position:absolute;left:594px;top:8px;transform:translateX(-50%);color:#fbbf24;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;pointer-events:none;white-space:nowrap;text-shadow:0 0 12px #fbbf2444">🔨 Craft</div>
+<div style="position:absolute;left:1034px;top:8px;transform:translateX(-50%);color:#c4b5fd;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;pointer-events:none;white-space:nowrap;text-shadow:0 0 12px #c4b5fd44">🎵 Poetry</div>
 
-  <!-- HEALING (Íoc) -->
-  <div id="panel-healing" class="bpanel active">
-    <div class="bhead">
-      <div><div class="btitle" style="color:#6ee7b7">Healing</div><div class="bsub">Íoc — The Healer's Art</div></div>
-      <div class="bprog" style="color:#6ee7b7"><span class="cnt" id="prog-healing">0</span>/ 8 powers</div>
-    </div>
-    <div class="tier"><div class="tier-head"><span>Tier I · Foundation</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node avail" id="h1" data-b="healing" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18" onclick="toggleNode(this)">
+      <div style="position:absolute;inset:0;z-index:2">
+        <div class="node avail" id="h1" data-b="healing" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18;position:absolute;left:80px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Bright Hands</div>
         <div class="ndesc">Your hands carry warmth others trust. Once/scene: touch a person, relieve pain. Medical actions on others never make things worse.</div>
       </div>
-      <div class="node avail" id="h2" data-b="healing" data-favor="2" data-levels="1d6,2d6,3d6" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18" onclick="toggleNode(this)">
+<div class="node avail" id="h2" data-b="healing" data-favor="2" data-levels="1d6,2d6,3d6" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18;position:absolute;left:240px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Care</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Mend the Wound</div>
         <div class="ndice"><span class="dval" id="h2-dice">1d6</span></div>
         <div class="ndesc">Channel Brigid's healing fire into a wound. Restore HP to a living creature you touch.</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier II · Awakening</span><div class="tier-rule"></div></div>
-    <div class="tgrid c3">
-      <div class="node locked" id="h3" data-b="healing" data-prereq="h1" data-favor="2" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18" onclick="toggleNode(this)">
+<div class="node locked" id="h3" data-b="healing" data-prereq="h1" data-favor="2" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18;position:absolute;left:40px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Care</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Cloak of Wellness</div>
         <div class="ndesc">Extend protective warmth over allies. Resist illness, poison, and environmental harm for the scene.</div>
         <div class="npre">Requires: Bright Hands</div>
       </div>
-      <div class="node locked" id="h4" data-b="healing" data-prereq="h2" data-favor="2" data-levels="1d6,2d6,3d6" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18" onclick="toggleNode(this)">
+<div class="node locked" id="h4" data-b="healing" data-prereq="h2" data-favor="2" data-levels="1d6,2d6,3d6" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18;position:absolute;left:240px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Tough</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Brigid's Fire Strike 🔥</div>
         <div class="ndice"><span class="dval" id="h4-dice">1d6</span></div>
         <div class="ndesc">Healing fire turned outward. Strike with sacred flame — double damage vs undead/corrupted, reflects 1d4 HP to one ally.</div>
         <div class="npre">Requires: Mend the Wound</div>
       </div>
-      <div class="node locked" id="h5" data-b="healing" data-prereq="h1" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18" onclick="toggleNode(this)">
+<div class="node locked" id="h5" data-b="healing" data-prereq="h1" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18;position:absolute;left:150px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Healer's Ear</div>
         <div class="ndesc">Diagnose any physical condition without rolling. Know its origin, progression, and treatment. +1 die on healing rolls for examined targets.</div>
         <div class="npre">Requires: Bright Hands</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier III · Mastery</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node locked" id="h6" data-b="healing" data-prereq="h3,h4" data-favor="3" data-levels="1d8,2d8,3d8" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18" onclick="toggleNode(this)">
+<div class="node locked" id="h6" data-b="healing" data-prereq="h3,h4" data-favor="3" data-levels="1d8,2d8,3d8" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18;position:absolute;left:80px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Care</span><span class="badge b-fav">3 Favor</span></div>
         <div class="npip"></div><div class="nname">Cauterize 🔥</div>
         <div class="ndice"><span class="dval" id="h6-dice">1d8</span></div>
         <div class="ndesc">Simultaneously remove one Condition from an ally AND deal damage to an enemy. 6: both at once. 4-5: choose one.</div>
         <div class="npre">Requires: Cloak of Wellness + Brigid's Fire Strike</div>
       </div>
-      <div class="node locked" id="h7" data-b="healing" data-prereq="h5" data-favor="3" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18" onclick="toggleNode(this)">
+<div class="node locked" id="h7" data-b="healing" data-prereq="h5" data-favor="3" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18;position:absolute;left:240px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">3 Favor</span></div>
         <div class="npip"></div><div class="nname">Read the Sickness</div>
         <div class="ndesc">Understand any affliction fully — origin, mechanism, cure. 6: two cure methods + +2 dice on cure roll.</div>
         <div class="npre">Requires: Healer's Ear</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier IV · Apex</span><div class="tier-rule"></div></div>
-    <div class="tgrid c1">
-      <div class="node locked" id="h8" data-b="healing" data-prereq="h6,h7" data-favor="5" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18" onclick="toggleNode(this)">
+<div class="node locked" id="h8" data-b="healing" data-prereq="h6,h7" data-favor="5" style="--nc:#10b981;--na:#6ee7b7;--ng:#10b98155;--nb:#064e3b18;position:absolute;left:160px;top:580px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Care</span><span class="badge b-fav">5 Favor</span><span style="font-size:8px;letter-spacing:2px;color:var(--dim);font-family:'Cinzel',serif">Once Per Session</span></div>
         <div class="npip"></div><div class="nname">The Wells of Brigid</div>
         <div class="ndesc">Draw from the sacred wells. All allies: full HP, all Conditions removed, dying stabilized. The dead this scene may be offered one final breath.</div>
         <div class="npre">Requires: Cauterize + Read the Sickness</div>
       </div>
-    </div></div>
-  </div>
-
-  <!-- CRAFT (Cerd) -->
-  <div id="panel-craft" class="bpanel">
-    <div class="bhead">
-      <div><div class="btitle" style="color:#fcd34d">Craft</div><div class="bsub">Cerd — The Forge and the Making</div></div>
-      <div class="bprog" style="color:#fcd34d"><span class="cnt" id="prog-craft">0</span>/ 8 powers</div>
-    </div>
-    <div class="tier"><div class="tier-head"><span>Tier I · Foundation</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node avail" id="c1" data-b="craft" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node avail" id="c1" data-b="craft" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:520px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">The Maker's Eye</div>
         <div class="ndesc">Understand any constructed object — weaknesses, origin, tampering, how to destroy or repair it. +1 die Scope in constructed environments.</div>
       </div>
-      <div class="node avail" id="c2" data-b="craft" data-favor="1" data-levels="1d6,2d6,3d6" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node avail" id="c2" data-b="craft" data-favor="1" data-levels="1d6,2d6,3d6" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:680px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Might</span><span class="badge b-fav">1 Favor</span></div>
         <div class="npip"></div><div class="nname">Forge Strike 🔥</div>
         <div class="ndice"><span class="dval" id="c2-dice">1d6</span></div>
         <div class="ndesc">Strike with forge-precision. 6: deal damage OR specific Condition OR destroy object outright.</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier II · Awakening</span><div class="tier-rule"></div></div>
-    <div class="tgrid c3">
-      <div class="node locked" id="c3" data-b="craft" data-prereq="c1" data-favor="2" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node locked" id="c3" data-b="craft" data-prereq="c1" data-favor="2" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:480px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Rapid Mend</div>
         <div class="ndesc">Repair a broken object in seconds. 6: fully restored and choose a bonus property.</div>
         <div class="npre">Requires: The Maker's Eye</div>
       </div>
-      <div class="node locked" id="c4" data-b="craft" data-prereq="c2" data-favor="2" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node locked" id="c4" data-b="craft" data-prereq="c2" data-favor="2" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:680px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Might</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Shatter 🔥</div>
         <div class="ndesc">Destroy a constructed object completely with Brigid's breaking force. No second blow needed.</div>
         <div class="npre">Requires: Forge Strike</div>
       </div>
-      <div class="node locked" id="c5" data-b="craft" data-prereq="c1" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node locked" id="c5" data-b="craft" data-prereq="c1" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:590px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Brigid's Blessing</div>
         <div class="ndesc">Weapons deal +1 damage. Tools cannot break while in your hands. Improvised weapons work without penalty.</div>
         <div class="npre">Requires: The Maker's Eye</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier III · Mastery</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node locked" id="c6" data-b="craft" data-prereq="c3,c4" data-favor="3" data-levels="1d8,2d8,3d8" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node locked" id="c6" data-b="craft" data-prereq="c3,c4" data-favor="3" data-levels="1d8,2d8,3d8" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:520px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Might</span><span class="badge b-fav">3 Favor</span></div>
         <div class="npip"></div><div class="nname">Forge-Born Weapon 🔥</div>
         <div class="ndice"><span class="dval" id="c6-dice">1d8</span></div>
         <div class="ndesc">Conjure a weapon of sacred flame. Lasts one scene, can't be disarmed or parried by mundane means, bypasses mundane armor.</div>
         <div class="npre">Requires: Rapid Mend + Shatter</div>
       </div>
-      <div class="node locked" id="c7" data-b="craft" data-prereq="c5,h2" data-favor="3" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node locked" id="c7" data-b="craft" data-prereq="c5,h2" data-favor="3" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:680px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">3 Favor</span><span class="badge b-cross">🌿 Healing T1</span></div>
         <div class="npip"></div><div class="nname">Sacred Commission</div>
         <div class="ndesc">Permanently imbue an object with divine quality: Seeking, Preserving, Binding, or Healing.</div>
         <div class="npre">Requires: Brigid's Blessing + Mend the Wound (Healing)</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier IV · Apex</span><div class="tier-rule"></div></div>
-    <div class="tgrid c1">
-      <div class="node locked" id="c8" data-b="craft" data-prereq="c6,c7" data-favor="5" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node locked" id="c8" data-b="craft" data-prereq="c6,c7" data-favor="5" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:600px;top:580px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Might</span><span class="badge b-fav">5 Favor</span><span style="font-size:8px;letter-spacing:2px;color:var(--dim);font-family:'Cinzel',serif">Once Per Session</span></div>
         <div class="npip"></div><div class="nname">The Anvil of Making 🔥</div>
         <div class="ndesc">For one scene, the world is forge-soft. Reshape, repair, or unmake any non-living constructed thing you can see by intention alone.</div>
         <div class="npre">Requires: Forge-Born Weapon + Sacred Commission</div>
       </div>
-    </div></div>
-  </div>
-
-  <!-- POETRY (Filíocht) -->
-  <div id="panel-poetry" class="bpanel">
-    <div class="bhead">
-      <div><div class="btitle" style="color:#c4b5fd">Poetry</div><div class="bsub">Filíocht — Word That Shapes the World</div></div>
-      <div class="bprog" style="color:#c4b5fd"><span class="cnt" id="prog-poetry">0</span>/ 8 powers</div>
-    </div>
-    <div class="tier"><div class="tier-head"><span>Tier I · Foundation</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node avail" id="o1" data-b="poetry" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518" onclick="toggleNode(this)">
+<div class="node avail" id="o1" data-b="poetry" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518;position:absolute;left:960px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Keening Voice</div>
         <div class="ndesc">Animals and spirits understand you clearly. You cannot be ignored when you raise your voice. Once/scene: stop everyone in earshot for one moment.</div>
       </div>
-      <div class="node avail" id="o2" data-b="poetry" data-favor="2" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518" onclick="toggleNode(this)">
+<div class="node avail" id="o2" data-b="poetry" data-favor="2" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518;position:absolute;left:1120px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Charm</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">The True Name</div>
         <div class="ndesc">Speak one devastating true thing about a person in front of witnesses. Strip pretense, expose truth, shift relationships.</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier II · Awakening</span><div class="tier-rule"></div></div>
-    <div class="tgrid c3">
-      <div class="node locked" id="o3" data-b="poetry" data-prereq="o1" data-favor="2" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518" onclick="toggleNode(this)">
+<div class="node locked" id="o3" data-b="poetry" data-prereq="o1" data-favor="2" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518;position:absolute;left:920px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Persuade</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Inspire</div>
         <div class="ndesc">Kindle courage, clarity, or purpose in allies. Hold 3 (6) or 1 (4-5): spend as free actions for +2 dice, remove Conditions, or act through hesitation.</div>
         <div class="npre">Requires: Keening Voice</div>
       </div>
-      <div class="node locked" id="o4" data-b="poetry" data-prereq="o2" data-favor="2" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518" onclick="toggleNode(this)">
+<div class="node locked" id="o4" data-b="poetry" data-prereq="o2" data-favor="2" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518;position:absolute;left:1120px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Deceive</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Glamour</div>
         <div class="ndesc">Alter how someone is perceived — status, identity, visibility. Holds for the scene, breaks if they act contrary to the perceived identity.</div>
         <div class="npre">Requires: The True Name</div>
       </div>
-      <div class="node locked" id="o5" data-b="poetry" data-prereq="o1" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518" onclick="toggleNode(this)">
+<div class="node locked" id="o5" data-b="poetry" data-prereq="o1" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518;position:absolute;left:1030px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Memory of the Land</div>
         <div class="ndesc">Listen to a place and learn what it remembers. Once/scene, ask the Keeper one question about this location's history. Cannot be ambushed here.</div>
         <div class="npre">Requires: Keening Voice</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier III · Mastery</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node locked" id="o6" data-b="poetry" data-prereq="o3,o4" data-favor="3" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518" onclick="toggleNode(this)">
+<div class="node locked" id="o6" data-b="poetry" data-prereq="o3,o4" data-favor="3" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518;position:absolute;left:960px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Intimidate</span><span class="badge b-fav">3 Favor</span></div>
         <div class="npip"></div><div class="nname">The Glám Dícenn</div>
         <div class="ndesc">The satirist's binding curse. Mark someone with shame, bad luck, revelation, or supernatural visibility. Persists until restitution.</div>
         <div class="npre">Requires: Inspire + Glamour</div>
       </div>
-      <div class="node locked" id="o7" data-b="poetry" data-prereq="o5,c1" data-favor="3" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518" onclick="toggleNode(this)">
+<div class="node locked" id="o7" data-b="poetry" data-prereq="o5,c1" data-favor="3" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518;position:absolute;left:1120px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">3 Favor</span><span class="badge b-cross">🔥 Craft T1</span></div>
         <div class="npip"></div><div class="nname">Shape the Telling</div>
         <div class="ndesc">Reframe how a witnessed event is understood. Not a lie — a different true story. Witnesses accept your version immediately.</div>
         <div class="npre">Requires: Memory of the Land + The Maker's Eye (Craft)</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier IV · Apex</span><div class="tier-rule"></div></div>
-    <div class="tgrid c1">
-      <div class="node locked" id="o8" data-b="poetry" data-prereq="o6,o7" data-favor="5" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518" onclick="toggleNode(this)">
+<div class="node locked" id="o8" data-b="poetry" data-prereq="o6,o7" data-favor="5" style="--nc:#6d28d9;--na:#c4b5fd;--ng:#8b5cf655;--nb:#4c1d9518;position:absolute;left:1040px;top:580px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Persuade</span><span class="badge b-fav">5 Favor</span><span style="font-size:8px;letter-spacing:2px;color:var(--dim);font-family:'Cinzel',serif">Once Per Session</span></div>
         <div class="npip"></div><div class="nname">Song of Making</div>
         <div class="ndesc">Speak something into fuller existence — an alliance, a truth, a possibility. The world bends toward your words.</div>
         <div class="npre">Requires: The Glám Dícenn + Shape the Telling</div>
       </div>
-    </div></div>
+
+      </div>
+    </div>
+    <div style="position:absolute;bottom:8px;right:10px;font-size:10px;color:var(--dim);pointer-events:none;opacity:.5">scroll to zoom · drag to pan</div>
   </div>
 
   <!-- SPREAD -->
@@ -1378,16 +1437,6 @@ const SKILLS=['Notice','Persuade','Search','Wits','Might','Nimble','Sneak','Toug
 
 // ── COMPUTED ──
 function getTotalDice(){return SKILLS.reduce((s,sk)=>s+(skillData[sk]||0),0);}
-function getHeroTrackBonus(track){
-  const equippedIds=Object.values(heroSlots||{}).filter(Boolean);
-  let bonus=0;
-  if(track==='grit'&&equippedIds.includes('gritty')) bonus+=1;
-  return bonus;
-}
-function getHeroMortalityBonus(){
-  const equippedIds=Object.values(heroSlots||{}).filter(Boolean);
-  return equippedIds.includes('unkillable')?3:0;
-}
 function getMortality(){return getTotalDice()+getHeroMortalityBonus();}
 function getTotalHarm(){return conditions.reduce((s,c)=>s+c.harm,0);}
 
@@ -1406,6 +1455,7 @@ async function init(){
   buildStatPips();
   buildFavorTokens();
   buildFlameTokens();
+  buildFlameTokens();
   updateHarmDisplay();
   updateSpread();
   subscribeAll();
@@ -1413,15 +1463,6 @@ async function init(){
   subscribeNotifications();
   setSyncDot(true);
   startCanvas();
-  const pending=charData.pending_advances||0;
-  const xp=advancementData.xp_current||0;
-  if(pending>0){
-    _pendingAdvTotal=pending;
-    _pendingAdvDone=0;
-    showAdvanceModal();
-  } else if(xp>=4&&!document.getElementById('advance-modal').classList.contains('vis')){
-    showAdvanceModal();
-  }
 }
 
 // ── SUPABASE LOAD ──
@@ -1492,7 +1533,6 @@ function subscribeAll(){
     if(payload.new?.id===CHAR_ID){
       charData={...charData,...payload.new};
       applyCharData();
-      // Handle pending advances grant from DM — only trigger on fresh grant
       const pending=payload.new?.pending_advances||0;
       if(pending>0&&pending>(_pendingAdvTotal-_pendingAdvDone)){
         _pendingAdvTotal=pending;
@@ -1680,22 +1720,17 @@ async function adjustCondHarm(id,current,delta){
   await loadConditions();
 }
 async function deleteConditionUI(id){
-  const cond=conditions.find(c=>c.id===id);
-  if(!cond) return;
-  // Request DM approval to remove condition
+  const cond=conditions.find(c=>c.id===id);if(!cond)return;
   showStyledConfirm(
-    `Request to remove condition: "${cond.label}"`,
-    'This will send a request to the Weaver to approve the condition removal.',
+    'Request condition removal?',
+    cond.label+' ('+cond.harm+' harm) — The Weaver must approve this.',
     async()=>{
-      // Insert a pending removal request into change_log for DM to see
       await db.from('change_log').insert({
-        character_id:CHAR_ID,
-        change_type:'condition_remove',
-        description:`Player requests removal of "${cond.label}" (${cond.harm} harm)`,
-        old_value:JSON.stringify({id,label:cond.label,harm:cond.harm}),
-        new_value:null
+        character_id:CHAR_ID,change_type:'condition_remove',
+        description:'Player requests removal of "'+cond.label+'" ('+cond.harm+' harm)',
+        old_value:JSON.stringify({id,label:cond.label,harm:cond.harm}),new_value:null
       });
-      showToast('Removal request sent to Weaver');
+      showToast('Request sent to Weaver');
     }
   );
 }
@@ -1706,10 +1741,9 @@ function buildFavorTokens(){
   const mortality=getMortality();
   const max=mortality||0;
   if(max>0){
-    // Cap stale favor_current to max; initialize to full if never set
     let favVal=charData.favor_current||0;
     if(favVal===0||favVal>max){
-      const corrected=favVal>max?max:max; // 0 -> full, over max -> cap
+      const corrected=favVal>max?max:max;
       charData.favor_current=corrected;
       db.from('characters').update({favor_current:corrected,updated_at:new Date().toISOString()}).eq('id',CHAR_ID);
     }
@@ -1819,40 +1853,6 @@ async function useAbility(nodeId, favorCost){
   const resultLabel=outcomeClass==='success'?'Full Success':outcomeClass==='partial'?'Mixed':'Failure';
   const dmDesc=`${skill?`Rolled ${relevant} — ${resultLabel}`:'Used'}${damageDie&&damageRoll?` · ${damageRoll} harm (${damageDie})`:''}`;
   await notifyDMAbilityUse(powerName, favorCost?`${dmDesc} · −${favorCost} Favor`:dmDesc, nodeId);
-
-  // If we are in combat, also write a rich combat_action so the DM gets full detail
-  if(typeof combatSessionData !== 'undefined' && combatSessionData){
-    // Pick up target if set by confirmAbilityTarget
-    const _tgt=window._abilityTarget||null;
-    const richLabel = JSON.stringify({
-      type: 'ability',
-      name: powerName,
-      meta: data.meta,
-      skill: skill||null,
-      dice: results,
-      highest: relevant,
-      outcomeClass,
-      outcomeLabel: outcome.label,
-      outcomeText: outcome.text,
-      damageDie: damageDie||null,
-      damageRoll: damageRoll||null,
-      favorCost: favorCost||0,
-      roll: content.roll||null,
-      targetName: _tgt?.name||null,
-      targetType: _tgt?.type||null
-    });
-    await db.from('combat_actions').insert({
-      session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-      action_type:'ability',action_label:richLabel,
-      target_id:_tgt&&_tgt.type!=='environment'?_tgt.id:null,
-      target_type:_tgt?.type||null,
-      target_name:_tgt?.name||null,
-      resolved:false
-    });
-    if(typeof myQueueItem!=='undefined'&&myQueueItem){
-      await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
-    }
-  }
 
   // Auto-handle momentum from ones
   if(ones>0) pendingOnesCount=ones;
@@ -2266,21 +2266,19 @@ function prereqsMet(el){return getPrereqs(el).every(id=>unlockedPowers.has(id))}
 function hasDependent(id){for(const n of document.querySelectorAll('.node')){if(getPrereqs(n).includes(id)&&unlockedPowers.has(n.id))return true;}return false;}
 function updateAllLocks(){document.querySelectorAll('.node').forEach(n=>{if(unlockedPowers.has(n.id))return;if(prereqsMet(n)){n.classList.remove('locked');n.classList.add('avail');}else{n.classList.remove('avail','unlocked');n.classList.add('locked');}});}
 
-function toggleNode(el){
+async function toggleNode(el){
   const id=el.id;
-  if(el.classList.contains('locked')){
-    if(markupMode){cycleNodeInMarkup(id,el);} // markup: try to unlock even if prereqs unmet
-    else{showPrereqModalUI(el);}
-    return;
-  }
-  if(markupMode){
-    cycleNodeInMarkup(id,el);
-    return;
-  }
-  // Normal play — read-only, just open detail panel
-  document.querySelectorAll('.node.reading').forEach(n=>{if(n!==el)n.classList.remove('reading');});
-  el.classList.toggle('reading');
+  if(el.classList.contains('locked')){showPrereqModalUI(el);return;}
   showNodeDetail(id,el);
+  if(unlockedPowers.has(id)){
+    if(hasDependent(id)){showToast("Another power depends on this one");return;}
+    unlockedPowers.delete(id);el.classList.remove('unlocked');el.classList.add('avail');
+    await db.from('unlocked_powers').delete().eq('character_id',CHAR_ID).eq('power_id',id);
+  } else {
+    unlockedPowers.add(id);el.classList.remove('avail');el.classList.add('unlocked');
+    await db.from('unlocked_powers').upsert({character_id:CHAR_ID,power_id:id,level:nodeLevels[id]||0});
+  }
+  updateAllLocks();refreshDice(el,id);updateSpread();updateProgress();
 }
 async function cycleNodeInMarkup(id,el){
   const isUnlocked=unlockedPowers.has(id);
@@ -2313,36 +2311,6 @@ async function cycleNodeInMarkup(id,el){
   }
 }
 
-function refreshNodeBadge(el,id){
-  let badge=el.querySelector('.node-badge');
-  if(!badge){
-    badge=document.createElement('div');
-    badge.className='node-badge';
-    el.appendChild(badge);
-  }
-  const isUnlocked=unlockedPowers.has(id);
-  const levelsStr=el.dataset.levels;
-  const levelsArr=levelsStr?levelsStr.split(','):null;
-  const lvl=nodeLevels[id]||0;
-
-  if(isUnlocked){
-    badge.textContent=levelsArr?`Lv ${lvl+1}/${levelsArr.length}`:'✦';
-    badge.title=levelsArr?`Level ${lvl+1} of ${levelsArr.length} — click to change in markup`:'Unlocked';
-  } else {
-    badge.textContent='—';
-    badge.title='Not unlocked';
-  }
-
-  // Markup mode: make badge clickable to toggle/cycle
-  badge.className='node-badge'+(markupMode?' markup-edit':'');
-  badge.onclick=null;
-  if(markupMode){
-    badge.onclick=(e)=>{
-      e.stopPropagation();
-      cycleNodeInMarkup(id,el);
-    };
-  }
-}
 function applyPowerStates(){
   document.querySelectorAll('.node').forEach(n=>{
     const id=n.id;
@@ -2350,7 +2318,6 @@ function applyPowerStates(){
     else if(prereqsMet(n)){n.classList.add('avail');n.classList.remove('unlocked','locked');}
     else{n.classList.add('locked');n.classList.remove('unlocked','avail');}
     refreshDice(n,id);
-    refreshNodeBadge(n,id);
   });
   updateSpread();updateProgress();
 }
@@ -2427,8 +2394,7 @@ function showNodeDetail(id,el){
 }
 
 async function triggerPassive(nodeId){
-  const nd=ND[nodeId];
-  const powerName=nd?.name||nodeId;
+  const powerName=ND[nodeId]?.name||nodeId;
   const btn=document.getElementById(`use-btn-${nodeId}`);
   if(btn){
     btn.classList.add('use-btn-used');
@@ -2436,36 +2402,9 @@ async function triggerPassive(nodeId){
     setTimeout(()=>{
       btn.classList.remove('use-btn-used');
       btn.textContent='✦ Notify Weaver — Using This';
-    },2500);
+    },2000);
   }
   await notifyDMPassiveUse(powerName, nodeId);
-
-  // If in combat, write a rich combat_action so DM gets the full passive card
-  if(typeof combatSessionData!=='undefined'&&combatSessionData){
-    const passivePrompt=nd?.content?.passive_prompt||null;
-    const richLabel=JSON.stringify({
-      type:'ability',
-      name:powerName,
-      meta:nd?.meta||'',
-      skill:null,
-      dice:[],
-      highest:null,
-      outcomeClass:'success',
-      outcomeLabel:'Passive Activated',
-      outcomeText:nd?.content?.desc||'',
-      damageDie:null,
-      damageRoll:null,
-      favorCost:0,
-      roll:null,
-      passive_prompt:passivePrompt,
-      isPassive:true
-    });
-    await db.from('combat_actions').insert({
-      session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-      action_type:'ability',action_label:richLabel,resolved:false
-    });
-  }
-
   showToast(`Weaver notified: ${powerName}`);
 }
 
@@ -2794,6 +2733,7 @@ function renderXP(){
   }
   // Only open modal if XP just hit 4 AND modal is not already open AND no DM-granted advance pending
   if(xp>=4&&!document.getElementById('advance-modal').classList.contains('vis')&&!(charData.pending_advances>0)){
+    if(_pendingAdvTotal===0){_pendingAdvTotal=1;_pendingAdvDone=0;}
     showAdvanceModal();
   }
 }
@@ -2823,13 +2763,7 @@ function showAdvanceModal(){
   modal.classList.add('vis');
 }
 function closeAdvanceModal(){
-  // If there are still pending advances, minimize rather than dismiss
-  if(_pendingAdvTotal>0&&_pendingAdvDone<_pendingAdvTotal){
-    minimizeAdvanceModal();
-    showToast('Advancement pending — tap the banner to resume');
-    return;
-  }
-  document.getElementById('advance-modal').classList.remove('vis');
+  minimizeAdvanceModal();
 }
 function minimizeAdvanceModal(){
   document.getElementById('advance-modal').classList.remove('vis');
@@ -3441,32 +3375,29 @@ function buildCombatActionGrid(){
   const hasClose=tags.some(t=>t.includes('close'));
   const hasFar=tags.some(t=>t.includes('far'));
   const hasIntimate=tags.some(t=>t.includes('intimate'));
+  const hasReach=tags.some(t=>t.includes('reach'));
   const attackCount=(combatParticipantData?.actions_used||0);
   const hasMultipleWeapons=inventoryData.filter(i=>i.is_weapon).length>1;
-  const grit=charData.grit||0;
-
-  // Range-eligible combat feats (hidden entirely if weapon doesn't qualify)
-  const eligibleFeats=FEATS.filter(f=>{
-    if(f.type!=='combat'||!unlockedFeats.has(f.id)) return false;
-    if(f.id==='cleave') return hasClose;
-    if(f.id==='cover_shot') return hasFar;
-    if(f.id==='disarm') return hasClose||hasIntimate;
-    if(f.id==='stun') return hasClose;
-    return true; // bash etc. always eligible
-  });
 
   const actions=[
-    {icon:'⚔',label:'Attack',desc:equipped?`${equipped.name}${attackCount>0?' — Rushed':''}`:attackCount>0?'Unarmed — Rushed':'Unarmed (1d4 harm)',cost:attackCount>0?'Disadvantage':'',onclick:()=>showAttackFlow(attackCount>0)},
+    {icon:'⚔',label:'Attack',desc:'Roll weapon damage',cost:attackCount>0?'Rushed (Disadvantage)':'',onclick:()=>showAttackFlow(attackCount>0)},
     {icon:'🏃',label:'Move',desc:'Reposition in scene',cost:'',onclick:()=>showMoveFlow()},
     {icon:'🔍',label:'Scope',desc:'Investigate surroundings',cost:'',onclick:()=>submitCombatAction('scope','Scope the surroundings')},
     {icon:'🎒',label:'Use Item',desc:'Use inventory item or interact with scene object',cost:'',onclick:()=>showItemFlow()},
-    {icon:'✨',label:'Use Ability',desc:'Trigger a divine or hero power',cost:'',onclick:()=>showAbilityFlow()},
+    {icon:'✨',label:'Use Ability',desc:'Hero or divine ability',cost:'Uses Favor for divine',onclick:()=>submitCombatAction('ability','Use ability — switching to playbook tab')},
   ];
   if(hasMultipleWeapons) actions.push({icon:'🔄',label:'Swap Weapon',desc:'Switch equipped weapon',cost:'',onclick:()=>showSwapWeaponFlow()});
-  // Combat feats as a single subpanel button (only shown if any are range-eligible)
-  if(eligibleFeats.length){
-    actions.push({icon:'⚡',label:'Combat Feat',desc:`${eligibleFeats.length} available`,cost:'1 Grit each',disabled:grit<=0,onclick:()=>showFeatSubPanel()});
-  }
+
+  // Combat feats (filtered by range)
+  FEATS.filter(f=>f.type==='combat'&&unlockedFeats.has(f.id)).forEach(f=>{
+    let available=true;
+    if(f.id==='cleave'&&!hasClose) available=false;
+    if(f.id==='cover_shot'&&!hasFar) available=false;
+    if(f.id==='disarm'&&!hasClose&&!hasIntimate) available=false;
+    if(f.id==='stun'&&!hasClose) available=false;
+    const grit=charData.grit||0;
+    actions.push({icon:'⚡',label:f.name,desc:f.desc,cost:'1 Grit',disabled:!available||(grit<=0),onclick:()=>showFeatFlow(f)});
+  });
 
   actions.forEach(a=>{
     const btn=document.createElement('button');
@@ -3488,9 +3419,8 @@ function showAttackFlow(isRushed){
 }
 async function executeAttack(targetId,targetType,targetName,isRushed){
   const equipped=getEquippedWeapon();
-  // No weapon equipped: unarmed attack rolls 1d4
-  const weaponName=equipped?equipped.name:'Unarmed';
-  const harmTag=equipped?(equipped.tags||[]).find(t=>/\dd\d|\d+harm/i.test(t))||'1d6':'1d4';
+  if(!equipped){showToast('No weapon equipped');return;}
+  const harmTag=(equipped.tags||[]).find(t=>/\dd\d|\d+harm/i.test(t))||'1d6';
   const dieMatch=harmTag.match(/(\d+)d(\d+)/i);
   let result;
   if(dieMatch){
@@ -3506,11 +3436,10 @@ async function executeAttack(targetId,targetType,targetName,isRushed){
   }
   await db.from('combat_actions').insert({
     session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,
-    action_type:'attack',action_label:`Attacks ${targetName} with ${weaponName}`,
+    action_type:'attack',action_label:`Attacks ${targetName} with ${equipped.name}`,
     target_id:targetId,target_type:targetType,target_name:targetName,
     harm_dealt:result,resolved:false
   });
-  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   showToast(`Attack on ${targetName}: ${result} harm — waiting for DM`);
   if(myQueueItem)await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',myQueueItem.id);
@@ -3564,7 +3493,6 @@ async function swapWeapon(itemId){
     w.equipped=w.id===itemId;
   }
   await db.from('combat_actions').insert({session_id:combatSessionData.id,actor_id:CHAR_ID,actor_type:'pc',actor_name:CHAR_ID,action_type:'swap_weapon',action_label:`Swapped weapon`,resolved:false});
-  actionSubmittedThisTurn=true;
   document.getElementById('co-action-panel').style.display='none';
   renderInventory();renderCombatWeapon();
   showToast('Weapon swapped');
@@ -3733,8 +3661,8 @@ function restoreCombat(){const ov=document.getElementById('combat-overlay');if(!
 async function useItem(itemId){
   const item=inventoryData.find(i=>i.id===itemId);if(!item)return;
   showStyledConfirm(
-    `Use "${item.name}"?`,
-    item.healing_value ? `This will heal a condition using ${item.healing_value}. This use is permanent.` : `This will consume one use. This is permanent.`,
+    'Use "'+item.name+'"?',
+    item.healing_value?'Heals a condition using '+item.healing_value+'. Uses one charge.':'Consumes one use. This is permanent.',
     async()=>{
       if(item.healing_value){await useHealingItem(item);}
       else if(item.uses_max>0){await decrementItem(item);}

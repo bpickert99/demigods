@@ -5,7 +5,87 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kara — Demigods Campaign · v3.19</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">// ── TREE CANVAS ──────────────────────────
+(function(){
+  var wrap=document.getElementById('tree-wrap');
+  var inner=document.getElementById('tree-inner');
+  if(!wrap||!inner)return;
+  var scale=1,tx=0,ty=0,dragging=false,sx=0,sy=0,stx=0,sty=0;
+
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+  function commit(){
+    var minTX=Math.min(0,-(inner.offsetWidth*scale-wrap.offsetWidth));
+    var minTY=Math.min(0,-(inner.offsetHeight*scale-wrap.offsetHeight));
+    tx=clamp(tx,minTX,0); ty=clamp(ty,minTY,0);
+    inner.style.transform='translate('+tx+'px,'+ty+'px) scale('+scale+')';
+    inner.style.transformOrigin='0 0';
+  }
+
+  function focusUnlocked(){
+    var unlocked=inner.querySelectorAll('.node.unlocked');
+    if(!unlocked.length){
+      // Fit to screen if nothing unlocked
+      var pw=wrap.offsetWidth,ph=wrap.offsetHeight;
+      scale=Math.min(pw/inner.offsetWidth,ph/inner.offsetHeight,0.85);
+      tx=(pw-inner.offsetWidth*scale)/2; ty=(ph-inner.offsetHeight*scale)/2;
+      commit(); return;
+    }
+    var xs=[],ys=[];
+    unlocked.forEach(function(n){
+      var l=parseInt(n.style.left||0),t=parseInt(n.style.top||0);
+      xs.push(l); xs.push(l+148); ys.push(t); ys.push(t+72);
+    });
+    var minX=Math.min.apply(null,xs),maxX=Math.max.apply(null,xs);
+    var minY=Math.min.apply(null,ys),maxY=Math.max.apply(null,ys);
+    var pad=80;
+    var pw=wrap.offsetWidth,ph=wrap.offsetHeight;
+    var fw=maxX-minX+pad*2,fh=maxY-minY+pad*2;
+    scale=Math.min(pw/fw,ph/fh,1.2);
+    tx=pw/2-(minX+fw/2)*scale; ty=ph/2-(minY+fh/2)*scale;
+    commit();
+  }
+
+  setTimeout(focusUnlocked,80);
+  var divBtn=document.querySelector('[onclick="switchPlaybook('divine')"]');
+  if(divBtn)divBtn.addEventListener('click',function(){setTimeout(focusUnlocked,80);});
+
+  wrap.addEventListener('wheel',function(e){
+    e.preventDefault();
+    var r=wrap.getBoundingClientRect();
+    var mx=e.clientX-r.left,my=e.clientY-r.top;
+    var d=e.deltaY>0?0.88:1.12;
+    var ns=clamp(scale*d,0.25,2.5);
+    tx=mx-(mx-tx)*(ns/scale); ty=my-(my-ty)*(ns/scale);
+    scale=ns; commit();
+  },{passive:false});
+
+  wrap.addEventListener('mousedown',function(e){
+    if(e.target.closest('.node'))return;
+    dragging=true; sx=e.clientX; sy=e.clientY; stx=tx; sty=ty;
+    wrap.style.cursor='grabbing'; e.preventDefault();
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!dragging)return;
+    tx=stx+(e.clientX-sx); ty=sty+(e.clientY-sy); commit();
+  });
+  document.addEventListener('mouseup',function(){
+    dragging=false; wrap.style.cursor='grab';
+  });
+
+  var ltx=0,lty=0;
+  wrap.addEventListener('touchstart',function(e){
+    if(e.touches.length===1){ltx=e.touches[0].clientX;lty=e.touches[0].clientY;}
+  },{passive:true});
+  wrap.addEventListener('touchmove',function(e){
+    if(e.touches.length===1){
+      tx+=e.touches[0].clientX-ltx; ty+=e.touches[0].clientY-lty;
+      ltx=e.touches[0].clientX; lty=e.touches[0].clientY;
+      commit(); e.preventDefault();
+    }
+  },{passive:false});
+})();
+
+</script>
 <style>
 :root{
   --bg:#0a0a0f;--surf:#111118;--surf2:#1a1a26;--border:#2a2a40;--border2:#3a3a58;
@@ -796,6 +876,9 @@ body.markup .hadv-remove-btn{display:flex}
 .hadv-name-tag.combat{color:#f87171;border-color:#f8717140;background:#f871710a}
 .hadv-name-tag.narrative{color:#60a5fa;border-color:#60a5fa40;background:#60a5fa0a}
 
+
+.tree-wrap{-webkit-user-select:none;user-select:none;touch-action:none}
+.tree-inner{will-change:transform;transform-origin:0 0}
 </style>
 </head>
 <body>
@@ -1189,216 +1272,184 @@ body.markup .hadv-remove-btn{display:flex}
   <div id="dp-detail" class="dp-detail"></div>
 
   <!-- BRANCH TABS -->
-  <div class="tabs">
-    <button class="tab-btn active" data-b="construct" onclick="switchBranch('construct')"><span class="tglyph">⚙️</span>Construct</button>
-    <button class="tab-btn" data-b="electric" onclick="switchBranch('electric')"><span class="tglyph">⚡</span>Electric</button>
-    <button class="tab-btn" data-b="automaton" onclick="switchBranch('automaton')" id="automaton-tab" style="opacity:.3;pointer-events:none"><span class="tglyph">🤖</span>Automaton</button>
-  </div>
+  <!-- TREE CANVAS -->
+  <div class="tree-wrap" id="tree-wrap" style="position:relative;overflow:hidden;width:100%;height:560px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:grab;user-select:none;touch-action:none">
+    <div class="tree-inner" id="tree-inner" style="position:relative;width:1300px;height:700px;transform-origin:0 0">
+      <svg style="position:absolute;inset:0;width:1300px;height:700px;pointer-events:none;z-index:1" overflow="visible">
+        <path d="M154,112 C154,166 114,166 114,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M154,112 C154,166 224,166 224,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M314,112 C314,166 314,166 314,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M114,292 C114,346 154,346 154,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M224,292 C224,346 154,346 154,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M314,292 C314,346 314,346 314,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M224,292 C224,346 314,346 314,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M154,472 C154,526 234,526 234,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M314,472 C314,526 234,526 234,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M594,112 C594,166 554,166 554,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M594,112 C594,166 664,166 664,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M754,112 C754,166 754,166 754,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M554,292 C554,346 594,346 594,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M754,292 C754,346 594,346 594,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M664,292 C664,346 754,346 754,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M594,472 C594,526 674,526 674,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M754,472 C754,526 674,526 674,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1034,112 C1034,166 994,166 994,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1034,112 C1034,166 1104,166 1104,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1194,112 C1194,166 1194,166 1194,220" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M994,292 C994,346 1034,346 1034,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1194,292 C1194,346 1034,346 1034,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1104,292 C1104,346 1194,346 1194,400" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1034,472 C1034,526 1114,526 1114,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+<path d="M1194,472 C1194,526 1114,526 1114,580" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-opacity="0.45" stroke-dasharray="3,3"/>
+      </svg>
+      <div style="position:absolute;left:154px;top:8px;transform:translateX(-50%);color:#fcd34d;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;pointer-events:none;white-space:nowrap;text-shadow:0 0 12px #fcd34d44">⚙ Forge</div>
+<div style="position:absolute;left:594px;top:8px;transform:translateX(-50%);color:#93c5fd;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;pointer-events:none;white-space:nowrap;text-shadow:0 0 12px #93c5fd44">⚡ Electric</div>
+<div style="position:absolute;left:1034px;top:8px;transform:translateX(-50%);color:#c084fc;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;pointer-events:none;white-space:nowrap;text-shadow:0 0 12px #c084fc44">🤖 Automaton</div>
 
-  <!-- CONSTRUCT -->
-  <div id="panel-construct" class="bpanel active">
-    <div class="bhead">
-      <div><div class="btitle" style="color:#fcd34d">Construct</div><div class="bsub">Déanamh — The Art of Making</div></div>
-      <div class="bprog" style="color:#fcd34d"><span class="cnt" id="prog-construct">0</span>/ 8 powers</div>
-    </div>
-    <div class="tier"><div class="tier-head"><span>Tier I · Foundation</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node avail" id="k1" data-b="construct" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+      <div style="position:absolute;inset:0;z-index:2">
+        <div class="node avail" id="k1" data-b="construct" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:80px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Forge Instinct</div>
         <div class="ndesc">At level-up, instead of adding a new Skill point, you may fill your Favor track. You always know the fastest way to build or break any constructed object.</div>
       </div>
-      <div class="node avail" id="k2" data-b="construct" data-favor="1" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node avail" id="k2" data-b="construct" data-favor="1" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:240px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">1 Favor</span></div>
         <div class="npip"></div><div class="nname">Gather Materials</div>
         <div class="ndesc">When you take a moment to gather materials, roll 1d4 and add that many slots to your Favor track.</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier II · Awakening</span><div class="tier-rule"></div></div>
-    <div class="tgrid c3">
-      <div class="node locked" id="k3" data-b="construct" data-prereq="k1" data-favor="1" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node locked" id="k3" data-b="construct" data-prereq="k1" data-favor="1" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:40px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Care</span><span class="badge b-fav">1 Favor</span></div>
         <div class="npip"></div><div class="nname">Field Repair</div>
         <div class="ndesc">Use one Favor slot as a bandage, healing any Condition for 1d6 Harm.</div>
         <div class="npre">Requires: Forge Instinct</div>
       </div>
-      <div class="node locked" id="k4" data-b="construct" data-prereq="k2" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node locked" id="k4" data-b="construct" data-prereq="k2" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:240px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Extra Capacity</div>
         <div class="ndesc">Add one additional slot to your Favor track.</div>
         <div class="npre">Requires: Gather Materials</div>
       </div>
-      <div class="node locked" id="k5" data-b="construct" data-prereq="k1" data-favor="1" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node locked" id="k5" data-b="construct" data-prereq="k1" data-favor="1" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:150px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">1 Favor</span></div>
         <div class="npip"></div><div class="nname">Analyze Machine</div>
         <div class="ndesc">Examine a machine or tool, roll Wits. Ask that many yes/no questions of the Weaver about it.</div>
         <div class="npre">Requires: Forge Instinct</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier III · Mastery</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node locked" id="k6" data-b="construct" data-prereq="k3,k5" data-favor="2" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node locked" id="k6" data-b="construct" data-prereq="k3,k5" data-favor="2" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:80px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Blessed Feast</div>
         <div class="ndesc">Spend 1 Bond to bless someone's meal. Whoever eats it removes one Fleeting condition.</div>
         <div class="npre">Requires: Field Repair + Analyze Machine</div>
       </div>
-      <div class="node locked" id="k7" data-b="construct" data-prereq="k4,k5" data-favor="3" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node locked" id="k7" data-b="construct" data-prereq="k4,k5" data-favor="3" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:240px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">3 Favor</span></div>
         <div class="npip"></div><div class="nname">Grand Commission</div>
         <div class="ndesc">Spend 2 Bond to bless someone's meal. Whoever eats it removes one Lasting condition.</div>
         <div class="npre">Requires: Extra Capacity + Analyze Machine</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier IV · Apex</span><div class="tier-rule"></div></div>
-    <div class="tgrid c1">
-      <div class="node locked" id="k8" data-b="construct" data-prereq="k6,k7" data-favor="5" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18" onclick="toggleNode(this)">
+<div class="node locked" id="k8" data-b="construct" data-prereq="k6,k7" data-favor="5" style="--nc:#b45309;--na:#fcd34d;--ng:#f59e0b55;--nb:#78350f18;position:absolute;left:160px;top:580px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">5 Favor</span><span style="font-size:8px;letter-spacing:2px;color:var(--dim);font-family:'Cinzel',serif">Once Per Session</span></div>
         <div class="npip"></div><div class="nname">Master Forging</div>
         <div class="ndesc">Spend a full scene crafting. Create weapons, tools, or devices of extraordinary quality. Resource cost starts at 1 Favor plus additional components.</div>
         <div class="npre">Requires: Blessed Feast + Grand Commission</div>
       </div>
-    </div></div>
-  </div>
-
-  <!-- ELECTRIC -->
-  <div id="panel-electric" class="bpanel">
-    <div class="bhead">
-      <div><div class="btitle" style="color:#93c5fd">Electric</div><div class="bsub">Tintreach — The Forge's Lightning</div></div>
-      <div class="bprog" style="color:#93c5fd"><span class="cnt" id="prog-electric">0</span>/ 8 powers</div>
-    </div>
-    <div class="tier"><div class="tier-head"><span>Tier I · Foundation</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node avail" id="e1" data-b="electric" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18" onclick="toggleNode(this)">
+<div class="node avail" id="e1" data-b="electric" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18;position:absolute;left:520px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Static Sense</div>
         <div class="ndesc">You feel electrical currents nearby. You always know if a machine is powered or damaged. Cannot be surprised by electrical hazards.</div>
       </div>
-      <div class="node avail" id="e2" data-b="electric" data-favor="2" data-levels="1d6,1d8,1d10" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18" onclick="toggleNode(this)">
+<div class="node avail" id="e2" data-b="electric" data-favor="2" data-levels="1d6,1d8,1d10" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18;position:absolute;left:680px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Might</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Lightning Bolt</div>
         <div class="ndice"><span class="dval" id="e2-dice">1d6</span></div>
         <div class="ndesc">Throw a bolt of electricity as an Attack. Can shock objects to disable them or deal Harm to a target.</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier II · Awakening</span><div class="tier-rule"></div></div>
-    <div class="tgrid c3">
-      <div class="node locked" id="e3" data-b="electric" data-prereq="e1" data-favor="2" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18" onclick="toggleNode(this)">
+<div class="node locked" id="e3" data-b="electric" data-prereq="e1" data-favor="2" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18;position:absolute;left:480px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Machine Control</div>
         <div class="ndesc">Touch a machine no larger than 15' in any dimension. Control its movements with your mind for the rest of the scene.</div>
         <div class="npre">Requires: Static Sense</div>
       </div>
-      <div class="node locked" id="e4" data-b="electric" data-prereq="e2" data-favor="2" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18" onclick="toggleNode(this)">
+<div class="node locked" id="e4" data-b="electric" data-prereq="e2" data-favor="2" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18;position:absolute;left:680px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Might</span><span class="badge b-fav">2 Favor</span></div>
         <div class="npip"></div><div class="nname">Arc Chain</div>
         <div class="ndesc">Your lightning arcs to a second target within Close range of the first. Roll damage once; both take it.</div>
         <div class="npre">Requires: Lightning Bolt</div>
       </div>
-      <div class="node locked" id="e5" data-b="electric" data-prereq="e1" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18" onclick="toggleNode(this)">
+<div class="node locked" id="e5" data-b="electric" data-prereq="e1" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18;position:absolute;left:590px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-pass">Passive</span></div>
         <div class="npip"></div><div class="nname">Overclock</div>
         <div class="ndesc">Once per scene, push a machine beyond its limits. It performs one action as if twice as capable. After: roll Wits or the machine is damaged.</div>
         <div class="npre">Requires: Static Sense</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier III · Mastery</span><div class="tier-rule"></div></div>
-    <div class="tgrid c2">
-      <div class="node locked" id="e6" data-b="electric" data-prereq="e3,e4" data-favor="3" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18" onclick="toggleNode(this)">
+<div class="node locked" id="e6" data-b="electric" data-prereq="e3,e4" data-favor="3" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18;position:absolute;left:520px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">3 Favor</span></div>
         <div class="npip"></div><div class="nname">Greater Control</div>
         <div class="ndesc">Touch a machine no larger than 30' and control its movements with your mind.</div>
         <div class="npre">Requires: Machine Control + Arc Chain</div>
       </div>
-      <div class="node locked" id="e7" data-b="electric" data-prereq="e5" data-favor="3" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18" onclick="toggleNode(this)">
+<div class="node locked" id="e7" data-b="electric" data-prereq="e5" data-favor="3" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18;position:absolute;left:680px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Might</span><span class="badge b-fav">3 Favor</span></div>
         <div class="npip"></div><div class="nname">EMP Pulse</div>
         <div class="ndesc">Release an electromagnetic burst. All electronic and mechanical devices within Close range are disabled for one scene.</div>
         <div class="npre">Requires: Overclock</div>
       </div>
-    </div></div>
-    <div class="tier"><div class="tier-head"><span>Tier IV · Apex</span><div class="tier-rule"></div></div>
-    <div class="tgrid c1">
-      <div class="node locked" id="e8" data-b="electric" data-prereq="e6,e7" data-favor="5" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18" onclick="toggleNode(this)">
+<div class="node locked" id="e8" data-b="electric" data-prereq="e6,e7" data-favor="5" style="--nc:#3b82f6;--na:#93c5fd;--ng:#3b82f655;--nb:#1e3a5f18;position:absolute;left:600px;top:580px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
         <div class="nbadges"><span class="badge b-roll">Roll: Might</span><span class="badge b-fav">5 Favor</span><span style="font-size:8px;letter-spacing:2px;color:var(--dim);font-family:'Cinzel',serif">Once Per Session</span></div>
         <div class="npip"></div><div class="nname">Storm Form</div>
         <div class="ndesc">For one scene, you become partially electrical. +1d6 to all attacks. Immune to electrical damage. Jump current between any two conducting surfaces you can see.</div>
         <div class="npre">Requires: Greater Control + EMP Pulse</div>
       </div>
-    </div></div>
-  </div>
-
-  <!-- AUTOMATON (locked until DM reveals) -->
-  <div id="panel-automaton" class="bpanel">
-    <div id="automaton-locked-msg" style="text-align:center;padding:40px 20px">
-      <div style="font-size:32px;margin-bottom:12px">🔒</div>
-      <div style="font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--dim);margin-bottom:8px">Hidden Nature</div>
-      <div style="font-size:13px;color:var(--dim);line-height:1.6">This branch will be revealed in time.</div>
-    </div>
-    <div id="automaton-content" style="display:none">
-      <div class="bhead">
-        <div><div class="btitle" style="color:#c084fc">Automaton</div><div class="bsub">Féinriail — The Truth Beneath</div></div>
-        <div class="bprog" style="color:#c084fc"><span class="cnt" id="prog-automaton">0</span>/ 8 powers</div>
-      </div>
-      <div class="tier"><div class="tier-head"><span>Tier I · Awakening</span><div class="tier-rule"></div></div>
-      <div class="tgrid c2">
-        <div class="node avail" id="a1" data-b="automaton" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618" onclick="toggleNode(this)">
+<div class="node avail" id="a1" data-b="automaton" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618;position:absolute;left:960px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
           <div class="nbadges"><span class="badge b-pass">Passive</span></div>
           <div class="npip"></div><div class="nname">Iron Constitution</div>
           <div class="ndesc">Your constructed nature becomes clear. You do not need to eat, sleep, or breathe. Biological Conditions (poison, disease) do not apply to you.</div>
         </div>
-        <div class="node avail" id="a2" data-b="automaton" data-favor="2" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618" onclick="toggleNode(this)">
+<div class="node avail" id="a2" data-b="automaton" data-favor="2" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618;position:absolute;left:1120px;top:40px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
           <div class="nbadges"><span class="badge b-roll">Roll: Tough</span><span class="badge b-fav">2 Favor</span></div>
           <div class="npip"></div><div class="nname">Self-Repair</div>
           <div class="ndesc">Repair your own body using materials and tools. Roll Tough and spend 2 Favor to remove one Condition of any severity from yourself.</div>
         </div>
-      </div></div>
-      <div class="tier"><div class="tier-head"><span>Tier II · Integration</span><div class="tier-rule"></div></div>
-      <div class="tgrid c3">
-        <div class="node locked" id="a3" data-b="automaton" data-prereq="a1" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618" onclick="toggleNode(this)">
+<div class="node locked" id="a3" data-b="automaton" data-prereq="a1" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618;position:absolute;left:920px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
           <div class="nbadges"><span class="badge b-pass">Passive</span></div>
           <div class="npip"></div><div class="nname">Enhanced Chassis</div>
           <div class="ndesc">Your Mortality increases by 4. Armor applied to you is twice as effective.</div>
           <div class="npre">Requires: Iron Constitution</div>
         </div>
-        <div class="node locked" id="a4" data-b="automaton" data-prereq="a2" data-favor="2" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618" onclick="toggleNode(this)">
+<div class="node locked" id="a4" data-b="automaton" data-prereq="a2" data-favor="2" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618;position:absolute;left:1120px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
           <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">2 Favor</span></div>
           <div class="npip"></div><div class="nname">System Scan</div>
           <div class="ndesc">Interface with any electronic or mechanical system you touch. Access its data, history, and current status as an authorized operator.</div>
           <div class="npre">Requires: Self-Repair</div>
         </div>
-        <div class="node locked" id="a5" data-b="automaton" data-prereq="a1" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618" onclick="toggleNode(this)">
+<div class="node locked" id="a5" data-b="automaton" data-prereq="a1" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618;position:absolute;left:1030px;top:220px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
           <div class="nbadges"><span class="badge b-pass">Passive</span></div>
           <div class="npip"></div><div class="nname">Built-In Tools</div>
           <div class="ndesc">Your hands contain hidden tools — cutting implements, sensors, lockpicks. You are never without the right tool.</div>
           <div class="npre">Requires: Iron Constitution</div>
         </div>
-      </div></div>
-      <div class="tier"><div class="tier-head"><span>Tier III · Mastery</span><div class="tier-rule"></div></div>
-      <div class="tgrid c2">
-        <div class="node locked" id="a6" data-b="automaton" data-prereq="a3,a4" data-favor="3" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618" onclick="toggleNode(this)">
+<div class="node locked" id="a6" data-b="automaton" data-prereq="a3,a4" data-favor="3" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618;position:absolute;left:960px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
           <div class="nbadges"><span class="badge b-roll">Roll: Tough</span><span class="badge b-fav">3 Favor</span></div>
           <div class="npip"></div><div class="nname">Overclock Body</div>
           <div class="ndesc">Push your systems beyond design limits for one scene. All physical rolls gain +2 dice. At scene end, mark one Condition from the strain.</div>
           <div class="npre">Requires: Enhanced Chassis + System Scan</div>
         </div>
-        <div class="node locked" id="a7" data-b="automaton" data-prereq="a5" data-favor="3" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618" onclick="toggleNode(this)">
+<div class="node locked" id="a7" data-b="automaton" data-prereq="a5" data-favor="3" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618;position:absolute;left:1120px;top:400px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
           <div class="nbadges"><span class="badge b-roll">Roll: Wits</span><span class="badge b-fav">3 Favor</span></div>
           <div class="npip"></div><div class="nname">Signal Mask</div>
           <div class="ndesc">Suppress your mechanical signature entirely. You read as fully human to all sensors and supernatural detection for one scene.</div>
           <div class="npre">Requires: Built-In Tools</div>
         </div>
-      </div></div>
-      <div class="tier"><div class="tier-head"><span>Tier IV · Apex</span><div class="tier-rule"></div></div>
-      <div class="tgrid c1">
-        <div class="node locked" id="a8" data-b="automaton" data-prereq="a6,a7" data-favor="5" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618" onclick="toggleNode(this)">
+<div class="node locked" id="a8" data-b="automaton" data-prereq="a6,a7" data-favor="5" style="--nc:#9333ea;--na:#c084fc;--ng:#a855f755;--nb:#4a1d9618;position:absolute;left:1040px;top:580px;width:148px;min-height:72px;box-sizing:border-box;margin:0" onclick="toggleNode(this)">
           <div class="nbadges"><span class="badge b-roll">Roll: Tough</span><span class="badge b-fav">5 Favor</span><span style="font-size:8px;letter-spacing:2px;color:var(--dim);font-family:'Cinzel',serif">Once Per Session</span></div>
           <div class="npip"></div><div class="nname">True Form</div>
           <div class="ndesc">Shed all pretense for one scene. Ignore all Conditions, immunity to mundane damage, your attacks are treated as divine.</div>
           <div class="npre">Requires: Overclock Body + Signal Mask</div>
         </div>
-      </div></div>
+
+      </div>
     </div>
+    <div style="position:absolute;bottom:8px;right:10px;font-size:10px;color:var(--dim);pointer-events:none;opacity:.5">scroll to zoom · drag to pan</div>
   </div>
 
   <!-- SPREAD -->
@@ -1870,22 +1921,17 @@ async function adjustCondHarm(id,current,delta){
   await loadConditions();
 }
 async function deleteConditionUI(id){
-  const cond=conditions.find(c=>c.id===id);
-  if(!cond) return;
-  // Request DM approval to remove condition
+  const cond=conditions.find(c=>c.id===id);if(!cond)return;
   showStyledConfirm(
-    `Request to remove condition: "${cond.label}"`,
-    'This will send a request to the Weaver to approve the condition removal.',
+    'Request condition removal?',
+    cond.label+' ('+cond.harm+' harm) — The Weaver must approve this.',
     async()=>{
-      // Insert a pending removal request into change_log for DM to see
       await db.from('change_log').insert({
-        character_id:CHAR_ID,
-        change_type:'condition_remove',
-        description:`Player requests removal of "${cond.label}" (${cond.harm} harm)`,
-        old_value:JSON.stringify({id,label:cond.label,harm:cond.harm}),
-        new_value:null
+        character_id:CHAR_ID,change_type:'condition_remove',
+        description:'Player requests removal of "'+cond.label+'" ('+cond.harm+' harm)',
+        old_value:JSON.stringify({id,label:cond.label,harm:cond.harm}),new_value:null
       });
-      showToast('Removal request sent to Weaver');
+      showToast('Request sent to Weaver');
     }
   );
 }
@@ -2980,6 +3026,7 @@ function renderXP(){
   }
   // Only open modal if XP just hit 4 AND modal is not already open AND no DM-granted advance pending
   if(xp>=4&&!document.getElementById('advance-modal').classList.contains('vis')&&!(charData.pending_advances>0)){
+    if(_pendingAdvTotal===0){_pendingAdvTotal=1;_pendingAdvDone=0;}
     showAdvanceModal();
   }
 }
@@ -3009,13 +3056,7 @@ function showAdvanceModal(){
   modal.classList.add('vis');
 }
 function closeAdvanceModal(){
-  // If there are still pending advances, minimize rather than dismiss
-  if(_pendingAdvTotal>0&&_pendingAdvDone<_pendingAdvTotal){
-    minimizeAdvanceModal();
-    showToast('Advancement pending — tap the banner to resume');
-    return;
-  }
-  document.getElementById('advance-modal').classList.remove('vis');
+  minimizeAdvanceModal();
 }
 function minimizeAdvanceModal(){
   document.getElementById('advance-modal').classList.remove('vis');
@@ -3641,18 +3682,17 @@ function buildCombatActionGrid(){
     if(f.id==='cover_shot') return hasFar;
     if(f.id==='disarm') return hasClose||hasIntimate;
     if(f.id==='stun') return hasClose;
-    return true; // bash etc. always eligible
+    return true;
   });
 
   const actions=[
-    {icon:'⚔',label:'Attack',desc:equipped?`${equipped.name}${attackCount>0?' — Rushed':''}`:attackCount>0?'Unarmed — Rushed':'Unarmed (1d4 harm)',cost:attackCount>0?'Disadvantage':'',onclick:()=>showAttackFlow(attackCount>0)},
+    {icon:'⚔',label:'Attack',desc:equipped?`${equipped.name}${attackCount>0?' — Rushed':''}`:`Unarmed (1d4 harm)${attackCount>0?' — Rushed':''}`,cost:attackCount>0?'Disadvantage':'',onclick:()=>showAttackFlow(attackCount>0)},
     {icon:'🏃',label:'Move',desc:'Reposition in scene',cost:'',onclick:()=>showMoveFlow()},
     {icon:'🔍',label:'Scope',desc:'Investigate surroundings',cost:'',onclick:()=>submitCombatAction('scope','Scope the surroundings')},
     {icon:'🎒',label:'Use Item',desc:'Use inventory item or interact with scene object',cost:'',onclick:()=>showItemFlow()},
     {icon:'✨',label:'Use Ability',desc:'Trigger a divine or hero power',cost:'',onclick:()=>showAbilityFlow()},
   ];
   if(hasMultipleWeapons) actions.push({icon:'🔄',label:'Swap Weapon',desc:'Switch equipped weapon',cost:'',onclick:()=>showSwapWeaponFlow()});
-  // Combat feats as a single subpanel button (only shown if any are range-eligible)
   if(eligibleFeats.length){
     actions.push({icon:'⚡',label:'Combat Feat',desc:`${eligibleFeats.length} available`,cost:'1 Grit each',disabled:grit<=0,onclick:()=>showFeatSubPanel()});
   }
@@ -3677,7 +3717,6 @@ function showAttackFlow(isRushed){
 }
 async function executeAttack(targetId,targetType,targetName,isRushed){
   const equipped=getEquippedWeapon();
-  // No weapon equipped: unarmed attack rolls 1d4
   const weaponName=equipped?equipped.name:'Unarmed';
   const harmTag=equipped?(equipped.tags||[]).find(t=>/\dd\d|\d+harm/i.test(t))||'1d6':'1d4';
   const dieMatch=harmTag.match(/(\d+)d(\d+)/i);
