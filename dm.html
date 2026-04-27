@@ -3,2118 +3,420 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Weaver Screen — Demigods · v3.19</title>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>Weaver Screen — Paragon</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#07070e;--surf:#0e0e1c;--surf2:#13132a;--border:#252540;--border2:#3a3a58;
-  --text:#e8e0d0;--muted:#9090b0;--dim:#606080;
-  --gold:#d4a84b;--gold2:#d4a84b30;
+  --bg:#07070e;--surf:#0e0e1c;--surf2:#15152a;--border:#252540;--border2:#3a3a58;
+  --text:#e8e0d0;--muted:#9090b0;--dim:#606080;--gold:#d4a84b;--gold2:#d4a84b22;
+  --ok:#22c55e;--partial:#f59e0b;--fail:#ef4444;
   --lewis:#7c3aed;--murphy:#10b981;--kara:#f59e0b;--finn:#8b5cf6;
-  --lewis-acc:#ddd6fe;--murphy-acc:#6ee7b7;--kara-acc:#fcd34d;--finn-acc:#c4b5fd;
-  --success:#22c55e;--partial:#f59e0b;--fail:#ef4444;
-  --harm:#ef4444;--unstable:#f97316;--rc:#fbbf24;--fc:#e879f9;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;min-height:100vh}
-canvas#bg{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.25}
-.wrap{position:relative;z-index:2;max-width:1300px;margin:0 auto;padding:0 16px 80px}
-.hdr{display:flex;align-items:center;gap:14px;padding:18px 0 14px;border-bottom:1px solid var(--border);margin-bottom:0}
-.hdr-title{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);letter-spacing:2px}
-.hdr-sub{font-size:10px;letter-spacing:4px;color:var(--dim);font-family:'Cinzel',serif;font-weight:700;text-transform:uppercase;margin-top:2px}
-.sync{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e;margin-left:auto;flex-shrink:0}
-.sync.off{background:#ef4444;box-shadow:0 0 6px #ef4444}
-.main-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:24px;overflow-x:auto}
-.mtab{padding:12px 16px;border:none;background:transparent;color:var(--dim);font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all .2s;border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0}
-.mtab:hover{color:var(--muted)}.mtab.active{color:var(--gold);border-bottom-color:var(--gold)}
-.tab-panel{display:none}.tab-panel.active{display:block}
-.section{margin-bottom:24px}
-.sec-title{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:var(--dim);margin-bottom:12px;display:flex;align-items:center;gap:10px}
-.sec-title::after{content:'';flex:1;height:1px;background:var(--border)}
-.btn{padding:8px 16px;border-radius:4px;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s;border:1px solid var(--border2);background:var(--surf);color:var(--text)}
-.btn:hover{border-color:var(--gold);color:var(--gold)}
-.btn.gold{border-color:var(--gold);color:var(--gold)}.btn.gold:hover{background:var(--gold2)}
-.btn.green{border-color:var(--success);color:var(--success)}.btn.green:hover{background:#22c55e15}
-.btn.red{border-color:var(--fail);color:var(--fail)}.btn.red:hover{background:#ef444415}
-.btn.sm{padding:4px 10px;font-size:9px;letter-spacing:1px}.btn:disabled{opacity:.35;cursor:default;pointer-events:none}
-.inp{padding:8px 12px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:13px;font-family:'Inter',sans-serif}
-.inp:focus{outline:none;border-color:var(--gold)}.inp.sm{padding:5px 8px;font-size:12px}
-select.inp{cursor:pointer}
-.lbl{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:4px}
-.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.col{display:flex;flex-direction:column;gap:4px}
-/* Party */
-.party-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-@media(min-width:900px){.party-grid{grid-template-columns:repeat(4,1fr)}}
-.pcard{background:var(--surf);border:1px solid var(--border);border-radius:8px;overflow:hidden}
-.pcard-hdr{padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
-.pcard-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.pcard-name{font-family:'Cinzel Decorative',serif;font-size:13px}
-.pcard-sub{font-size:9px;letter-spacing:2px;font-family:'Cinzel',serif;font-weight:700;text-transform:uppercase;margin-top:1px}
-.pcard-body{padding:10px 12px}
-.hbar-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin:6px 0}
-.hbar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444);transition:width .4s}
-.pips-row{display:flex;gap:6px;margin-bottom:8px}
-.pip-grp{flex:1;text-align:center}
-.pip-lbl{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:3px}
-.pips{display:flex;gap:2px;justify-content:center}
-.pip{width:9px;height:9px;border-radius:50%;border:1px solid var(--border2);background:var(--surf2)}
-.pip.on.wisdom{background:#60a5fa;border-color:#93c5fd}
-.pip.on.grit{background:#f87171;border-color:#fca5a5}
-.pip.on.bond{background:#4ade80;border-color:#86efac}
-.cond-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;background:var(--surf2);border:1px solid var(--border);border-radius:10px;font-size:11px;margin:2px;cursor:pointer;transition:all .18s}
-.cond-chip:hover{border-color:var(--fail);color:var(--fail)}
-.cond-chip.perm{border-color:var(--harm)40;color:var(--harm)}
-.cond-chip.unstable{border-color:var(--unstable)40;color:var(--unstable)}
-.favor-val{font-family:'Cinzel Decorative',serif;font-size:13px;color:var(--fc)}
-.pcard-ftr{padding:6px 12px;border-top:1px solid var(--border);display:flex;gap:5px;flex-wrap:wrap}
-/* NPC */
-.npc-roster{display:flex;flex-direction:column;gap:8px}
-.npc-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surf);border:1px solid var(--border);border-radius:6px;transition:all .2s}
-.npc-row.in-scene{border-color:var(--gold)60}
-.npc-scene-pip{width:12px;height:12px;border-radius:50%;border:2px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;transition:all .18s}
-.npc-scene-pip.on{background:var(--gold);border-color:var(--gold);box-shadow:0 0 6px var(--gold2)}
-.npc-name-el{font-family:'Cinzel',serif;font-size:13px;font-weight:700;flex:1}
-.npc-type-badge{font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:10px;background:var(--surf2);border:1px solid var(--border2);color:var(--dim);text-transform:uppercase}
-.scene-npcs-wrap{padding:14px;background:linear-gradient(135deg,#1a1a0010,transparent);border:1px solid var(--gold)40;border-radius:8px;margin-bottom:16px}
-.snpc-card{background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:10px}
-.snpc-card:last-child{margin-bottom:0}
-.snpc-name{font-family:'Cinzel',serif;font-size:14px;font-weight:700;margin-bottom:8px}
-.snpc-hbar-bg{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden}
-.snpc-hbar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444);transition:width .4s}
-.wpn-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--surf);border:1px solid var(--border2);border-radius:4px;font-size:12px;margin:2px}
-.wpn-harm{font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--rc)}
-/* Combat */
-
-/* ── COMBAT v2 DM ── */
-.comb-row.dead{opacity:.4;border-color:#ef444440;background:#ef444408}
-.comb-row.dead .comb-name{text-decoration:line-through;color:var(--fail)}
-.comb-dead-badge{font-size:9px;font-weight:700;color:var(--fail);font-family:'Cinzel',serif;letter-spacing:1px;border:1px solid var(--fail);padding:1px 5px;border-radius:8px;margin-left:auto}
-.comb-row[draggable]{cursor:grab}.comb-row.drag-over{border-color:var(--gold);background:var(--gold2)}
-.q-item[draggable]{cursor:grab}.q-item.drag-over{border-color:var(--gold);background:var(--gold2)}
-.comb-npc-btns{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
-.cannot-disarm-badge{font-size:9px;color:var(--muted);font-style:italic;margin-left:4px}
-.reaction-trigger-btn{padding:4px 10px;border-radius:4px;border:1px solid #f5a62360;color:#f5a623;background:transparent;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .18s}
-.reaction-trigger-btn:hover{background:#f5a62315}
-.npc-add-queue-btn{padding:4px 10px;border-radius:4px;border:1px solid var(--border2);color:var(--muted);background:transparent;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .18s}
-.npc-add-queue-btn:hover{border-color:var(--gold);color:var(--gold)}
-
-
-/* ── DM ANIMATIONS PASS ── */
-@keyframes dmCombatFlashIn{0%{opacity:0}25%{opacity:.8}50%{opacity:.3}75%{opacity:.9}100%{opacity:1}}
-@keyframes dmCombatFlashOut{0%{opacity:1}40%{opacity:.2}70%{opacity:.6}100%{opacity:0;pointer-events:none}}
-@keyframes actionCardDrop{from{transform:translateY(-16px) scale(.96);opacity:0}to{transform:none;opacity:1}}
-@keyframes rollBounce{0%,100%{transform:translateY(0)}35%{transform:translateY(-5px)}65%{transform:translateY(-2px)}}
-@keyframes deathFlash{0%,100%{background:transparent}50%{background:#ef444418}}
-
-#dm-combat-cinematic{display:none;position:fixed;inset:0;z-index:500;pointer-events:none;align-items:center;justify-content:center;flex-direction:column;gap:10px}
-#dm-combat-cinematic.vis{display:flex}
-#dm-combat-cinematic.start{animation:dmCombatFlashIn .8s ease forwards;background:radial-gradient(ellipse at center,#d4a84b15 0%,#07070e 100%)}
-#dm-combat-cinematic.end{animation:dmCombatFlashOut .6s ease forwards;background:#07070e80}
-.dm-cine-word{font-family:'Cinzel Decorative',serif;font-size:32px;letter-spacing:8px;color:var(--gold);animation:actionCardDrop .4s ease .1s both}
-.dm-cine-sub{font-family:'Cinzel',serif;font-size:10px;letter-spacing:6px;color:var(--muted);text-transform:uppercase;animation:actionCardDrop .4s ease .3s both}
-.action-card{animation:actionCardDrop .3s cubic-bezier(.22,1,.36,1)}
-.comb-row.dead{animation:deathFlash .5s ease}
-
-
-/* ── MARKUP MODE ── */
-.markup-toggle-btn{padding:10px 20px;border-radius:6px;font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all .25s;border:2px solid var(--border2);background:var(--surf);color:var(--muted)}
-.markup-toggle-btn.active{border-color:#22c55e;color:#22c55e;background:#22c55e12;box-shadow:0 0 16px #22c55e22}
-.markup-toggle-btn:hover:not(.active){border-color:var(--gold);color:var(--gold)}
-.wipe-btn{padding:8px 16px;border-radius:4px;border:1px solid var(--fail);color:var(--fail);background:transparent;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s}
-.wipe-btn:hover{background:#ef444415}
-
-.combat-idle{text-align:center;padding:40px}
-.cmb-hdr{display:flex;align-items:center;gap:12px;padding:12px 16px;background:linear-gradient(135deg,#1a0a00,#0a0500);border:1px solid var(--gold);border-radius:6px;margin-bottom:16px}
-.round-lbl{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold)}
-.cmb-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(min-width:1000px){.cmb-grid{grid-template-columns:2fr 1fr}}
-.comb-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surf);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;transition:all .2s}
-.comb-row.done{opacity:.4}.comb-row.current{border-color:var(--gold);background:var(--gold2)}
-.comb-name{font-family:'Cinzel',serif;font-size:13px;font-weight:700;flex:1}
-.comb-type{font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 6px;border-radius:10px;background:var(--surf2);border:1px solid var(--border2);color:var(--dim);text-transform:uppercase}
-.apips{display:flex;gap:3px}
-.apip{width:18px;height:18px;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .18s;border:1px solid var(--border2)}
-.apip.avail{background:#22c55e20;border-color:var(--success);color:var(--success)}.apip.used{background:var(--border);border-color:var(--dim);color:var(--dim)}
-.q-panel{background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:14px}
-.q-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surf2);border:1px solid var(--border);border-radius:4px;margin-bottom:6px;font-size:13px}
-.q-item.active-turn{border-color:var(--gold);background:var(--gold2)}
-.action-card{padding:14px 16px;background:linear-gradient(135deg,#001a0a,#000a05);border:1px solid var(--success);border-radius:6px;animation:fadeUp .2s ease;margin-bottom:14px}
-@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-.action-card-actor{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--success);margin-bottom:4px}
-.npc-atk-panel{background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:14px;margin-top:12px}
-/* Equipment */
-.tag-grid{display:flex;flex-wrap:wrap;gap:5px;padding:10px;background:var(--surf2);border:1px solid var(--border2);border-radius:6px}
-.tag-grp-lbl{width:100%;font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-top:4px}
-.tcb{display:none}
-.tlbl{display:inline-flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--surf);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .18s;position:relative}
-.tlbl:hover{border-color:var(--gold);color:var(--gold)}
-.tcb:checked+.tlbl{background:var(--gold2);border-color:var(--gold);color:var(--gold)}
-.tcb:checked+.tlbl::before{content:'✓ ';font-size:10px}
-.tlbl[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#0a0a1a;border:1px solid var(--border2);border-radius:4px;padding:6px 10px;font-size:11px;color:var(--text);white-space:nowrap;z-index:100;pointer-events:none;font-weight:400;letter-spacing:0}
-.inv-tbl{width:100%;border-collapse:collapse;margin-bottom:16px}
-.inv-tbl th{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim);padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)}
-.inv-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
-.inv-tbl tr:last-child td{border-bottom:none}.inv-tbl tr:hover td{background:var(--surf2)}
-/* Jury */
-.jqcard{padding:12px 14px;background:var(--surf);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
-.jqcard.active{border-color:var(--gold);background:var(--gold2)}
-.jqcard-player{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;min-width:54px}
-.jqcard-type{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);min-width:36px}
-.jqcard-text{flex:1;font-size:13px}
-.jqcard-status{font-size:10px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:10px;text-transform:uppercase;white-space:nowrap}
-.jqcard-status.queued{background:var(--surf2);border:1px solid var(--border2);color:var(--dim)}
-.jqcard-status.active{background:var(--gold2);border:1px solid var(--gold);color:var(--gold)}
-.jqcard-status.approved{background:#22c55e20;border:1px solid #22c55e40;color:var(--success)}
-.jqcard-status.rejected{background:#ef444420;border:1px solid #ef444440;color:var(--fail)}
-/* Log */
-.log-list{display:flex;flex-direction:column;gap:5px;max-height:420px;overflow-y:auto}
-.log-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surf);border:1px solid var(--border);border-radius:4px;font-size:12px}
-.log-item.undone{opacity:.4;text-decoration:line-through}
-.log-char{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;min-width:54px}
-.log-desc{flex:1;color:var(--muted)}
-.log-time{font-size:10px;color:var(--dim);white-space:nowrap}
-/* Advanced */
-.adv-card{background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:16px;margin-bottom:14px}
-.adv-card h3{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
-/* Modal */
-.modal{display:none;position:fixed;inset:0;z-index:200;background:#00000090;backdrop-filter:blur(4px);align-items:center;justify-content:center}
-.modal.vis{display:flex}
-.mbox{background:linear-gradient(135deg,#13132a,#07070e);border:1px solid var(--border);border-top:2px solid var(--gold);border-radius:8px;padding:24px 28px;max-width:560px;width:92%;max-height:90vh;overflow-y:auto;box-shadow:0 0 50px var(--gold2);position:relative;animation:fadeUp .2s ease}
-.mclose{position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--dim);font-size:20px;cursor:pointer;transition:color .18s}.mclose:hover{color:var(--text)}
-.mtitle{font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--text);margin-bottom:14px}
-/* Rest overlay */
-.rest-ov{display:none;position:fixed;inset:0;z-index:300;background:#00000095;backdrop-filter:blur(8px);flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center}
-.rest-ov.vis{display:flex}
-.rest-icon{font-size:56px;animation:pulse 2s ease-in-out infinite}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-@keyframes roll-bounce{0%{transform:translateY(0)}15%{transform:translateY(-6px)}30%{transform:translateY(0)}45%{transform:translateY(-4px)}60%{transform:translateY(0)}100%{transform:translateY(0)}}
-.rest-title{font-family:'Cinzel Decorative',serif;font-size:26px;color:var(--gold)}
-.rest-sub{font-size:15px;color:var(--muted);font-family:'Crimson Pro',serif;font-style:italic}
-/* Toast */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--surf2);border:1px solid var(--border2);border-radius:6px;padding:10px 20px;font-size:13px;color:var(--text);z-index:400;transition:transform .3s ease;white-space:nowrap}
-.toast.show{transform:translateX(-50%) translateY(0)}
-
-/* Ability notification banner */
-.ability-notif{position:fixed;top:0;left:0;right:0;z-index:500;padding:0;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:8px}
-.ability-notif-card{background:linear-gradient(135deg,#13132a,#07070e);border:1px solid var(--gold);border-radius:8px;padding:12px 20px;box-shadow:0 4px 24px var(--gold2);min-width:280px;max-width:500px;pointer-events:auto;animation:slideDown .3s ease;display:flex;align-items:center;gap:12px}
-.ability-notif-card.anc-wide{flex-direction:column;align-items:stretch;max-width:540px;gap:0;padding:16px 20px}
-.anc-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-.anc-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:10px;padding:8px 12px;background:rgba(255,255,255,.04);border-radius:4px;border-left:3px solid var(--gold)}
-.anc-prompt{padding:10px 12px;background:#1a000a;border:1px solid var(--fail)40;border-left:3px solid var(--fail);border-radius:4px;font-size:12px;color:var(--text);line-height:1.5;margin-bottom:10px}
-.anc-prompt-lbl{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--fail);display:block;margin-bottom:4px}
-.anc-dismiss{align-self:flex-end;padding:5px 14px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .18s}
-.anc-dismiss:hover{border-color:var(--text);color:var(--text)}
-@keyframes slideDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
-@keyframes slideUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-20px)}}
-.ability-notif-card.hiding{animation:slideUp .3s ease forwards}
-.anc-player{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;min-width:50px}
-.anc-ability{font-family:'Cinzel Decorative',serif;font-size:14px;color:var(--text);flex:1}
-.anc-meta{font-size:11px;color:var(--dim);margin-top:2px}
-.anc-cost{font-size:11px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:10px;background:var(--fc)15;border:1px solid var(--fc)40;color:var(--fc);white-space:nowrap}
-/* DM Modal system */
-.dm-modal{display:none;position:fixed;inset:0;z-index:300;background:#00000090;backdrop-filter:blur(4px);align-items:center;justify-content:center}
-.dm-modal.vis{display:flex}
-.dm-mbox{background:linear-gradient(135deg,#13132a,#07070e);border:1px solid var(--border);border-top:2px solid var(--gold);border-radius:8px;padding:24px 28px;max-width:480px;width:92%;box-shadow:0 0 50px var(--gold2);animation:fadeUp .2s ease;max-height:90vh;overflow-y:auto}
-.dm-mbox h3{font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--text);margin-bottom:14px}
-.dm-mbox .dm-mrow{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
-.dm-mbox .dm-mlbl{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--dim)}
-.dm-mbox .dm-minp{padding:8px 12px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:13px;font-family:'Inter',sans-serif}
-.dm-mbox .dm-minp:focus{outline:none;border-color:var(--gold)}
-.dm-mbox .dm-mbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
-.dm-mbox .dm-mcheck{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer}
-@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-
-footer{text-align:center;padding:40px 20px;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:4px}
-/* Harm flash animation */
-@keyframes harmFlash{0%{background:transparent}20%{background:#ef444430}50%{background:#ef444418}100%{background:transparent}}
-.harm-flash{animation:harmFlash .8s ease}
-/* Heal flash animation */
-@keyframes healFlash{0%{background:transparent}20%{background:#22c55e30}100%{background:transparent}}
-.heal-flash{animation:healFlash .7s ease}
-/* Ability action card */
-.acard{padding:14px 16px;border-radius:6px;margin-bottom:14px;animation:fadeUp .25s ease}
-.acard-name{font-family:'Cinzel Decorative',serif;font-size:16px;margin-bottom:3px}
-.acard-meta{font-size:10px;letter-spacing:2px;font-family:'Cinzel',serif;font-weight:700;text-transform:uppercase;opacity:.6;margin-bottom:10px}
-.acard-dice-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
-.acard-die{width:36px;height:36px;border-radius:6px;border:2px solid var(--border);background:var(--surf2);display:flex;align-items:center;justify-content:center;font-family:'Cinzel Decorative',serif;font-size:16px;font-weight:700}
-.acard-die.chosen{border-color:var(--gold);color:var(--gold);box-shadow:0 0 10px var(--gold2)}
-.acard-die.low{border-color:var(--fail);color:var(--fail)}
-.acard-outcome{padding:10px 14px;border-radius:4px;border-left:4px solid;margin-bottom:10px;font-size:13px;line-height:1.6}
-.acard-outcome.success{border-color:var(--success);background:#22c55e10}
-.acard-outcome.partial{border-color:var(--partial);background:#f59e0b10}
-.acard-outcome.fail{border-color:var(--fail);background:#ef444410}
-.acard-outcome-lbl{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;opacity:.7}
-.acard-dmreq{margin-top:10px;padding:10px 14px;border-radius:6px;border:2px solid var(--harm);background:#ef444410;animation:pulseRed 1.2s ease infinite}
-@keyframes pulseRed{0%,100%{box-shadow:0 0 0 0 #ef444440}50%{box-shadow:0 0 0 6px transparent}}
-.acard-dmreq-title{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--harm);margin-bottom:6px}
-.acard-dmreq-body{font-size:13px;color:var(--text);line-height:1.5}
-/* Condition form inside action card */
-.cond-form{margin-top:12px;padding:12px 14px;background:#001a0a10;border:1px solid var(--success)40;border-radius:6px}
-.cond-form-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-.cond-form input[type=text]{flex:1;min-width:140px;padding:7px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:13px;font-family:'Inter',sans-serif}
-.cond-form input[type=text]:focus{outline:none;border-color:var(--gold)}
-.cond-form input[type=number]{width:64px;padding:7px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:13px;font-family:'Inter',sans-serif}
-.cond-form input[type=number]:focus{outline:none;border-color:var(--gold)}
-.unstable-toggle{padding:5px 12px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--dim);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .18s}
-.unstable-toggle.on{border-color:var(--unstable);color:var(--unstable);background:#f9731615}
+body{background:var(--bg);color:var(--text);font-family:Inter,sans-serif;font-size:14px;line-height:1.6;min-height:100vh}
+#bgc{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.25}
+.wrap{position:relative;z-index:2;max-width:1000px;margin:0 auto;padding:0 16px 80px}
+.hdr{display:flex;align-items:center;gap:14px;padding:18px 0 14px;border-bottom:1px solid var(--border)}
+.hdr-ttl{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold)}
+.hdr-sub{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:4px;color:var(--dim);text-transform:uppercase;margin-top:2px}
+.sync{width:7px;height:7px;border-radius:50%;background:var(--fail);box-shadow:0 0 5px var(--fail);margin-left:auto}
+.sync.on{background:var(--ok);box-shadow:0 0 5px var(--ok)}
+.tabs{display:flex;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;background:var(--bg);padding-top:10px}
+.tab{padding:9px 13px;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-bottom:-1px}
+.tab:hover{color:var(--text)}.tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+.panel{display:none;padding-top:18px}.panel.on{display:block}
+.stitle{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:var(--dim);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.stitle::after{content:'';flex:1;height:1px;background:var(--border)}
+/* PARTY OVERVIEW */
+.party-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:22px}
+@media(min-width:600px){.party-grid{grid-template-columns:repeat(4,1fr)}}
+.pcard{background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:11px;transition:border-color .2s}
+.pcard-name{font-family:'Cinzel Decorative',serif;font-size:13px;margin-bottom:6px}
+.pcard-row{display:flex;align-items:center;gap:5px;margin-bottom:4px;font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+.pcard-val{font-family:'Cinzel Decorative',serif;font-size:15px;color:var(--text);margin-left:auto}
+.pull-mini{display:flex;gap:3px;align-items:center}
+.pms{width:22px;height:22px;border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:8px;font-weight:700;color:var(--dim)}
+.pms.on{border-color:var(--cc,var(--gold));background:var(--cb,transparent);color:var(--cc,var(--gold))}
+.cond-mini{font-size:10px;color:var(--muted);padding:2px 6px;background:var(--surf2);border:1px solid var(--border);border-radius:8px;white-space:nowrap}
+.cond-mini.unstable{border-color:var(--partial);color:var(--partial)}
+/* ROLLS */
+.roll-list{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+.roll-item{background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:9px 12px;display:flex;align-items:flex-start;gap:10px}
+.roll-char{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;min-width:55px;padding-top:2px}
+.roll-move{font-family:'Cinzel Decorative',serif;font-size:12px;flex:1}
+.roll-tier{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:2px 7px;border-radius:8px}
+.roll-tier.h{background:#22c55e12;color:var(--ok);border:1px solid #22c55e30}
+.roll-tier.p{background:#f59e0b12;color:var(--partial);border:1px solid #f59e0b30}
+.roll-tier.m{background:#ef444412;color:var(--fail);border:1px solid #ef444430}
+.roll-dismiss{width:20px;height:20px;border-radius:3px;border:none;background:transparent;color:var(--dim);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+.roll-dismiss:hover{color:var(--fail)}
+/* JURY */
+.jury-session{background:var(--surf);border:1px solid var(--border2);border-radius:8px;padding:14px;margin-bottom:14px}
+.jury-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.jury-ttl{font-family:'Cinzel Decorative',serif;font-size:13px;color:var(--gold)}
+.jury-badge{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border-radius:8px;border:1px solid var(--border2);color:var(--dim)}
+.jury-badge.open{border-color:var(--ok);color:var(--ok);background:#22c55e0a}
+.jury-item{display:flex;align-items:center;gap:9px;padding:7px 10px;background:var(--surf2);border:1px solid var(--border);border-radius:5px;margin-bottom:5px}
+.jury-char{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;min-width:55px}
+.jury-text{font-family:'Crimson Pro',serif;font-size:13px;color:var(--muted);flex:1}
+.jury-vote{display:flex;gap:5px}
+.vote-btn{padding:3px 9px;border-radius:4px;border:1px solid var(--border2);background:transparent;font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .18s}
+.vote-y{color:var(--ok)}.vote-y:hover,.vote-y.sel{background:#22c55e12;border-color:var(--ok)}
+.vote-n{color:var(--fail)}.vote-n:hover,.vote-n.sel{background:#ef444412;border-color:var(--fail)}
+.vote-count{font-family:'Cinzel Decorative',serif;font-size:12px;margin-left:auto}
+.jury-add-form{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.jury-in{flex:1;min-width:140px;padding:6px 9px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:13px}
+.jury-in:focus{outline:none;border-color:var(--gold)}
+.jury-in::placeholder{color:var(--dim)}
+.jury-sel{padding:6px 8px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:12px}
+.jbtn{padding:6px 12px;border-radius:4px;background:transparent;font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s}
+.jbtn.g{border:1px solid var(--ok);color:var(--ok)}.jbtn.g:hover{background:#22c55e12}
+.jbtn.r{border:1px solid var(--fail);color:var(--fail)}.jbtn.r:hover{background:#ef444412}
+.jbtn.y{border:1px solid var(--gold);color:var(--gold)}.jbtn.y:hover{background:var(--gold2)}
+/* TOOLS */
+.toolbox{background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px}
+.toolbox-ttl{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:11px}
+.tool-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)}
+.tool-row:last-child{border-bottom:none}
+.tool-label{font-family:'Crimson Pro',serif;font-size:14px;color:var(--muted)}
+.tool-btn{padding:5px 12px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s}
+.tool-btn:hover{border-color:var(--gold);color:var(--gold)}
+.tool-btn.danger{border-color:var(--fail);color:var(--fail)}.tool-btn.danger:hover{background:#ef444412}
+.tool-btn.active{border-color:var(--ok);color:var(--ok);background:#22c55e0a}
+/* AUTH */
+.auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:90vh;gap:14px}
+.auth-ttl{font-family:'Cinzel Decorative',serif;font-size:22px;color:var(--gold)}
+.auth-sub{font-family:'Crimson Pro',serif;font-size:15px;color:var(--muted);font-style:italic}
+.auth-in{padding:10px 14px;background:var(--surf2);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:15px;width:200px;text-align:center;letter-spacing:4px}
+.auth-in:focus{outline:none;border-color:var(--gold)}
+.auth-btn{padding:10px 24px;border-radius:5px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all .18s}
+.auth-btn:hover{background:var(--gold2)}
+.auth-err{color:var(--fail);font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:none}
+.ov{display:none;position:fixed;inset:0;background:rgba(4,3,8,.88);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:14px}
+.ov.vis{display:flex}
+.mbox{background:var(--surf);border:1px solid var(--border2);border-radius:9px;width:100%;max-width:400px}
+.mhd{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 11px;border-bottom:1px solid var(--border)}
+.mttl{font-family:'Cinzel Decorative',serif;font-size:14px;color:var(--text)}
+.mxb{width:26px;height:26px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
+.mxb:hover{border-color:var(--fail);color:var(--fail)}
+.mbd{padding:14px 18px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
-
-<!-- DM COMBAT CINEMATIC -->
-<div id="dm-combat-cinematic">
-  <div class="dm-cine-word" id="dm-cine-word">⚔ Combat Begins</div>
-  <div class="dm-cine-sub" id="dm-cine-sub">Choose participants</div>
+<canvas id="bgc"></canvas>
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-ttl">Weaver Screen</div>
+  <div class="auth-sub">Enter password to continue</div>
+  <input type="password" class="auth-in" id="auth-in" placeholder="••••••" maxlength="10" />
+  <button class="auth-btn" id="auth-btn">Enter</button>
+  <div class="auth-err" id="auth-err">Incorrect</div>
 </div>
 
+<div id="main" style="display:none">
 <div class="wrap">
-
-<div class="hdr">
-  <div><div class="hdr-title">Weaver Screen</div><div class="hdr-sub">Demigods Campaign</div></div>
-  <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-    <span id="markup-hdr-badge" style="display:none;padding:3px 10px;background:#f59e0b20;border:1px solid #f59e0b;border-radius:12px;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;color:#f59e0b;text-transform:uppercase">📝 Markup ON</span>
-    <button class="btn sm gold" onclick="promptShortRest()">☽ Short Rest</button>
-    <button class="btn sm gold" onclick="promptLongRest()">☀ Long Rest</button>
-    <span class="sync off" id="sync-dot"></span>
-    <span style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);opacity:.5">v3.19</span>
+<header class="hdr">
+  <div>
+    <div class="hdr-ttl">Weaver Screen</div>
+    <div class="hdr-sub">Paragon Campaign</div>
   </div>
+  <div class="sync" id="sync"></div>
+</header>
+
+<nav class="tabs">
+  <button class="tab on" data-tab="party">⚔ Party</button>
+  <button class="tab" data-tab="rolls">🎲 Rolls</button>
+  <button class="tab" data-tab="jury">⚖ Jury</button>
+  <button class="tab" data-tab="tools">🔧 Tools</button>
+</nav>
+
+<!-- PARTY OVERVIEW -->
+<div class="panel on" id="panel-party">
+  <div class="stitle">Party Overview</div>
+  <div class="party-grid" id="party-grid"></div>
+  <div class="stitle" style="margin-top:8px">Pending Rolls</div>
+  <div class="roll-list" id="party-rolls"><div style="color:var(--dim);font-family:'Crimson Pro',serif;font-size:14px">No pending rolls.</div></div>
 </div>
 
-<div class="main-tabs">
-  <button class="mtab active" data-tab="party" onclick="switchTab('party')">Party</button>
-  <button class="mtab" data-tab="npcs" onclick="switchTab('npcs')">NPCs</button>
-  <button class="mtab" data-tab="combat" onclick="switchTab('combat')">⚔ Combat</button>
-  <button class="mtab" data-tab="rolls" onclick="switchTab('rolls')" id="rolls-tab-btn">🎲 Rolls <span id="rolls-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;font-family:'Cinzel',serif;border-radius:10px;padding:1px 5px;margin-left:3px;vertical-align:middle"></span></button>
-  <button class="mtab" data-tab="equipment" onclick="switchTab('equipment')">📦 Equipment</button>
-  <button class="mtab" data-tab="jury" onclick="switchTab('jury')">⚖ Jury</button>
-  <button class="mtab" data-tab="log" onclick="switchTab('log')">📋 Log</button>
-  <button class="mtab" data-tab="advanced" onclick="switchTab('advanced')">⚙ Advanced</button>
-</div>
-
-<!-- PARTY -->
-<div id="tab-party" class="tab-panel active">
-  <div class="section"><div class="sec-title">Party Overview</div><div class="party-grid" id="party-grid"></div></div>
-</div>
-
-<!-- NPCS -->
-<div id="tab-npcs" class="tab-panel">
-  <div id="scene-section" style="display:none" class="section">
-    <div class="sec-title">In This Scene</div>
-    <div class="scene-npcs-wrap" id="scene-npcs"></div>
-  </div>
-  <div class="section">
-    <div class="sec-title">NPC Roster</div>
-    <div class="row" style="margin-bottom:12px"><button class="btn gold" onclick="addNPC()">+ Add NPC</button></div>
-    <div class="npc-roster" id="npc-roster"></div>
-  </div>
-</div>
-
-<!-- COMBAT -->
-<div id="tab-combat" class="tab-panel">
-  <div id="combat-idle" class="combat-idle">
-    <div style="font-size:40px;margin-bottom:12px">⚔</div>
-    <div style="font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);margin-bottom:8px">No Active Combat</div>
-    <div style="color:var(--muted);margin-bottom:20px;font-style:italic">Select participants and start a new encounter.</div>
-    <button class="btn gold" onclick="openCombatSetup()">Start Combat</button>
-  </div>
-  <div id="combat-active" style="display:none">
-    <div class="cmb-hdr">
-      <div class="round-lbl" id="round-lbl">Round 1</div>
-      <div style="font-size:12px;color:var(--muted);flex:1" id="cmb-status">Combat in progress</div>
-      <button class="btn sm" onclick="skipRound()">⟳ Next Round</button>
-      <button class="btn sm red" onclick="promptEndCombat()">End Combat</button>
-    </div>
-
-    <!-- Turn banner -->
-    <div id="dm-turn-banner" style="display:none;padding:12px 16px;border-radius:6px;margin-bottom:12px;border:2px solid var(--gold);background:transparent;animation:fadeUp .2s ease">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div id="dm-turn-banner-text" style="font-family:'Cinzel Decorative',serif;font-size:14px;letter-spacing:1px;flex:1"></div>
-        <div id="dm-turn-banner-sub" style="font-size:11px;color:var(--muted)"></div>
-      </div>
-    </div>
-
-    <!-- Incoming action card -->
-    <div id="action-card-area"></div>
-
-    <!-- NPC Action Modal -->
-<div id="npc-action-modal" style="display:none;position:fixed;inset:0;z-index:400;background:#000000bb;backdrop-filter:blur(4px);align-items:center;justify-content:center">
-  <div style="background:linear-gradient(135deg,#1a0808,#0a0404);border:2px solid var(--harm);border-radius:10px;padding:24px 28px;max-width:500px;width:92%;box-shadow:0 0 60px #ef444430;animation:fadeUp .2s ease">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-      <span style="font-size:20px">👹</span>
-      <div>
-        <div style="font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--harm)" id="npc-modal-name">NPC</div>
-        <div style="font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;color:var(--dim);text-transform:uppercase">NPC Action</div>
-      </div>
-      <button onclick="closeNPCModal()" style="margin-left:auto;background:transparent;border:none;color:var(--dim);font-size:20px;cursor:pointer;line-height:1">✕</button>
-    </div>
-
-    <!-- Tab buttons -->
-    <div style="display:flex;gap:0;border:1px solid var(--border2);border-radius:4px;overflow:hidden;margin-bottom:16px">
-      <button id="npc-tab-atk" onclick="switchNPCTab('attack')" style="flex:1;padding:9px;border:none;background:var(--harm);color:#fff;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer">⚔ Attack</button>
-      <button id="npc-tab-oth" onclick="switchNPCTab('other')" style="flex:1;padding:9px;border:none;background:var(--surf2);color:var(--muted);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer">✦ Other Action</button>
-    </div>
-
-    <!-- Attack tab -->
-    <div id="npc-modal-attack">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-        <div><label class="lbl">Weapon</label><select class="inp sm" id="npc-wpn-sel" style="width:100%"></select></div>
-        <div><label class="lbl">Target</label><select class="inp sm" id="npc-tgt-sel" style="width:100%"></select></div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn gold" onclick="executeNPCAttack()" style="flex:1">⚔ Attack + Trigger Reaction</button>
-        <button class="btn gold sm" onclick="executeNPCAttackDirect()" style="flex:1">⚔ Auto-Apply Harm</button>
-      </div>
-    </div>
-
-    <!-- Other tab -->
-    <div id="npc-modal-other" style="display:none">
-      <div style="margin-bottom:12px">
-        <label class="lbl">Describe the action</label>
-        <input id="npc-other-desc" class="inp" placeholder="e.g. moves behind cover, searches the room…" style="width:100%">
-      </div>
-      <button class="btn gold" onclick="executeNPCOther()" style="width:100%">✦ Log & Complete</button>
-    </div>
-
-    <button class="btn sm" onclick="npcSkipTurn()" style="width:100%;margin-top:10px">⏭ Skip / Pass Turn</button>
-
-    <!-- Hidden selects kept for compatibility with existing functions -->
-    <select id="npc-atk-sel" style="display:none"></select>
-  </div>
-</div>
-
-    <!-- Main grid -->
-    <div class="cmb-grid">
-      <div>
-        <div class="sec-title">Combatants <span style="font-size:9px;color:var(--dim);font-family:'Inter',sans-serif;font-weight:400;letter-spacing:0">drag to reorder queue</span></div>
-        <div id="comb-list"></div>
-        <!-- Add NPC to queue -->
-        <div style="margin-top:10px">
-          <div class="lbl" style="margin-bottom:6px">Add NPC Action to Queue</div>
-          <div class="row" style="gap:6px">
-            <select class="inp sm" id="npc-queue-sel" style="flex:1"></select>
-            <button class="btn sm gold" onclick="addNPCToQueue()">+ Add</button>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="sec-title" style="display:flex;align-items:center">
-          <span style="flex:1">Queue <span style="font-size:9px;color:var(--dim);font-family:'Inter',sans-serif;font-weight:400;letter-spacing:0">drag to reorder</span></span>
-          <button class="btn sm gold" onclick="callNextInQueue()" id="call-next-btn" style="margin-left:8px">▶ Call Next</button>
-        </div>
-        <div class="q-panel"><div id="cmb-queue"></div></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ROLLS -->
-<div id="tab-rolls" class="tab-panel">
-  <div class="section"><div class="sec-title">⏳ Pending Rolls</div><div id="pending-rolls"></div></div>
-  <div class="section"><div class="sec-title">🎲 Roll Log</div><div id="roll-log"></div></div>
-</div>
-
-<!-- EQUIPMENT -->
-<div id="tab-equipment" class="tab-panel">
-  <div class="section">
-    <div class="sec-title">Send Equipment</div>
-    <div style="background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:16px">
-      <div class="row" style="margin-bottom:12px;gap:12px">
-        <div class="col" style="flex:1"><label class="lbl">Item Name</label><input class="inp" id="eq-name" placeholder="e.g. Spatha of the Tuatha" oninput="updateEqPreview()"></div>
-        <div class="col" style="flex:1"><label class="lbl">Send To</label><select class="inp" id="eq-target"></select></div>
-      </div>
-      <div class="row" style="margin-bottom:12px;gap:14px;flex-wrap:wrap;align-items:flex-start">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer"><input type="checkbox" id="eq-weapon" onchange="toggleEqFields();updateEqPreview()" style="accent-color:var(--gold)"> Weapon</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer"><input type="checkbox" id="eq-armor" onchange="toggleEqFields();updateEqPreview()" style="accent-color:var(--gold)"> Armor</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer"><input type="checkbox" id="eq-ishealing" onchange="toggleEqFields();updateEqPreview()" style="accent-color:var(--gold)"> Healing Item</label>
-        <div id="wpn-fields" style="display:none;align-items:center;gap:8px">
-          <label class="lbl" style="margin:0">Damage</label>
-          <select class="inp sm" id="eq-dmg" onchange="updateEqPreview()"><option>1d4</option><option selected>1d6</option><option>1d8</option><option>1d10</option><option>1d12</option><option>2d6</option></select>
-        </div>
-        <div id="armor-fields" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
-          <label class="lbl" style="margin:0">Dur</label><input class="inp sm" id="eq-dur" type="number" min="1" max="10" value="3" style="width:50px">
-          <label class="lbl" style="margin:0">Coverage</label><input class="inp sm" id="eq-cov" placeholder="chest" style="width:80px">
-        </div>
-        <div id="heal-fields" style="display:none;align-items:center;gap:8px">
-          <label class="lbl" style="margin:0">Heals</label><input class="inp sm" id="eq-healval" placeholder="2d6 or 4" style="width:80px" oninput="updateEqPreview()">
-          <label class="lbl" style="margin:0">Uses</label><input class="inp sm" id="eq-healuses" type="number" min="1" max="20" value="1" style="width:50px">
-        </div>
-      </div>
-      <div class="col" style="margin-bottom:12px"><label class="lbl">Tags</label><div class="tag-grid" id="tag-picker"></div></div>
-      <div class="col" style="margin-bottom:12px"><label class="lbl">Notes</label><input class="inp" id="eq-notes" placeholder="Optional flavour text"></div>
-      <div id="eq-preview" style="display:none;padding:8px 12px;background:var(--surf2);border:1px solid var(--border2);border-radius:4px;font-size:13px;color:var(--muted);margin-bottom:10px">
-        <span style="color:var(--text);font-weight:600" id="eq-prev-name"></span><span id="eq-prev-tags" style="margin-left:8px"></span>
-      </div>
-      <button class="btn gold" onclick="sendEquipment()">📦 Send to Player</button>
-    </div>
-  </div>
-  <div class="section"><div class="sec-title">Player Inventories</div><div id="all-inv"></div></div>
+<!-- ROLLS LOG -->
+<div class="panel" id="panel-rolls">
+  <div class="stitle">Recent Rolls</div>
+  <div class="roll-list" id="all-rolls"></div>
 </div>
 
 <!-- JURY -->
-<div id="tab-jury" class="tab-panel">
-  <div class="section">
-    <div class="row" style="margin-bottom:16px;gap:10px">
-      <button class="btn gold" id="jury-start-btn" onclick="openJury()">⚖ Start Session Jury</button>
-      <button class="btn red" id="jury-close-btn" style="display:none" onclick="closeJury()">✕ Close Jury</button>
-      <span style="font-size:12px;color:var(--dim);font-style:italic;align-self:center" id="jury-status">No session open.</span>
-    </div>
-    <div id="dm-vote-panel" style="display:none;padding:14px 16px;background:linear-gradient(135deg,#1a1a00,#0f0f00);border:1px solid var(--gold);border-radius:6px;margin-bottom:16px">
-      <div class="lbl" style="color:var(--gold);margin-bottom:6px">Now Discussing</div>
-      <div style="font-size:15px;color:var(--text);margin-bottom:10px;font-style:italic" id="dm-active-text"></div>
-      <div class="row" style="gap:8px">
-        <button class="btn green sm" id="dm-vote-yes" onclick="dmVote(true)">✓ Yes</button>
-        <button class="btn red sm" id="dm-vote-no" onclick="dmVote(false)">✕ No</button>
-        <span style="font-size:12px;color:var(--dim);align-self:center" id="dm-tally"></span>
-      </div>
-    </div>
-    <div class="sec-title">Queue</div>
-    <div id="jury-queue-cont"><div style="color:var(--dim);font-size:13px;font-style:italic">Open a jury session to begin.</div></div>
-  </div>
-</div>
-
-<!-- LOG -->
-<div id="tab-log" class="tab-panel">
-  <div class="section">
-    <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:6px">
-      <button class="btn sm" onclick="loadLog()">↺ Refresh</button>
-      <select class="inp sm" id="log-filter" onchange="renderLog()" style="min-width:110px">
-        <option value="">All Players</option>
-        <option value="lewis">Lewis</option>
-        <option value="murphy">Murphy</option>
-        <option value="kara">Kara</option>
-        <option value="finn">Finn</option>
-      </select>
-      <span style="font-size:12px;color:var(--dim);margin-left:auto">Click Undo to revert and notify the player.</span>
-    </div>
-    <div class="log-list" id="log-list"></div>
-  </div>
-</div>
-
-<!-- ADVANCED -->
-<div id="tab-advanced" class="tab-panel">
-  <div class="adv-card">
-    <h3>Force Advancement</h3>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Grant advancement points. The player will be prompted to spend them on their screen.</div>
-    <div class="row" style="gap:12px;flex-wrap:wrap">
-      <div class="col"><label class="lbl">Player</label><select class="inp" id="adv-player"><option value="lewis">Lewis</option><option value="murphy">Murphy</option><option value="kara">Kara</option><option value="finn">Finn</option></select></div>
-      <div class="col"><label class="lbl">Points</label><input class="inp" id="adv-pts" type="number" min="1" max="10" value="1" style="width:70px"></div>
-      <div class="col" style="justify-content:flex-end"><button class="btn gold" onclick="forceAdvance()">✦ Grant</button></div>
-    </div>
-  </div>
-  <div class="adv-card">
-    <h3>Add Permanent Condition</h3>
-    <div class="row" style="gap:10px;flex-wrap:wrap">
-      <div class="col"><label class="lbl">Player</label><select class="inp" id="pc-player"><option value="lewis">Lewis</option><option value="murphy">Murphy</option><option value="kara">Kara</option><option value="finn">Finn</option></select></div>
-      <div class="col" style="flex:1"><label class="lbl">Condition</label><input class="inp" id="pc-label" placeholder="e.g. Missing Eye"></div>
-      <div class="col"><label class="lbl">Harm</label><input class="inp" id="pc-harm" type="number" min="1" max="20" value="2" style="width:65px"></div>
-      <div class="col" style="justify-content:flex-end"><button class="btn red" onclick="addPermCond()">+ Add Permanent</button></div>
-    </div>
-  </div>
-  <!-- MARKUP MODE -->
-  <div class="adv-card">
-    <h3>📝 Markup Mode</h3>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">When active, players can freely mark skills, toggle feats, edit traits, and manage inventory — useful for setup sessions. All players see a banner indicating markup mode is on.</div>
-    <button class="markup-toggle-btn" id="markup-toggle-btn" onclick="toggleMarkupMode()">⬤ Markup Mode: Off</button>
-  </div>
-
-  <!-- WIPE CHARACTER SHEET -->
-  <div class="adv-card" style="border-color:#ef444430">
-    <h3 style="color:var(--fail)">⚠ Wipe Character Sheet</h3>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Permanently erases all data for a character: skills, conditions, inventory, feats, powers, traits, drives, and XP. Resets stats to zero. This cannot be undone.</div>
-    <div class="row" style="gap:12px;flex-wrap:wrap;align-items:flex-end">
-      <div class="col"><label class="lbl">Character</label>
-        <select class="inp" id="wipe-player">
-          <option value="lewis">Lewis</option>
-          <option value="murphy">Murphy</option>
-          <option value="kara">Kara</option>
-          <option value="finn">Finn</option>
+<div class="panel" id="panel-jury">
+  <div class="stitle">Jury System <span style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--dim);font-style:italic;letter-spacing:0;text-transform:none;font-weight:400">End-of-session. Each hero submits one Trait or Drive, describes embodying it. Vote. Yes → mark Mortal Track.</span></div>
+  <div id="jury-container"></div>
+  <button class="jbtn g" id="jury-open" style="margin-bottom:14px">Open New Jury Session</button>
+  <div id="jury-active" style="display:none">
+    <div class="jury-session">
+      <div class="jury-hdr"><div class="jury-ttl">Current Jury</div><div class="jury-badge open">Open</div><button class="jbtn r" id="jury-close" style="margin-left:auto">Close Session</button></div>
+      <div id="jury-queue"></div>
+      <div class="jury-add-form">
+        <select class="jury-sel" id="jury-char">
+          <option value="lewis">Lewis</option><option value="murphy">Murphy</option><option value="kara">Kara</option><option value="finn">Finn</option>
         </select>
+        <input class="jury-in" id="jury-text" placeholder="Trait or Drive being argued…" />
+        <button class="jbtn g" id="jury-add">+ Add</button>
       </div>
-      <button class="wipe-btn" onclick="promptWipeCharacter()">🗑 Wipe Sheet</button>
     </div>
   </div>
+</div>
 
-  <div class="adv-card">
-    <h3>Kara — Automaton Reveal</h3>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Reveals the hidden Automaton branch on Kara's divine playbook. Cannot be undone.</div>
-    <button class="btn gold" id="kara-reveal-btn" onclick="promptRevealKara()">🔒 Reveal Automaton Nature</button>
-    <button class="btn sm" id="kara-reveal-undo" onclick="promptUndoRevealKara()" style="display:none;margin-left:6px;border-color:#ef4444;color:#ef4444">↩ Undo Reveal</button>
+<!-- TOOLS -->
+<div class="panel" id="panel-tools">
+  <div class="stitle">Weaver Tools</div>
+  <div class="toolbox">
+    <div class="toolbox-ttl">Character Flags</div>
+    <div class="tool-row">
+      <div class="tool-label">Kara — Automaton Revealed <span style="font-size:11px;color:var(--dim)">(secret branch)</span></div>
+      <button class="tool-btn" id="auto-toggle">Loading…</button>
+    </div>
+    <div class="tool-row">
+      <div class="tool-label">Finn — Current Form</div>
+      <span id="finn-form-display" style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Loading…</span>
+    </div>
+  </div>
+  <div class="toolbox">
+    <div class="toolbox-ttl">Markup Mode</div>
+    <div class="tool-row">
+      <div class="tool-label">Enable editing on all character sheets by appending <code style="font-family:monospace;font-size:12px;background:var(--surf2);padding:1px 4px;border-radius:3px">?markup=1</code> to the URL.</div>
+    </div>
+  </div>
+  <div class="toolbox">
+    <div class="toolbox-ttl">Pull Values</div>
+    <div id="pull-overview" style="display:flex;flex-direction:column;gap:7px"></div>
   </div>
 </div>
-
+</div>
 </div>
 
-<!-- REST OVERLAY -->
-<div class="rest-ov" id="rest-ov">
-  <div class="rest-icon" id="rest-icon">☽</div>
-  <div class="rest-title" id="rest-title">Short Rest</div>
-  <div class="rest-sub" id="rest-sub">All players restore their Favor.</div>
-  <button class="btn gold" onclick="document.getElementById('rest-ov').classList.remove('vis')" style="margin-top:8px">Dismiss</button>
-</div>
-
-<!-- COMBAT SETUP MODAL -->
-<div class="modal" id="cmb-setup-modal">
+<!-- CONFIRM MODAL -->
+<div class="ov" id="confirm-ov">
   <div class="mbox">
-    <button class="mclose" onclick="document.getElementById('cmb-setup-modal').classList.remove('vis')">✕</button>
-    <div class="mtitle">Start Combat</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Select participants for this encounter.</div>
-    <div class="sec-title">Player Characters</div>
-    <div id="cmb-pc-cbs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
-    <div class="sec-title">NPCs (in scene)</div>
-    <div id="cmb-npc-cbs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
-    <div class="row" style="justify-content:flex-end;gap:8px">
-      <button class="btn" onclick="document.getElementById('cmb-setup-modal').classList.remove('vis')">Cancel</button>
-      <button class="btn gold" onclick="startCombat()">⚔ Begin</button>
+    <div class="mhd"><div class="mttl" id="confirm-ttl">Confirm</div><button class="mxb" id="confirm-close">✕</button></div>
+    <div class="mbd">
+      <p style="font-family:'Crimson Pro',serif;font-size:15px;color:var(--muted);line-height:1.6;margin-bottom:14px" id="confirm-msg"></p>
+      <div style="display:flex;gap:7px;justify-content:flex-end">
+        <button class="jbtn" style="border:1px solid var(--border2);color:var(--muted)" id="confirm-cancel">Cancel</button>
+        <button class="jbtn g" id="confirm-ok">Confirm</button>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
-<div class="ability-notif" id="ability-notif"></div>
-
-<!-- DM MODAL (replaces all prompt/confirm) -->
-<div class="dm-modal" id="dm-modal">
-  <div class="dm-mbox" id="dm-mbox"></div>
-</div>
-
-<footer>WEAVER SCREEN · DEMIGODS CAMPAIGN</footer>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const PW='112899';
 const SB_URL='https://hcrfqtwpraerheiuirem.supabase.co';
 const SB_KEY='sb_publishable_C3dTYXnpaYOg1QCBgXMcBQ_V9cE4Na1';
-const{createClient}=supabase;
+const CHARS=[
+  {id:'lewis',nm:'Lewis',color:'var(--lewis)',emoji:'🐦‍⬛'},
+  {id:'murphy',nm:'Murphy',color:'var(--murphy)',emoji:'🔥'},
+  {id:'kara',nm:'Kara',color:'var(--kara)',emoji:'⚙️'},
+  {id:'finn',nm:'Finn',color:'var(--finn)',emoji:'🐺'}
+];
+const FINN_FORMS={human:'Human',stallion:'Stallion',hare:'Hare',goat:'Goat',cow:'Cow',magpie:'Magpie',salmon:'Salmon',wolf:'Wolf',bear:'Bear'};
+const {createClient}=supabase;
 const db=createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionFromUrl:false}});
+let charData={},rolls=[],juryQueue=[],juryOpen=false,confirmCb=null;
 
-const FINN_FORMS={
-  human:   {emoji:'🧑',  name:'Human',    desc:'Natural form. Full combat abilities.',                          war:false,cost:0, harmDie:null, skill:null},
-  stallion:{emoji:'🐴',  name:'Stallion', desc:'Enormous speed. Carry two riders. Cannot enter small spaces.', war:false,cost:1, harmDie:null, skill:null},
-  hare:    {emoji:'🐇',  name:'Hare',     desc:'Near-invisible in undergrowth. Fits through any gap.',          war:false,cost:1, harmDie:null, skill:null},
-  goat:    {emoji:'🐐',  name:'Goat',     desc:'Sure-footed anywhere. Can eat almost anything.',               war:false,cost:1, harmDie:null, skill:null},
-  cow:     {emoji:'🐄',  name:'Cow',      desc:'Unremarkable and ignored. Ideal for hiding in plain sight.',   war:false,cost:1, harmDie:null, skill:null},
-  magpie:  {emoji:'🐦',  name:'Magpie',   desc:'Full flight. Eavesdrop freely. Carry small objects.',          war:false,cost:1, harmDie:null, skill:null},
-  salmon:  {emoji:'🐟',  name:'Salmon',   desc:'Full aquatic movement. Breathe underwater indefinitely.',      war:false,cost:1, harmDie:null, skill:null},
-  wolf:    {emoji:'🐺',  name:'Wolf',     desc:'Swift and precise. +1d tracking and group coordination.',      war:true, cost:2, harmDie:'1d6',skill:'Tough'},
-  bear:    {emoji:'🐻',  name:'Bear',     desc:'Immense strength. Treat Tough as maxed. Terrifying presence.', war:true, cost:2, harmDie:'1d8',skill:'Might'},
-};
+// AUTH
+document.getElementById('auth-btn').addEventListener('click',tryAuth);
+document.getElementById('auth-in').addEventListener('keydown',e=>{if(e.key==='Enter')tryAuth();});
+function tryAuth(){
+  if(document.getElementById('auth-in').value===PW){
+    document.getElementById('auth-screen').style.display='none';
+    document.getElementById('main').style.display='block';
+    init();
+  }else{
+    const err=document.getElementById('auth-err');err.style.display='block';
+    document.getElementById('auth-in').value='';
+    setTimeout(()=>{err.style.display='none';},1800);
+  }
+}
 
-const PLAYERS=[
-  {id:'lewis', name:'Lewis', playbook:'Child of the Morrigan',emoji:'🐦‍⬛',color:'var(--lewis)',acc:'var(--lewis-acc)'},
-  {id:'murphy',name:'Murphy',playbook:'Child of Brigid',      emoji:'🔥', color:'var(--murphy)',acc:'var(--murphy-acc)'},
-  {id:'kara',  name:'Kara',  playbook:'Child of Goibniu',     emoji:'⚙️',  color:'var(--kara)',  acc:'var(--kara-acc)'},
-  {id:'finn',  name:'Finn',  playbook:'Púca',                 emoji:'🐺', color:'var(--finn)',  acc:'var(--finn-acc)'}
-];
+const esc=s=>typeof s==='string'?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):'';
 
-const TAG_DEFS=[
-  {grp:'Range',tags:[
-    {id:'intimate',lbl:'Intimate',tip:'Must be skin-to-skin or grappling range'},
-    {id:'close',   lbl:'Close',   tip:'Within arm\'s reach or a few steps'},
-    {id:'reach',   lbl:'Reach',   tip:'Just beyond arm\'s reach; can hit past close range'},
-    {id:'ranged',  lbl:'Ranged',  tip:'Can be thrown or fired at near/far range'}
-  ]},
-  {grp:'Properties',tags:[
-    {id:'heavy',      lbl:'Heavy',      tip:'+1d damage but requires two hands'},
-    {id:'precise',    lbl:'Precise',    tip:'+1d on aimed attacks; ignores light cover'},
-    {id:'hidden',     lbl:'Hidden',     tip:'Concealable; bypasses basic searches'},
-    {id:'returning',  lbl:'Returning',  tip:'Returns after being thrown'},
-    {id:'blessed',    lbl:'Blessed',    tip:'Deals full damage to supernatural creatures'},
-    {id:'fragile',    lbl:'Fragile',    tip:'Loses 1 durability on a failed attack roll'},
-    {id:'area',       lbl:'Area',       tip:'Hits all targets within Close range of impact'},
-    {id:'entangling', lbl:'Entangling', tip:'On hit, target is restrained until they spend an action to break free'},
-    {id:'obvious',    lbl:'Obvious',    tip:'Impossible to conceal; draws immediate attention'},
-    {id:'dangerous',  lbl:'Dangerous',  tip:'On a failure, user takes 1d4 Harm from mishandling'}
-  ]},
-  {grp:'Effects',tags:[
-    {id:'piercing',    lbl:'Piercing',    tip:'Ignores 1 point of armor effectiveness'},
-    {id:'illuminating',lbl:'Illuminating',tip:'Emits bright light; reveals hidden targets'},
-    {id:'ignore-wear', lbl:'Ignore Wear', tip:'Durability does not decrease when used to block'}
-  ]}
-];
+function rParty(){
+  document.getElementById('party-grid').innerHTML=CHARS.map(ch=>{
+    const d=charData[ch.id]||{};
+    const harm=conds(ch.id).reduce((a,c)=>a+(c.harm_value||0),0);
+    const pull=d.pull||0;const pullLabel=pull>0?'+'+pull:String(pull);
+    const mortal=d.mortal_track||0;const divine=d.divine_track||0;
+    const bres=ch.id==='murphy'&&d.bres_blood?d.bres_blood:null;
+    const form=ch.id==='finn'&&d.current_form?FINN_FORMS[d.current_form]||d.current_form:null;
+    return '<div class="pcard" style="border-color:'+ch.color+'22"><div class="pcard-name" style="color:'+ch.color+'">'+ch.emoji+' '+ch.nm+'</div>'
+      +'<div class="pcard-row">Harm <div class="pcard-val" style="color:var(--fail)">'+harm+'<span style="color:var(--dim);font-size:11px"> /'+( d.limit||10)+'</span></div></div>'
+      +'<div class="pcard-row">Pull <div class="pull-mini">'+[-3,-2,-1,0,1,2,3].map(v=>'<div class="pms'+(v===pull?' on" style="--cc:'+ch.color+';--cb:'+ch.color+'22':'"')+'">'+( v>0?'+'+v:v)+'</div>').join('')+'</div></div>'
+      +'<div class="pcard-row">Mortal <div class="pcard-val" style="color:#60a5fa">'+mortal+'/4</div></div>'
+      +'<div class="pcard-row">Divine <div class="pcard-val" style="color:'+ch.color+'">'+divine+'/4</div></div>'
+      +(bres!==null?'<div class="pcard-row" style="margin-top:4px">Bres\'s Blood <div class="pcard-val" style="color:var(--fail)">'+bres+'/5</div></div>':'')
+      +(form?'<div class="pcard-row" style="margin-top:4px">Form <div class="pcard-val" style="color:'+ch.color+';font-size:11px">'+esc(form)+'</div></div>':'')
+      +'</div>';
+  }).join('');
+  // Pull overview
+  document.getElementById('pull-overview').innerHTML=CHARS.map(ch=>{
+    const d=charData[ch.id]||{};const p=d.pull||0;const pl=p>0?'+'+p:String(p);
+    return '<div style="display:flex;align-items:center;gap:9px"><span style="font-family:Cinzel,serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:'+ch.color+';min-width:55px">'+ch.nm+'</span><div style="flex:1;display:flex;gap:3px">'+[-3,-2,-1,0,1,2,3].map(v=>'<div style="width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:Cinzel,serif;font-size:9px;font-weight:700;border:1px solid '+(v===p?ch.color:'var(--border)')+';background:'+(v===p?ch.color+'22':'transparent')+';color:'+(v===p?ch.color:'var(--dim)')+'">'+( v>0?'+'+v:v)+'</div>').join('')+'</div></div>';
+  }).join('');
+}
+let _conds={};
+function conds(id){return _conds[id]||[];}
+async function loadConds(){
+  for(const ch of CHARS){
+    const{data}=await db.from('conditions').select('*').eq('character_id',ch.id);
+    _conds[ch.id]=data||[];
+  }
+}
 
-// State
-let charData={},condData={},skillData={},powerData={},invData={};
-let pendingRolls=[],rollLogData=[],npcData=[],npcCondData={},npcWpnData={},tdData={};
-let dmSettings={kara_revealed:false, markup_mode:false};
-let combatSess=null,combatParts=[],combatQ=[];
-let jurySess=null,juryQ=[],juryVotes={},dmVotes={};
-let logData=[];
-let currentTab='party';
+function rRolls(target,list,limit){
+  const el=document.getElementById(target);if(!el)return;
+  const show=limit?list.slice(0,limit):list;
+  if(!show.length){el.innerHTML='<div style="color:var(--dim);font-family:Crimson Pro,serif;font-size:14px;padding:8px 0">No rolls yet.</div>';return;}
+  el.innerHTML=show.map(r=>{
+    const ch=CHARS.find(c=>c.id===r.character_id)||{nm:r.character_id,color:'var(--muted)'};
+    const tier=r.outcome_tier||'m';
+    const tl=tier==='h'?'10+':tier==='p'?'7–9':'Miss';
+    return '<div class="roll-item"><div class="roll-char" style="color:'+ch.color+'">'+ch.nm+'</div>'
+      +'<div style="flex:1"><div class="roll-move">'+esc(r.move_name||'Roll')+'</div>'
+      +(r.dice_1?'<div style="font-size:11px;color:var(--dim);margin-top:2px">'+r.dice_1+' + '+(r.dice_2||0)+' + '+(r.modifier||0)+' = '+r.total+'</div>':'')
+      +(r.outcome_text?'<div style="font-family:Crimson Pro,serif;font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4">'+esc((r.outcome_text||'').substring(0,150))+'</div>':'')
+      +'</div><div class="roll-tier '+tier+'">'+tl+'</div>'
+      +(target==='party-rolls'?'<button class="roll-dismiss" data-rid="'+r.id+'">✕</button>':'')
+      +'</div>';
+  }).join('');
+}
+
+function rJury(){
+  const container=document.getElementById('jury-container');
+  container.innerHTML='';// historical sessions would go here
+  document.getElementById('jury-active').style.display=juryOpen?'block':'none';
+  document.getElementById('jury-open').style.display=juryOpen?'none':'inline-flex';
+  if(juryOpen){
+    document.getElementById('jury-queue').innerHTML=juryQueue.length?juryQueue.map((item,i)=>{
+      const ch=CHARS.find(c=>c.id===item.char)||{nm:item.char,color:'var(--muted)'};
+      const yv=item.votes?item.votes.filter(v=>v).length:0;
+      const nv=item.votes?item.votes.filter(v=>!v).length:0;
+      return '<div class="jury-item"><div class="jury-char" style="color:'+ch.color+'">'+ch.nm+'</div>'
+        +'<div class="jury-text">'+esc(item.text)+'</div>'
+        +'<div class="jury-vote">'
+        +'<button class="vote-btn vote-y" data-jv="1" data-ji="'+i+'">Yes</button>'
+        +'<button class="vote-btn vote-n" data-jv="0" data-ji="'+i+'">No</button>'
+        +'</div>'
+        +'<div class="vote-count" style="color:'+(yv>nv?'var(--ok)':yv<nv?'var(--fail)':'var(--dim)')+'">'+yv+' – '+nv+'</div>'
+        +'<button class="jbtn" style="border:1px solid var(--ok);color:var(--ok);font-size:7px" data-award="'+i+'">Award</button>'
+        +'</div>';
+    }).join(''):'<div style="color:var(--dim);font-family:Crimson Pro,serif;font-size:13px;padding:6px 0">No items queued yet.</div>';
+  }
+}
+
+function rAutoToggle(){
+  const d=charData['kara']||{};
+  const btn=document.getElementById('auto-toggle');if(!btn)return;
+  btn.textContent=d.automaton_revealed?'✓ Revealed — Click to Hide':'Hidden — Click to Reveal';
+  btn.className='tool-btn'+(d.automaton_revealed?' active':'');
+}
+function rFinnForm(){
+  const d=charData['finn']||{};
+  const el=document.getElementById('finn-form-display');if(!el)return;
+  el.textContent=FINN_FORMS[d.current_form]||'Human';
+}
+
+async function loadCharData(){
+  for(const ch of CHARS){
+    const{data}=await db.from('characters').select('*').eq('id',ch.id).limit(1);
+    if(data&&data[0])charData[ch.id]=data[0];
+  }
+}
+async function loadRolls(){
+  const{data}=await db.from('pending_rolls').select('*').eq('status','waiting').order('created_at',{ascending:false}).limit(20);
+  rolls=data||[];
+}
+
+function setupRT(){
+  for(const ch of CHARS){
+    db.channel('dm-'+ch.id).on('postgres_changes',{event:'*',schema:'public',table:'characters'},async p=>{
+      if(p.new?.id===ch.id){charData[ch.id]={...charData[ch.id],...p.new};rParty();rAutoToggle();rFinnForm();}
+    }).subscribe();
+    db.channel('dm-cond-'+ch.id).on('postgres_changes',{event:'*',schema:'public',table:'conditions'},async p=>{
+      if((p.new?.character_id||p.old?.character_id)===ch.id){const{data}=await db.from('conditions').select('*').eq('character_id',ch.id);_conds[ch.id]=data||[];rParty();}
+    }).subscribe();
+  }
+  db.channel('dm-rolls').on('postgres_changes',{event:'*',schema:'public',table:'pending_rolls'},async()=>{
+    await loadRolls();rRolls('party-rolls',rolls,10);rRolls('all-rolls',rolls);
+  }).subscribe();
+}
+
+function attachEvents(){
+  document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');document.getElementById('panel-'+b.dataset.tab).classList.add('on');
+  }));
+  document.getElementById('party-rolls').addEventListener('click',async e=>{
+    const rid=e.target.closest('[data-rid]');
+    if(rid)await db.from('pending_rolls').update({status:'seen'}).eq('id',rid.dataset.rid);
+  });
+  document.getElementById('jury-open').addEventListener('click',()=>{juryOpen=true;juryQueue=[];rJury();});
+  document.getElementById('jury-close').addEventListener('click',()=>{
+    confirm2('Close jury session and award any pending items?',async()=>{juryOpen=false;rJury();});
+  });
+  document.getElementById('jury-add').addEventListener('click',()=>{
+    const char=document.getElementById('jury-char').value;
+    const text=document.getElementById('jury-text').value.trim();if(!text)return;
+    juryQueue.push({char,text,votes:[]});document.getElementById('jury-text').value='';rJury();
+  });
+  document.getElementById('jury-queue').addEventListener('click',async e=>{
+    const jv=e.target.closest('[data-jv]');
+    if(jv){const i=parseInt(jv.dataset.ji),v=parseInt(jv.dataset.jv)===1;juryQueue[i].votes=[...( juryQueue[i].votes||[]),v];rJury();return;}
+    const aw=e.target.closest('[data-award]');
+    if(aw){
+      const i=parseInt(aw.dataset.award);const item=juryQueue[i];
+      const ch=CHARS.find(c=>c.id===item.char);if(!ch)return;
+      confirm2('Award Mortal Track mark to '+ch.nm+'?',async()=>{
+        const cur=charData[item.char]?.mortal_track||0;
+        await db.from('characters').update({mortal_track:Math.min(4,cur+1),updated_at:new Date().toISOString()}).eq('id',item.char);
+        juryQueue.splice(i,1);rJury();
+      });
+    }
+  });
+  document.getElementById('auto-toggle').addEventListener('click',()=>{
+    const cur=charData['kara']?.automaton_revealed;
+    const msg=cur?'Hide the Automaton branch from Kara's sheet?':'Reveal the Automaton branch on Kara's sheet? This cannot be undone without DM access.';
+    confirm2(msg,async()=>{
+      await db.from('characters').update({automaton_revealed:!cur,updated_at:new Date().toISOString()}).eq('id','kara');
+      charData['kara']={...charData['kara'],automaton_revealed:!cur};rAutoToggle();
+    });
+  });
+  document.getElementById('confirm-close').addEventListener('click',()=>document.getElementById('confirm-ov').classList.remove('vis'));
+  document.getElementById('confirm-cancel').addEventListener('click',()=>document.getElementById('confirm-ov').classList.remove('vis'));
+  document.getElementById('confirm-ok').addEventListener('click',()=>{
+    document.getElementById('confirm-ov').classList.remove('vis');if(confirmCb)confirmCb();
+  });
+}
+
+function confirm2(msg,cb){
+  document.getElementById('confirm-msg').textContent=msg;
+  confirmCb=cb;document.getElementById('confirm-ov').classList.add('vis');
+}
+
+function initCanvas(){
+  const cv=document.getElementById('bgc'),cx=cv.getContext('2d');let pts=[];
+  const rsz=()=>{cv.width=innerWidth;cv.height=innerHeight;};
+  const ini=()=>{pts=[];const colors=['124,58,237','16,185,129','245,158,11','139,92,246'];for(let i=0;i<40;i++)pts.push({x:Math.random()*cv.width,y:Math.random()*cv.height,r:Math.random()*1.2+.3,vx:(Math.random()-.5)*.06,vy:(Math.random()-.5)*.06,a:Math.random()*.2+.04,c:colors[i%4]});};
+  const drw=()=>{cx.clearRect(0,0,cv.width,cv.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=cv.width;if(p.x>cv.width)p.x=0;if(p.y<0)p.y=cv.height;if(p.y>cv.height)p.y=0;cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);cx.fillStyle='rgba('+p.c+','+p.a*.5+')';cx.fill();});requestAnimationFrame(drw);};
+  rsz();ini();drw();window.addEventListener('resize',()=>{rsz();ini();});
+}
 
 async function init(){
-  await Promise.all([loadChars(),loadDMSettings(),loadPendingRolls(),loadRollLog(),loadNPCs(),loadActiveCombat(),loadJury(),loadInv()]);
-  buildTagPicker();
-  renderPartyGrid();updateEqTarget();renderPendingRolls();renderRollLog();renderNPCTab();renderInv();
-  updateKaraBtn();subscribeAll();setSyncDot(true);startCanvas();
-  // Load markup mode state
-  if(dmSettings.markup_mode !== undefined){ markupMode = dmSettings.markup_mode; updateMarkupBtn(); }
+  initCanvas();
+  await loadCharData();await loadConds();await loadRolls();
+  rParty();rRolls('party-rolls',rolls,10);rRolls('all-rolls',rolls);rJury();rAutoToggle();rFinnForm();
+  attachEvents();setupRT();
+  document.getElementById('sync').classList.add('on');
 }
-
-async function loadChars(){
-  const[c,co,sk,pw,td]=await Promise.all([
-    db.from('characters').select('*'),
-    db.from('conditions').select('*').order('created_at'),
-    db.from('character_skills').select('*'),
-    db.from('unlocked_powers').select('*'),
-    db.from('traits_drives').select('*').order('created_at')
-  ]);
-  if(c.data) c.data.forEach(r=>{charData[r.id]=r;});
-  condData={};if(co.data)co.data.forEach(r=>{if(!condData[r.character_id])condData[r.character_id]=[];condData[r.character_id].push(r);});
-  skillData={};if(sk.data)sk.data.forEach(r=>{if(!skillData[r.character_id])skillData[r.character_id]={};skillData[r.character_id][r.skill]=r.dice;});
-  powerData={};if(pw.data)pw.data.forEach(r=>{if(!powerData[r.character_id])powerData[r.character_id]=[];powerData[r.character_id].push(r);});
-  tdData={};if(td.data)td.data.forEach(r=>{if(!tdData[r.character_id])tdData[r.character_id]=[];tdData[r.character_id].push(r);});
-}
-async function loadDMSettings(){const{data:_rows}=await db.from('dm_settings').select('*').eq('id',1).limit(1);const data=_rows?.[0]||null;if(data){dmSettings=data;markupMode=!!data.markup_mode;updateMarkupBtn();}}
-async function loadPendingRolls(){const{data}=await db.from('pending_rolls').select('*').eq('status','waiting').order('created_at');pendingRolls=data||[];}
-async function loadRollLog(){const{data}=await db.from('roll_log').select('*').order('created_at',{ascending:false}).limit(20);rollLogData=data||[];}
-async function loadNPCs(){
-  const{data:npcs}=await db.from('npcs').select('*').eq('is_active',true).order('created_at');
-  npcData=npcs||[];
-  if(npcData.length>0){
-    const ids=npcData.map(n=>n.id);
-    const[co,wp]=await Promise.all([db.from('npc_conditions').select('*').in('npc_id',ids),db.from('npc_weapons').select('*').in('npc_id',ids)]);
-    npcCondData={};(co.data||[]).forEach(c=>{if(!npcCondData[c.npc_id])npcCondData[c.npc_id]=[];npcCondData[c.npc_id].push(c);});
-    npcWpnData={};(wp.data||[]).forEach(w=>{if(!npcWpnData[w.npc_id])npcWpnData[w.npc_id]=[];npcWpnData[w.npc_id].push(w);});
-  }
-}
-async function loadInv(){
-  const[pcRes,npcRes]=await Promise.all([
-    db.from('equipment').select('*').eq('owner_type','character').order('created_at'),
-    db.from('equipment').select('*').eq('owner_type','npc').order('created_at')
-  ]);
-  invData={};(pcRes.data||[]).forEach(i=>{if(!invData[i.owner_id])invData[i.owner_id]=[];invData[i.owner_id].push(i);});
-  npcInvData={};(npcRes.data||[]).forEach(i=>{if(!npcInvData[i.owner_id])npcInvData[i.owner_id]=[];npcInvData[i.owner_id].push(i);});
-}
-async function loadActiveCombat(){
-  const{data}=await db.from('combat_sessions').select('*').eq('status','active').order('created_at',{ascending:false}).limit(1);
-  if(data&&data.length>0){combatSess=data[0];await loadCombatParts();showActiveCombat();}
-}
-async function loadCombatParts(){if(!combatSess)return;const{data}=await db.from('combat_participants').select('*').eq('session_id',combatSess.id).order('position');combatParts=data||[];}
-async function loadJury(){
-  const{data}=await db.from('jury_sessions').select('*').in('status',['open','voting']).order('created_at',{ascending:false}).limit(1);
-  if(data&&data.length>0){jurySess=data[0];await loadJuryQ();document.getElementById('jury-start-btn').style.display='none';document.getElementById('jury-close-btn').style.display='inline-flex';document.getElementById('jury-status').textContent='Session open';}
-}
-async function loadJuryQ(){
-  if(!jurySess)return;
-  const{data:q}=await db.from('jury_queue').select('*').eq('session_id',jurySess.id).order('position');
-  juryQ=q||[];
-  if(juryQ.length>0){const ids=juryQ.map(i=>i.id);const{data:v}=await db.from('jury_votes').select('*').in('queue_item_id',ids);juryVotes={};(v||[]).forEach(vt=>{if(!juryVotes[vt.queue_item_id])juryVotes[vt.queue_item_id]=[];juryVotes[vt.queue_item_id].push(vt);if(vt.voter_id==='dm')dmVotes[vt.queue_item_id]=vt.vote;});}
-  renderJuryQueue();updateDMVotePanel();
-}
-async function loadLog(){const{data}=await db.from('change_log').select('*').eq('undone',false).order('created_at',{ascending:false}).limit(60);logData=data||[];renderLog();}
-
-// Computed
-const getMort=id=>Object.values(skillData[id]||{}).reduce((s,v)=>s+v,0);
-const getTotalHarm=id=>(condData[id]||[]).reduce((s,c)=>s+c.harm,0);
-
-// Tabs
-function switchTab(t){
-  currentTab=t;
-  document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelector(`.mtab[data-tab="${t}"]`).classList.add('active');
-  document.getElementById(`tab-${t}`).classList.add('active');
-  if(t==='equipment')renderInv();
-  if(t==='log')loadLog();
-}
-
-// Party
-function renderPartyGrid(){
-  const g=document.getElementById('party-grid');if(!g)return;g.innerHTML='';
-  PLAYERS.forEach(p=>{
-    const ch=charData[p.id]||{};const mort=getMort(p.id)||1;const harm=getTotalHarm(p.id);const pct=Math.min(100,harm/mort*100);
-    const conds=condData[p.id]||[];const w=ch.wisdom||0,gr=ch.grit||0,bo=ch.bond||0;
-    const condHtml=conds.map(c=>`<span class="cond-chip${c.is_permanent?' perm':c.unstable?' unstable':''}" title="Click to remove" onclick="removeCond('${c.id}','${p.id}')">${c.label} ${c.harm}${c.is_permanent?' 🔒':''}</span>`).join('');
-    const pipHtml=(t,v)=>[1,2,3,4].map(i=>`<div class="pip${i<=v?' on '+t:''}"></div>`).join('');
-    const card=document.createElement('div');card.className='pcard';card.dataset.charId=p.id;
-    card.innerHTML=`
-      <div class="pcard-hdr" style="border-bottom-color:${p.color}40">
-        <div class="pcard-av" style="border:2px solid ${p.color};box-shadow:0 0 10px ${p.color}33">${p.emoji}</div>
-        <div><div class="pcard-name" style="color:${p.acc}">${p.name}</div><div class="pcard-sub" style="color:${p.color}">${p.playbook}${p.id==='finn'?` · ${(FINN_FORMS[ch.current_form||'human']?.emoji||'🧑')} ${(FINN_FORMS[ch.current_form||'human']?.name||'Human')}`:``}</div></div>
-      </div>
-      <div class="pcard-body">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--dim);text-transform:uppercase">Harm / Mortality</span>
-          <span style="font-family:'Cinzel Decorative',serif;font-size:15px;color:var(--harm)">${harm}<span style="color:var(--dim);font-size:11px"> / ${mort}</span></span>
-        </div>
-        <div class="hbar-bg"><div class="hbar-fill" style="width:${pct}%"></div></div>
-        <div class="pips-row">
-          <div class="pip-grp"><span class="pip-lbl" style="color:#60a5fa">Wisdom</span><div class="pips">${pipHtml('wisdom',w)}</div></div>
-          <div class="pip-grp"><span class="pip-lbl" style="color:#f87171">Grit</span><div class="pips">${pipHtml('grit',gr)}</div></div>
-          <div class="pip-grp"><span class="pip-lbl" style="color:#4ade80">Bond</span><div class="pips">${pipHtml('bond',bo)}</div></div>
-        </div>
-        <div style="margin-bottom:6px;display:flex;flex-wrap:wrap">${condHtml||'<span style="color:var(--dim);font-size:11px;font-style:italic">No conditions</span>'}</div>
-        <div style="padding-top:6px;border-top:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--fc);text-transform:uppercase">Favor</span>
-            <span class="favor-val">${ch.favor_current||0} / ${mort}</span>
-          </div>
-          <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
-            <div style="height:100%;width:${mort>0?Math.min(100,((ch.favor_current||0)/mort)*100):0}%;background:var(--fc);border-radius:2px;transition:width .3s"></div>
-          </div>
-        </div>
-        ${p.id==='finn'?(()=>{
-          const ff=FINN_FORMS[ch.current_form||'human']||FINN_FORMS.human;
-          const formColor=ff.war?'#f87171':'#a78bfa';
-          return `<div style="margin-top:6px;padding:8px 10px;border-radius:5px;background:${ff.war?'#ef444410':'#8b5cf610'};border:1px solid ${ff.war?'#ef444430':'#8b5cf630'}">`
-            +`<div style="display:flex;align-items:center;gap:6px;margin-bottom:${ff.desc?4:0}px">`
-            +`<span style="font-size:16px">${ff.emoji}</span>`
-            +`<span style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;color:${formColor}">${ff.name}`
-            +(ff.war?` <span style="font-size:9px;color:var(--dim)">&middot; ${ff.skill} &middot; ${ff.harmDie}</span>`:'')+'</span>'
-            +'</div>'
-            +`<div style="font-size:10px;color:var(--dim);line-height:1.4">${ff.desc}</div>`
-            +'</div>';
-        })():''}
-      </div>
-      <div style="padding:0 12px 8px">
-        ${(()=>{
-          const tds=tdData[p.id]||[];
-          if(!tds.length) return '';
-          const traits=tds.filter(t=>t.item_type==='trait');
-          const drives=tds.filter(t=>t.item_type==='drive');
-          const id='td-'+p.id;
-          let html=`<div style="font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;color:var(--dim);text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:6px;margin-bottom:4px" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">▸ Traits & Drives</div><div style="display:none">`;
-          if(traits.length) html+=traits.map(t=>`<div style="font-size:11px;color:var(--muted);padding:2px 0;border-left:2px solid #60a5fa;padding-left:6px;margin-bottom:3px"><span style="color:#60a5fa;font-size:9px;font-family:'Cinzel',serif;letter-spacing:1px">TRAIT</span> ${t.text||'—'}</div>`).join('');
-          if(drives.length) html+=drives.map(d=>`<div style="font-size:11px;color:var(--muted);padding:2px 0;border-left:2px solid #4ade80;padding-left:6px;margin-bottom:3px"><span style="color:#4ade80;font-size:9px;font-family:'Cinzel',serif;letter-spacing:1px">DRIVE</span> ${d.text||'—'}</div>`).join('');
-          return html+'</div>';
-        })()}
-      </div>
-      <div class="pcard-ftr">
-        <button class="btn sm" onclick="openAddCond('${p.id}')">+ Condition</button>
-        <button class="btn sm" onclick="openAddCond('${p.id}',true)">+ Permanent</button>
-      </div>`;
-    g.appendChild(card);
-  });
-}
-function openAddCond(charId,perm=false){
-  const p=PLAYERS.find(pl=>pl.id===charId);
-  dmModal('<h3>Add '+(perm?'Permanent ':'')+' Condition \u2014 '+(p?.name||charId)+'</h3>'
-    +'<div class="dm-mrow"><label class="dm-mlbl">Label</label><input class="dm-minp" id="mc-label" placeholder="e.g. Bruised Ribs"></div>'
-    +'<div class="dm-mrow"><label class="dm-mlbl">Harm</label><input class="dm-minp" id="mc-harm" type="number" min="1" max="20" value="2" style="width:80px"></div>'
-    +'<div class="dm-mrow"><label class="dm-mcheck"><input type="checkbox" id="mc-unstable" style="accent-color:var(--gold)"> Unstable (worsening)</label></div>'
-    +'<div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button>'
-    +'<button class="btn '+(perm?'red':'gold')+'" onclick="submitAddCond(\''+charId+'\','+(perm?'true':'false')+')">'+(perm?'Add Permanent':'Add Condition')+'</button></div>');
-  setTimeout(()=>document.getElementById('mc-label')?.focus(),80);
-}
-async function submitAddCond(charId,perm){
-  const label=document.getElementById('mc-label')?.value.trim();
-  const harm=parseInt(document.getElementById('mc-harm')?.value)||1;
-  const unstable=document.getElementById('mc-unstable')?.checked||false;
-  if(!label){showToast('Enter a condition name');return;}
-  closeDMModal();
-  const{data,error}=await db.from('conditions').insert({character_id:charId,label,harm,unstable,is_permanent:!!perm}).select().single();
-  if(error){showToast('DB error: '+error.message);console.error(error);return;}
-  if(data){
-    if(!condData[charId])condData[charId]=[];
-    condData[charId].push(data);
-    await logChange(charId,'condition_add','Added'+(perm?' permanent':unstable?' unstable':'')+' "'+label+'" ('+harm+')',null,{id:data.id,label,harm,is_permanent:!!perm,unstable});
-    renderPartyGrid();showToast('Condition added');
-  }
-}
-function removeCond(condId,charId){
-  const c=(condData[charId]||[]).find(x=>x.id===condId);
-  const perm=c?.is_permanent?'<span style="color:var(--harm)"> PERMANENT</span>':'';
-  dmModal('<h3>Remove Condition</h3><div style="font-size:14px;color:var(--text);margin-bottom:8px">"'+(c?.label||condId)+'" ('+(c?.harm||0)+' harm)'+perm+'</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px">Permanently remove this condition?</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="confirmRemoveCond(\''+condId+'\',\''+charId+'\')" >Remove</button></div>');
-}
-async function confirmRemoveCond(condId,charId){
-  closeDMModal();
-  const c=(condData[charId]||[]).find(x=>x.id===condId);
-  const{error}=await db.from('conditions').delete().eq('id',condId);
-  if(error){showToast('DB error: '+error.message);return;}
-  if(c)await logChange(charId,'condition_remove','Removed "'+c.label+'"',{id:condId,label:c.label,harm:c.harm},null);
-  if(condData[charId])condData[charId]=condData[charId].filter(x=>x.id!==condId);
-  renderPartyGrid();showToast('Condition removed');
-}
-
-// NPC Tab
-function renderNPCTab(){
-  const sceneNPCs=npcData.filter(n=>n.in_scene);
-  document.getElementById('scene-section').style.display=sceneNPCs.length?'block':'none';
-  if(sceneNPCs.length){
-    const sn=document.getElementById('scene-npcs');sn.innerHTML='';
-    sceneNPCs.forEach(npc=>{
-      const pct=Math.min(100,(npc.harm_current/(npc.mortality||1))*100);
-      const conds=npcCondData[npc.id]||[];const wpns=npcWpnData[npc.id]||[];
-      const div=document.createElement('div');div.className='snpc-card';
-      div.innerHTML=`
-        <div class="snpc-name">${npc.name} <span class="npc-type-badge">${npc.npc_type||'humanoid'}</span> <span style="font-size:11px;color:var(--dim)">${npc.actions_max||1} action/round</span></div>
-        <div class="row" style="margin-bottom:8px;gap:8px">
-          <span style="font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim)">Harm</span>
-          <div class="snpc-hbar-bg" style="flex:1"><div class="snpc-hbar-fill" style="width:${pct}%"></div></div>
-          <span style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:var(--harm)">${npc.harm_current}/${npc.mortality}</span>
-        </div>
-        <div class="row" style="gap:5px;margin-bottom:8px">
-          <button class="btn sm red" onclick="adjustNPCHarm('${npc.id}',1)">+ Harm</button>
-          <button class="btn sm" onclick="adjustNPCHarm('${npc.id}',-1)">− Harm</button>
-          <button class="btn sm" onclick="addNPCCond('${npc.id}')">+ Condition</button>
-        </div>
-        ${conds.map(c=>`<span class="cond-chip" onclick="removeNPCCond('${c.id}','${npc.id}')">${c.label} ${c.harm}</span>`).join('')}
-        ${wpns.map(w=>`<div class="wpn-chip">${w.name} <span class="wpn-harm">${w.harm_die}</span></div>`).join('')}`;
-      sn.appendChild(div);
-    });
-  }
-  const roster=document.getElementById('npc-roster');if(!roster)return;
-  if(!npcData.length){roster.innerHTML='<div style="color:var(--dim);font-style:italic;padding:12px">No NPCs yet.</div>';return;}
-  roster.innerHTML='';
-  npcData.forEach(npc=>{
-    const row=document.createElement('div');row.className=`npc-row${npc.in_scene?' in-scene':''}`;
-    row.innerHTML=`
-      <div class="npc-scene-pip${npc.in_scene?' on':''}" onclick="toggleScene('${npc.id}',${npc.in_scene})" title="Toggle scene"></div>
-      <div class="npc-name-el">${npc.name}</div>
-      <span class="npc-type-badge">${npc.npc_type||'humanoid'}</span>
-      <span style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:var(--harm);min-width:60px;text-align:right">${npc.harm_current}/${npc.mortality}</span>
-      <button class="btn sm" onclick="editNPC('${npc.id}')">Edit</button>
-      <button class="btn sm red" onclick="deleteNPC('${npc.id}')">✕</button>`;
-    roster.appendChild(row);
-  });
-}
-function addNPC(){
-  dmModal('<h3>Add NPC</h3><div class="dm-mrow"><label class="dm-mlbl">Name</label><input class="dm-minp" id="mn-name" placeholder="e.g. Officer Brennan"></div><div class="dm-mrow"><label class="dm-mlbl">Type</label><select class="dm-minp" id="mn-type"><option value="humanoid">Humanoid</option><option value="creature">Creature</option><option value="monster">Monster</option><option value="boss">Boss</option></select></div><div style="display:flex;gap:10px"><div class="dm-mrow" style="flex:1"><label class="dm-mlbl">Mortality</label><input class="dm-minp" id="mn-mort" type="number" min="1" value="10"></div><div class="dm-mrow" style="flex:1"><label class="dm-mlbl">Actions/Round</label><input class="dm-minp" id="mn-acts" type="number" min="1" max="4" value="1"></div></div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn gold" onclick="submitAddNPC()">Add NPC</button></div>');
-  setTimeout(()=>document.getElementById('mn-name')?.focus(),80);
-}
-async function submitAddNPC(){
-  const name=document.getElementById('mn-name')?.value.trim();
-  const type=document.getElementById('mn-type')?.value||'humanoid';
-  const mort=parseInt(document.getElementById('mn-mort')?.value)||10;
-  const acts=parseInt(document.getElementById('mn-acts')?.value)||1;
-  if(!name){showToast('Enter a name');return;}
-  closeDMModal();
-  const{data,error}=await db.from('npcs').insert({name,npc_type:type,mortality:mort,harm_current:0,is_active:true,in_scene:false,actions_max:acts}).select().single();
-  if(error){showToast('DB error: '+error.message);console.error(error);return;}
-  if(data){npcData.push(data);renderNPCTab();showToast(name+' added');}
-}
-async function toggleScene(id,cur){
-  await db.from('npcs').update({in_scene:!cur,updated_at:new Date().toISOString()}).eq('id',id);
-  const n=npcData.find(x=>x.id===id);if(n)n.in_scene=!cur;renderNPCTab();
-}
-async function adjustNPCHarm(id,delta){
-  const n=npcData.find(x=>x.id===id);if(!n)return;
-  n.harm_current=Math.max(0,n.harm_current+delta);
-  await db.from('npcs').update({harm_current:n.harm_current,updated_at:new Date().toISOString()}).eq('id',id);
-  renderNPCTab();
-}
-function addNPCCond(npcId){
-  dmModal('<h3>Add NPC Condition</h3><div class="dm-mrow"><label class="dm-mlbl">Condition</label><input class="dm-minp" id="mnc-label" placeholder="e.g. Stunned"></div><div class="dm-mrow"><label class="dm-mlbl">Harm</label><input class="dm-minp" id="mnc-harm" type="number" min="1" value="1" style="width:80px"></div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="submitNPCCond(\''+npcId+'\')" >Add</button></div>');
-  setTimeout(()=>document.getElementById('mnc-label')?.focus(),80);
-}
-async function submitNPCCond(npcId){
-  const label=document.getElementById('mnc-label')?.value.trim();
-  const harm=parseInt(document.getElementById('mnc-harm')?.value)||1;
-  if(!label)return;
-  closeDMModal();
-  const{data,error}=await db.from('npc_conditions').insert({npc_id:npcId,label,harm,unstable:false}).select().single();
-  if(error){showToast('DB error: '+error.message);return;}
-  if(data){if(!npcCondData[npcId])npcCondData[npcId]=[];npcCondData[npcId].push(data);renderNPCTab();}
-}
-async function removeNPCCond(condId,npcId){
-  await db.from('npc_conditions').delete().eq('id',condId);
-  if(npcCondData[npcId])npcCondData[npcId]=npcCondData[npcId].filter(c=>c.id!==condId);renderNPCTab();
-}
-function editNPC(id){
-  const n=npcData.find(x=>x.id===id);if(!n)return;
-  dmModal('<h3>Edit: '+n.name+'</h3><div class="dm-mrow"><label class="dm-mlbl">Name</label><input class="dm-minp" id="me-name" value="'+n.name+'"></div><div style="display:flex;gap:10px"><div class="dm-mrow" style="flex:1"><label class="dm-mlbl">Mortality</label><input class="dm-minp" id="me-mort" type="number" value="'+n.mortality+'"></div><div class="dm-mrow" style="flex:1"><label class="dm-mlbl">Actions/Round</label><input class="dm-minp" id="me-acts" type="number" min="1" max="4" value="'+(n.actions_max||1)+'"></div></div><div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px"><div class="dm-mlbl" style="margin-bottom:8px">Add Weapon (optional)</div><div style="display:flex;gap:8px;flex-wrap:wrap"><input class="dm-minp" id="me-wname" placeholder="Weapon name" style="flex:1"><input class="dm-minp" id="me-wdie" placeholder="1d6" style="width:70px"></div><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:8px;cursor:pointer"><input type="checkbox" id="me-cannotdisarm" style="accent-color:var(--gold)"> Cannot Be Disarmed (natural attacks, claws, teeth etc.)</label></div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn gold" onclick="submitEditNPC(\''+id+'\')" >Save</button></div>');
-  setTimeout(()=>document.getElementById('me-name')?.focus(),80);
-}
-async function submitEditNPC(id){
-  const n=npcData.find(x=>x.id===id);if(!n)return;
-  const name=document.getElementById('me-name')?.value.trim()||n.name;
-  const mort=parseInt(document.getElementById('me-mort')?.value)||n.mortality;
-  const acts=parseInt(document.getElementById('me-acts')?.value)||1;
-  const wname=document.getElementById('me-wname')?.value.trim();
-  const wdie=document.getElementById('me-wdie')?.value.trim()||'1d6';
-  const cannotDisarm=document.getElementById('me-cannotdisarm')?.checked||false;
-  closeDMModal();
-  const{error}=await db.from('npcs').update({name,mortality:mort,actions_max:acts,updated_at:new Date().toISOString()}).eq('id',id);
-  if(error){showToast('DB error: '+error.message);return;}
-  n.name=name;n.mortality=mort;n.actions_max=acts;
-  if(wname){
-    const{data}=await db.from('npc_weapons').upsert({npc_id:id,name:wname,harm_die:wdie,cannot_disarm:cannotDisarm,tags:[],is_equipped:true},{onConflict:'npc_id,name'}).select().single();
-    if(data){if(!npcWpnData[id])npcWpnData[id]=[];const existing=npcWpnData[id].findIndex(w=>w.name===wname);if(existing>=0)npcWpnData[id][existing]=data;else npcWpnData[id].push(data);}
-  }
-  renderNPCTab();showToast('NPC updated');
-}
-function deleteNPC(id){
-  const n=npcData.find(x=>x.id===id);
-  dmModal('<h3>Remove NPC</h3><div style="font-size:14px;color:var(--text);margin-bottom:16px">Remove "'+(n?.name||id)+'" from the roster?</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="confirmDeleteNPC(\''+id+'\')" >Remove</button></div>');
-}
-async function confirmDeleteNPC(id){
-  closeDMModal();
-  await db.from('npcs').update({is_active:false}).eq('id',id);
-  npcData=npcData.filter(n=>n.id!==id);renderNPCTab();showToast('NPC removed');
-}
-
-// Combat
-function openCombatSetup(){
-  document.getElementById('cmb-pc-cbs').innerHTML=PLAYERS.map(p=>`<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;padding:6px 10px;background:var(--surf2);border-radius:4px"><input type="checkbox" checked value="${p.id}" data-name="${p.name}" data-type="pc" data-acts="2" style="accent-color:var(--gold)"> ${p.emoji} ${p.name}</label>`).join('');
-  const sceneNPCs=npcData.filter(n=>n.in_scene);
-  document.getElementById('cmb-npc-cbs').innerHTML=sceneNPCs.length?sceneNPCs.map(n=>`<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;padding:6px 10px;background:var(--surf2);border-radius:4px"><input type="checkbox" checked value="${n.id}" data-name="${n.name}" data-type="npc" data-acts="${n.actions_max||1}" style="accent-color:var(--gold)"> 👹 ${n.name}</label>`).join(''):'<div style="color:var(--dim);font-size:12px;font-style:italic">No NPCs in scene.</div>';
-  document.getElementById('cmb-setup-modal').classList.add('vis');
-}
-async function startCombat(){
-  const{data:sess}=await db.from('combat_sessions').insert({status:'active',round:1}).select().single();
-  combatSess=sess;combatParts=[];
-  const cbs=document.querySelectorAll('#cmb-pc-cbs input:checked,#cmb-npc-cbs input:checked');
-  let pos=0;
-  for(const cb of cbs){
-    const{data}=await db.from('combat_participants').insert({
-      session_id:sess.id,
-      participant_id:cb.value,
-      participant_type:cb.dataset.type,
-      participant_name:cb.dataset.name,
-      actions_max:parseInt(cb.dataset.acts)||2,
-      actions_used:0,
-      position:pos++,
-      is_active:true,
-      grit_rolled:false,
-      is_dead:false
-    }).select().single();
-    if(data)combatParts.push(data);
-  }
-  await db.from('dm_settings').update({combat_active:true,combat_session_id:sess.id,updated_at:new Date().toISOString()}).eq('id',1);
-  document.getElementById('cmb-setup-modal').classList.remove('vis');
-  playDMCombatCinematic('start');showActiveCombat();switchTab('combat');showToast('Combat started!');
-}
-function showActiveCombat(){
-  document.getElementById('combat-idle').style.display='none';
-  document.getElementById('combat-active').style.display='block';
-  if(combatSess) document.getElementById('round-lbl').textContent=`Round ${combatSess.round||1}`;
-  renderCombatants();updateDMTurnBanner();
-}
-function renderCombatants(){
-  const list=document.getElementById('comb-list');if(!list)return;list.innerHTML='';
-  // Populate NPC queue selector
-  const npcQSel=document.getElementById('npc-queue-sel');
-  if(npcQSel){
-    npcQSel.innerHTML=npcData.map(n=>`<option value="${n.id}">${n.name}${n.in_scene?' ★':''}</option>`).join('')||'<option>No NPCs yet</option>';
-  }
-  combatParts.filter(c=>c.is_active).forEach(p=>{
-    const done=p.actions_used>=p.actions_max;
-    const dead=p.is_dead||false;
-    const pcConf=PLAYERS.find(pl=>pl.id===p.participant_id);
-    const nameColor=pcConf?pcConf.acc:(dead?'var(--fail)':'var(--text)');
-    let pips='';for(let i=1;i<=p.actions_max;i++){const u=i<=p.actions_used;pips+=`<div class="apip ${u?'used':'avail'}" onclick="toggleAction('${p.id}',${i})">${u?'✓':'◆'}</div>`;}
-    // NPC conditions inline
-    let condHtml='';
-    if(p.participant_type==='npc'){
-      const npc=npcData.find(n=>n.id===p.participant_id);
-      if(npc){
-        const conds=npcCondData[npc.id]||[];
-        if(conds.length) condHtml=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">${conds.map(c=>`<span class="cond-chip" title="${c.harm} harm">${c.label}</span>`).join('')}</div>`;
-      }
-    } else {
-      const pConds=condData[p.participant_id]||[];
-      if(pConds.length) condHtml=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">${pConds.map(c=>`<span class="cond-chip${c.is_permanent?' perm':c.unstable?' unstable':''}" title="${c.harm} harm">${c.label}</span>`).join('')}</div>`;
-    }
-    const row=document.createElement('div');
-    row.className=`comb-row${done?' done':''}${dead?' dead':''}`;
-    row.draggable=true;
-    row.dataset.partId=p.id;
-    row.innerHTML=`<span style="color:var(--dim);font-size:14px;cursor:grab;margin-right:2px">⋮⋮</span><div style="flex:1;min-width:0"><div class="comb-name" style="color:${nameColor}">${p.participant_name}${dead?'<span class="comb-dead-badge">DEAD</span>':''}</div>${condHtml}</div><span class="comb-type">${p.participant_type}</span><div class="apips">${pips}</div>${dead?'':`<button class="btn sm" onclick="activateTurn('${p.id}')" ${done?'disabled':''}>▶</button>`}<button class="btn sm ${dead?'':'red'}" style="font-size:9px" onclick="${dead?`reviveCombatant('${p.id}')`:`markDead('${p.id}')`}">${dead?'↩ Revive':'✕ Dead'}</button>`;
-    addCombatantDrag(row);
-    list.appendChild(row);
-  });
-}
-function addCombatantDrag(row){
-  row.addEventListener('dragstart',e=>{e.dataTransfer.setData('partId',row.dataset.partId);row.style.opacity='.4';});
-  row.addEventListener('dragend',()=>{row.style.opacity='1';document.querySelectorAll('.comb-row').forEach(r=>r.classList.remove('drag-over'));});
-  row.addEventListener('dragover',e=>{e.preventDefault();row.classList.add('drag-over');});
-  row.addEventListener('dragleave',()=>row.classList.remove('drag-over'));
-  row.addEventListener('drop',e=>{
-    e.preventDefault();row.classList.remove('drag-over');
-    const dragId=e.dataTransfer.getData('partId');
-    const dragPart=combatParts.find(p=>p.id===dragId);
-    const dropPart=combatParts.find(p=>p.id===row.dataset.partId);
-    if(!dragPart||!dropPart||dragId===row.dataset.partId)return;
-    const di=combatParts.indexOf(dragPart);const dri=combatParts.indexOf(dropPart);
-    combatParts.splice(di,1);combatParts.splice(dri,0,dragPart);
-    renderCombatants();
-  });
-}
-async function markDead(partId){
-  const p=combatParts.find(c=>c.id===partId);if(!p)return;
-  p.is_dead=true;p.actions_used=p.actions_max;
-  await db.from('combat_participants').update({is_dead:true,actions_used:p.actions_max,updated_at:new Date().toISOString()}).eq('id',partId);
-  renderCombatants();checkRoundEnd();showToast(`${p.participant_name} marked as dead`);
-}
-async function reviveCombatant(partId){
-  const p=combatParts.find(c=>c.id===partId);if(!p)return;
-  p.is_dead=false;
-  await db.from('combat_participants').update({is_dead:false,updated_at:new Date().toISOString()}).eq('id',partId);
-  renderCombatants();showToast(`${p.participant_name} revived`);
-}
-async function addNPCToQueue(){
-  if(!combatSess)return;
-  const sel=document.getElementById('npc-queue-sel');if(!sel||!sel.value)return;
-  const npc=npcData.find(n=>n.id===sel.value);if(!npc)return;
-  // character_id uses npc name prefixed so it won't match any FK row
-  // If the column has a FK to characters(id), run in Supabase:
-  // ALTER TABLE combat_queue DROP CONSTRAINT IF EXISTS combat_queue_character_id_fkey;
-  // ALTER TABLE combat_queue ALTER COLUMN character_id DROP NOT NULL;
-  const npcCharId='npc::'+npc.name;
-  const{data,error}=await db.from('combat_queue').insert({
-    session_id:combatSess.id,
-    character_id:npcCharId,
-    character_name:npc.name,
-    status:'waiting',
-    position:combatQ.length+1
-  }).select().single();
-  if(error){
-    const msg=error.message||'';
-    if(msg.includes('foreign key')||msg.includes('fkey')||msg.includes('violates')){
-      showToast('Run the FK fix SQL in Supabase — see console',4000);
-      console.error('%cNPC Queue Fix Required','color:orange;font-weight:bold');
-      console.error('Run this SQL in your Supabase SQL editor:');
-      console.error('ALTER TABLE combat_queue DROP CONSTRAINT IF EXISTS combat_queue_character_id_fkey;');
-      console.error('ALTER TABLE combat_queue ALTER COLUMN character_id DROP NOT NULL;');
-    } else {
-      showToast('Queue error: '+msg);
-    }
-    console.error(error);
-    return;
-  }
-  if(data){combatQ.push(data);renderCombatQueue();}
-  showToast(npc.name+' added to queue');
-}
-async function toggleAction(partId,idx){
-  const p=combatParts.find(c=>c.id===partId);if(!p)return;
-  p.actions_used=idx<=p.actions_used?idx-1:idx;
-  await db.from('combat_participants').update({actions_used:p.actions_used,updated_at:new Date().toISOString()}).eq('id',partId);
-  renderCombatants();checkRoundEnd();updateDMTurnBanner();
-}
-async function activateTurn(partId){
-  const p=combatParts.find(c=>c.id===partId);if(!p)return;
-  await db.from('combat_sessions').update({current_turn_id:p.participant_id,current_turn_type:p.participant_type,updated_at:new Date().toISOString()}).eq('id',combatSess.id);
-  if(p.participant_type==='npc'){const ap=document.getElementById('npc-atk-panel');if(ap)ap.style.display='block';const sel=document.getElementById('npc-atk-sel');if(sel){sel.value=p.participant_id;populateWeaponSel();}}
-  updateDMTurnBanner();showToast(`${p.participant_name}'s turn`);
-}
-// ── Call next person from the queue and set their turn ──
-async function callNextInQueue(){
-  if(!combatSess)return;
-  // Retire the currently active item (whoever just went) before calling next
-  const current=combatQ.find(q=>q.status==='active');
-  if(current){
-    await db.from('combat_queue').update({status:'done',updated_at:new Date().toISOString()}).eq('id',current.id);
-    current.status='done';
-    combatQ=combatQ.filter(q=>q.id!==current.id);
-  }
-  const next=combatQ.find(q=>q.status==='waiting');
-  if(!next){showToast('Queue is empty — players need to click "I Want to Act"');return;}
-
-  const charId=next.character_id;
-  const charName=next.character_name||charId;
-
-  // Find their participant row (covers PCs and NPCs that were in initial setup)
-  const part=combatParts.find(p=>p.participant_id===charId&&p.is_active);
-  const partType=part?.participant_type||'pc';
-
-  // Mark queue item active
-  await db.from('combat_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',next.id);
-  next.status='active';
-
-  // Set current turn on the session
-  await db.from('combat_sessions').update({
-    current_turn_id:charId,
-    current_turn_type:partType,
-    updated_at:new Date().toISOString()
-  }).eq('id',combatSess.id);
-  combatSess.current_turn_id=charId;
-  combatSess.current_turn_type=partType;
-
-  // If NPC: open the NPC action panel pre-populated with their weapons
-  if(partType==='npc'){
-    const npcPart2=combatParts.find(cp=>cp.participant_name===charName);
-    openNPCActionModal(npcPart2?.participant_id||charName,charName);
-    populateNPCAttackPanel();
-    const sel=document.getElementById('npc-atk-sel');
-    if(sel){
-      // Pre-select this NPC in the attacker dropdown
-      const opt=[...sel.options].find(o=>o.value===charId);
-      if(opt){sel.value=opt.value;populateWeaponSel();}
-    }
-  }
-
-  updateDMTurnBanner();
-  renderCombatQueue();
-  showToast(`${charName}'s turn`);
-}
-
-function populateNPCAttackPanel(){
-  const atk=document.getElementById('npc-atk-sel');const tgt=document.getElementById('npc-tgt-sel');if(!atk||!tgt)return;
-  const sceneNPCs=npcData.filter(n=>n.in_scene);
-  atk.innerHTML=sceneNPCs.map(n=>`<option value="${n.id}">${n.name}</option>`).join('');
-  atk.onchange=populateWeaponSel;if(sceneNPCs.length)populateWeaponSel();
-  tgt.innerHTML=PLAYERS.map(p=>`<option value="${p.id}" data-type="pc">${p.name}</option>`).join('')+sceneNPCs.map(n=>`<option value="${n.id}" data-type="npc">${n.name}</option>`).join('');
-}
-function populateWeaponSel(){
-  const sel=document.getElementById('npc-atk-sel');const wsel=document.getElementById('npc-wpn-sel');if(!sel||!wsel)return;
-  const wpns=npcWpnData[sel.value]||[];
-  const npcItems=npcInvData[sel.value]||[];
-  const equippedItem=npcItems.find(i=>i.is_weapon&&i.equipped)||npcItems.find(i=>i.is_weapon);
-  const equippedHarm=equippedItem?(equippedItem.tags||[]).find(t=>/\dd\d/.test(t))||'1d6':null;
-  let opts=wpns.length?wpns.map(w=>'<option value="'+w.id+'" data-harm="'+w.harm_die+'">'+w.name+' ('+w.harm_die+')</option>').join(''):'';
-  if(equippedItem&&equippedHarm) opts='<option value="eq-'+equippedItem.id+'" data-harm="'+equippedHarm+'" selected>'+equippedItem.name+' [equipped] ('+equippedHarm+')</option>'+opts;
-  wsel.innerHTML=opts||'<option data-harm="1d4">Unarmed (1d4)</option>';
-}
-function updateDMTurnBanner(){
-  const banner=document.getElementById('dm-turn-banner');
-  if(!banner||!combatSess){if(banner)banner.style.display='none';closeNPCModal();return;}
-  const tid=combatSess.current_turn_id;
-  const ttype=combatSess.current_turn_type;
-  if(!tid){banner.style.display='none';if(npcPanel)npcPanel.style.display='none';return;}
-  banner.style.display='block';
-  if(ttype==='pc'){
-    const p=PLAYERS.find(pl=>pl.id===tid);
-    banner.style.borderColor=p?p.color:'var(--gold)';
-    banner.style.background=p?p.color+'15':'transparent';
-    document.getElementById('dm-turn-banner-text').style.color=p?p.acc:'var(--gold)';
-    document.getElementById('dm-turn-banner-text').textContent=`${p?p.emoji+' ':''} ${p?p.name:tid} — AWAITING ACTION`;
-    document.getElementById('dm-turn-banner-sub').textContent='Waiting for player…';
-    closeNPCModal();
-  } else {
-    const npcPart=combatParts.find(cp=>cp.participant_id===tid);
-    const name=npcPart?.participant_name||tid;
-    banner.style.borderColor='var(--harm)';
-    banner.style.background='#ef444410';
-    document.getElementById('dm-turn-banner-text').style.color='var(--harm)';
-    document.getElementById('dm-turn-banner-text').textContent=`👹 ${name} — NPC TURN`;
-    document.getElementById('dm-turn-banner-sub').textContent='Choose an action below';
-    openNPCActionModal(tid,name);
-  }
-}
-async function npcSkipTurn(){
-  closeNPCModal();
-  const npcId=document.getElementById('npc-atk-sel')?.value;
-  if(npcId&&combatSess){
-    const part=combatParts.find(cp=>cp.participant_id===npcId&&cp.participant_type==='npc');
-    if(part)await toggleAction(part.id,part.actions_used+1);
-  }
-  showToast('NPC passed their turn');
-}
-function openNPCActionModal(npcId,name){
-  const modal=document.getElementById('npc-action-modal');if(!modal)return;
-  document.getElementById('npc-modal-name').textContent=name;
-  // Populate selects
-  populateNPCAttackPanel();
-  const atkSel=document.getElementById('npc-atk-sel');
-  if(atkSel){const opt=[...atkSel.options].find(o=>o.value===npcId);if(opt){atkSel.value=opt.value;}populateWeaponSel();}
-  switchNPCTab('attack');
-  modal.style.display='flex';
-}
-function closeNPCModal(){
-  const modal=document.getElementById('npc-action-modal');
-  if(modal)modal.style.display='none';
-}
-function switchNPCTab(tab){
-  const atkTab=document.getElementById('npc-tab-atk');
-  const othTab=document.getElementById('npc-tab-oth');
-  const atkPane=document.getElementById('npc-modal-attack');
-  const othPane=document.getElementById('npc-modal-other');
-  if(!atkTab||!othTab||!atkPane||!othPane)return;
-  const isAtk=tab==='attack';
-  atkTab.style.background=isAtk?'var(--harm)':'var(--surf2)';
-  atkTab.style.color=isAtk?'#fff':'var(--muted)';
-  othTab.style.background=isAtk?'var(--surf2)':'var(--gold2)';
-  othTab.style.color=isAtk?'var(--muted)':'var(--gold)';
-  othTab.style.borderColor=isAtk?'':' var(--gold)';
-  atkPane.style.display=isAtk?'block':'none';
-  othPane.style.display=isAtk?'none':'block';
-}
-async function executeNPCOther(){
-  const desc=document.getElementById('npc-other-desc')?.value.trim();
-  if(!desc){showToast('Describe the action first');return;}
-  const npcId=document.getElementById('npc-atk-sel')?.value;
-  const npc=npcData.find(n=>n.id===npcId);
-  const name=npc?.name||document.getElementById('npc-modal-name').textContent||'NPC';
-  if(combatSess){
-    await db.from('combat_actions').insert({
-      session_id:combatSess.id,actor_id:npcId||name,actor_type:'npc',actor_name:name,
-      action_type:'npc_other',action_label:desc,resolved:true
-    });
-    const part=combatParts.find(cp=>cp.participant_id===npcId&&cp.participant_type==='npc');
-    if(part)await toggleAction(part.id,part.actions_used+1);
-  }
-  document.getElementById('npc-other-desc').value='';
-  closeNPCModal();
-  showToast(name+': '+desc);
-}
-async function executeNPCAttack(){
-  // Triggers reaction popup on target before applying harm
-  const atkSel=document.getElementById('npc-atk-sel');const wpnSel=document.getElementById('npc-wpn-sel');const tgtSel=document.getElementById('npc-tgt-sel');
-  const npcId=atkSel.value;const npc=npcData.find(n=>n.id===npcId);if(!npc)return;
-  const harm_die=wpnSel.selectedOptions[0]?.dataset.harm||'1d6';const wpnName=wpnSel.selectedOptions[0]?.text||'weapon';
-  const cannotDisarm=wpnSel.selectedOptions[0]?.dataset.cannotdisarm==='true';
-  const tgtId=tgtSel.value;const tgtOpt=tgtSel.selectedOptions[0];const tgtType=tgtOpt?.dataset.type||'pc';const tgtName=tgtOpt?.text||tgtId;
-  // Determine range tag from weapon
-  const wpnData=npcWpnData[npcId]?.find(w=>w.id===wpnSel.value);
-  const attackRange=wpnData?.range_tag||'close';
-  // Set reaction_pending on combat session — player screen will see it
-  const reactionPayload={
-    attacker_id:npcId,attacker_name:npc.name,attacker_type:'npc',
-    target_id:tgtId,target_type:tgtType,target_name:tgtName,
-    weapon_name:wpnName,harm_die:harm_die,attack_type:attackRange,cannot_disarm:cannotDisarm
-  };
-  await db.from('combat_sessions').update({reaction_pending:reactionPayload,updated_at:new Date().toISOString()}).eq('id',combatSess.id);
-  showToast(`Reaction prompt sent to ${tgtName} — waiting…`);
-  // 8-second window for the player to choose a reaction on their screen.
-  // After that, harm is applied automatically regardless of response.
-  // If the player reacted first, reaction_pending will already be null — harm still applies
-  // (the reaction only modifies how it lands, not whether it does).
-  setTimeout(async()=>{
-    if(!combatSess)return; // Combat ended while waiting — abort
-    const harm=rollDie(harm_die);
-    if(tgtType==='pc'){
-      const{data}=await db.from('conditions').insert({
-        character_id:tgtId,label:`Hit by ${npc.name}`,harm,unstable:false,is_permanent:false
-      }).select().single();
-      if(data){
-        if(!condData[tgtId])condData[tgtId]=[];
-        condData[tgtId].push(data);
-      }
-      await logChange(tgtId,'condition_add',`${npc.name} dealt ${harm} harm (${wpnName})`,null,{id:data?.id,label:`Hit by ${npc.name}`,harm});
-      await loadChars();renderPartyGrid();
-    } else {
-      await adjustNPCHarm(tgtId,harm);
-    }
-    await db.from('combat_actions').insert({
-      session_id:combatSess.id,actor_id:npcId,actor_type:'npc',actor_name:npc.name,
-      action_type:'npc_attack',action_label:`Attacks ${tgtName} with ${wpnName}`,
-      target_id:tgtId,target_type:tgtType,target_name:tgtName,harm_dealt:harm,resolved:true
-    });
-    await db.from('combat_sessions').update({reaction_pending:null,updated_at:new Date().toISOString()}).eq('id',combatSess.id);
-    showActionCard({actor_name:npc.name,action_label:`Attacks ${tgtName} — ${wpnName}`,harm_dealt:harm});
-    const part=combatParts.find(c=>c.participant_id===npcId&&c.participant_type==='npc');
-    if(part)await toggleAction(part.id,part.actions_used+1);
-    closeNPCModal();
-    showToast(`${npc.name} → ${harm} harm to ${tgtName}`);
-  }, 8000);
-}
-async function executeNPCAttackDirect(){
-  const atkSel=document.getElementById('npc-atk-sel');const wpnSel=document.getElementById('npc-wpn-sel');const tgtSel=document.getElementById('npc-tgt-sel');
-  const npcId=atkSel.value;const npc=npcData.find(n=>n.id===npcId);if(!npc)return;
-  const harm_die=wpnSel.selectedOptions[0]?.dataset.harm||'1d6';const wpnName=wpnSel.selectedOptions[0]?.text||'weapon';
-  const tgtId=tgtSel.value;const tgtOpt=tgtSel.selectedOptions[0];const tgtType=tgtOpt?.dataset.type||'pc';const tgtName=tgtOpt?.text||tgtId;
-  const harm=rollDie(harm_die);
-  if(tgtType==='pc'){
-    const{data}=await db.from('conditions').insert({character_id:tgtId,label:`Hit by ${npc.name}`,harm,unstable:false,is_permanent:false}).select().single();
-    if(data){if(!condData[tgtId])condData[tgtId]=[];condData[tgtId].push(data);}
-    await logChange(tgtId,'condition_add',`${npc.name} dealt ${harm} harm (${wpnName})`,null,{id:data?.id,label:`Hit by ${npc.name}`,harm});
-    await loadChars();renderPartyGrid();
-  } else {await adjustNPCHarm(tgtId,harm);}
-  await db.from('combat_actions').insert({session_id:combatSess.id,actor_id:npcId,actor_type:'npc',actor_name:npc.name,action_type:'npc_attack',action_label:`Attacks ${tgtName} with ${wpnName}`,target_id:tgtId,target_type:tgtType,target_name:tgtName,harm_dealt:harm,resolved:true});
-  showActionCard({actor_name:npc.name,action_label:'Attacks '+tgtName+' — '+wpnName,harm_dealt:harm});
-  const part=combatParts.find(c=>c.participant_id===npcId&&c.participant_type==='npc');
-  if(part)await toggleAction(part.id,part.actions_used+1);
-  closeNPCModal();
-  showToast(npc.name+' → '+harm+' harm to '+tgtName);
-}
-function rollDie(s){const f=parseInt(s);if(!isNaN(f)&&!s.includes('d'))return f;const m=s.match(/(\d+)d(\d+)/i);if(!m)return 1;let t=0;for(let i=0;i<parseInt(m[1]);i++)t+=Math.ceil(Math.random()*parseInt(m[2]));return t;}
-function showActionCard(a){
-  const area=document.getElementById('action-card-area');if(!area)return;
-
-  // ── Ability action: parse rich JSON label ──
-  if(a.action_type==='ability'){
-    let ab=null;
-    try{ab=JSON.parse(a.action_label);}catch(e){}
-    if(ab){showAbilityActionCard(ab,a);return;}
-  }
-
-  // ── Standard attack / move / feat card ──
-  const oc=a.roll_outcome==='success'?'var(--success)':a.roll_outcome==='mixed'?'var(--partial)':'var(--fail)';
-  const targetId=a.target_id||null;
-  const targetType=a.target_type||'pc';
-  const targetName=a.target_name||'target';
-  const hasHarm=!!(a.harm_dealt&&a.harm_dealt>0&&targetId&&targetType==='pc');
-  const actionId=a.id||'';
-  const harmForm=hasHarm?`
-    <div class="cond-form">
-      <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--success);margin-bottom:8px">APPLY CONDITION TO ${targetName.toUpperCase()}</div>
-      <div class="cond-form-row">
-        <input type="text" id="cond-label-input" placeholder="Condition name" value="Hit by ${a.actor_name||'attack'}">
-        <input type="number" id="cond-harm-input" value="${a.harm_dealt}" min="1" max="99" title="Harm">
-        <button class="unstable-toggle" id="unstable-toggle-btn" onclick="toggleCondUnstable(this)">Stable</button>
-      </div>
-      <button class="btn green" onclick="resolveWithCondition('${targetId}','${targetName}','${actionId}')" style="width:100%">✓ Apply & Resolve</button>
-    </div>`:'<button class="btn sm green" onclick="resolveAction()" style="margin-top:8px">✓ Resolve & Continue</button>';
-
-  area.innerHTML=`<div class="action-card">
-    <div class="action-card-actor">${a.actor_name||''}</div>
-    <div style="font-size:15px;color:var(--text);margin-bottom:6px">${a.action_label||''}</div>
-    ${a.roll_highest?`<div style="font-family:'Cinzel Decorative',serif;font-size:13px;color:${oc};margin-bottom:4px">Rolled ${a.roll_highest} — ${a.roll_outcome}</div>`:''}
-    ${a.harm_dealt?`<div style="font-size:13px;color:var(--harm);margin-bottom:4px">⚔ ${a.harm_dealt} Harm dealt</div>`:''}
-    ${a.healing_dealt?`<div style="font-size:13px;color:var(--success);margin-bottom:4px">✦ ${a.healing_dealt} Healing</div>`:''}
-    ${harmForm}
-  </div>`;
-}
-
-function showAbilityActionCard(ab, rawAction){
-  const area=document.getElementById('action-card-area');if(!area)return;
-  const p=PLAYERS.find(pl=>pl.id===rawAction.actor_id)||{name:rawAction.actor_id,acc:'var(--gold)',color:'var(--gold)'};
-
-  const ocColor=ab.outcomeClass==='success'?'var(--success)':ab.outcomeClass==='partial'?'var(--partial)':'var(--fail)';
-  const bgColor=ab.outcomeClass==='success'?'#001a0a':ab.outcomeClass==='partial'?'#1a1000':'#1a0000';
-
-  // Dice display
-  let diceHtml='';
-  if(ab.dice&&ab.dice.length){
-    const isZero=ab.skill&&(Object.values(charData[rawAction.actor_id]?.skills||{}).length===0);
-    diceHtml=`<div class="acard-dice-row">`;
-    ab.dice.forEach((val,i)=>{
-      const isChosen=val===ab.highest&&ab.dice.indexOf(val)===i;
-      const isLow=val===Math.min(...ab.dice)&&ab.dice.indexOf(val)===i&&ab.dice.length>1&&ab.outcomeClass==='fail';
-      diceHtml+=`<div class="acard-die${isChosen?' chosen':isLow?' low':''}">${val}</div>`;
-    });
-    diceHtml+=`<span style="font-family:'Cinzel Decorative',serif;font-size:18px;color:${ocColor};margin-left:6px">${ab.highest}</span>`;
-    diceHtml+=`<span style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:${ocColor};margin-left:4px">${ab.outcomeClass==='success'?'FULL SUCCESS':ab.outcomeClass==='partial'?'MIXED':'FAILURE'}</span>`;
-    diceHtml+=`</div>`;
-  }
-
-  // Damage display
-  let dmgHtml='';
-  if(ab.damageDie&&ab.damageRoll){
-    dmgHtml=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 12px;background:var(--surf2);border-radius:4px;border:1px solid var(--harm)40">
-      <span style="font-size:11px;color:var(--dim)">Damage ${ab.damageDie}</span>
-      <span style="font-family:'Cinzel Decorative',serif;font-size:22px;color:var(--harm)">${ab.damageRoll}</span>
-    </div>`;
-  }
-
-  // DM action detection — look for keywords in outcome text + explicit passive_prompt
-  const outcomeText=ab.outcomeText||'';
-  const dmReqs=[];
-
-  // Passive with explicit prompt: render a dedicated card and return immediately
-  if(ab.isPassive&&ab.passive_prompt){
-    area.innerHTML=`<div class="acard" style="background:#001020;border:1px solid var(--rc)40">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <span style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;color:${p.acc};text-transform:uppercase">${p.name}</span>
-        <span style="font-size:10px;color:var(--dim)">·</span>
-        <span style="font-size:10px;color:var(--rc);font-family:'Cinzel',serif;font-weight:700;letter-spacing:2px">PASSIVE</span>
-      </div>
-      <div class="acard-name" style="color:${p.acc}">${ab.name}</div>
-      <div class="acard-meta">${ab.meta||''}</div>
-      <div class="acard-dmreq">
-        <div class="acard-dmreq-title">⚡ Passive Activated — Weaver: Act Now</div>
-        <div class="acard-dmreq-body">${ab.passive_prompt}</div>
-      </div>
-      <button class="btn sm green" onclick="resolveAction()" style="margin-top:10px;width:100%">✓ Acknowledged</button>
-    </div>`;
-    return;
-  }
-
-  if(/deal damage|damage at|roll damage/i.test(outcomeText))
-    dmReqs.push({icon:'⚔',label:'Apply Harm',text:`Apply ${ab.damageRoll||'damage'} harm to the target (use Resolve button below to set condition).`});
-  if(/\bheal\b|remove.*condition|\brecover\b/i.test(outcomeText))
-    dmReqs.push({icon:'✦',label:'Apply Healing',text:'One or more conditions should be removed or healed — check the outcome and apply to the relevant character.'});
-  if(/hold\s+\d+/i.test(outcomeText))
-    dmReqs.push({icon:'📌',label:'Hold Tokens',text:`Player holds ${(outcomeText.match(/hold\s+(\d+)/i)||[])[1]||'?'} — remind them to spend before end of scene.`});
-  if(/choose/i.test(outcomeText))
-    dmReqs.push({icon:'📋',label:'Player Must Choose',text:'The outcome requires the player to make a choice. Prompt them now.'});
-  if(/once per scene/i.test(outcomeText))
-    dmReqs.push({icon:'🔒',label:'Mark As Used',text:'This ability has a once-per-scene clause. Note that it has been used.'});
-  if(/keeper/i.test(outcomeText))
-    dmReqs.push({icon:'🎲',label:'Keeper Response Required',text:'The outcome asks the Keeper to provide information, make a choice, or describe something. See full text below.'});
-
-  const dmReqHtml=dmReqs.length?`
-    <div class="acard-dmreq">
-      <div class="acard-dmreq-title">⚠ Weaver Action Required</div>
-      <div class="acard-dmreq-body">${dmReqs.map(r=>`<div style="margin-bottom:8px"><strong>${r.icon} ${r.label}:</strong> ${r.text}</div>`).join('')}</div>
-    </div>`:'';
-
-  // Harm resolution form (if damage was dealt)
-  const hasHarmTarget=ab.damageRoll&&rawAction.target_id&&rawAction.target_type==='pc';
-  const harmForm=hasHarmTarget?`
-    <div class="cond-form" style="margin-top:10px">
-      <div style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--success);margin-bottom:8px">APPLY CONDITION TO ${(rawAction.target_name||'TARGET').toUpperCase()}</div>
-      <div class="cond-form-row">
-        <input type="text" id="cond-label-input" placeholder="e.g. Scorched" value="${ab.name} — ${ab.outcomeClass}">
-        <input type="number" id="cond-harm-input" value="${ab.damageRoll}" min="1" max="99">
-        <button class="unstable-toggle" id="unstable-toggle-btn" onclick="toggleCondUnstable(this)">Stable</button>
-      </div>
-      <button class="btn green" onclick="resolveWithCondition('${rawAction.target_id}','${rawAction.target_name||'target'}','')" style="width:100%">✓ Apply & Resolve</button>
-    </div>`:`<button class="btn sm green" onclick="resolveAction()" style="margin-top:10px">✓ Resolve & Continue</button>`;
-
-  area.innerHTML=`<div class="acard" style="background:${bgColor};border:1px solid ${ocColor}40">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <span style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;color:${p.acc};text-transform:uppercase">${p.name}</span>
-      <span style="font-size:10px;color:var(--dim)">·</span>
-      <span style="font-size:10px;color:var(--dim);font-family:'Cinzel',serif;font-weight:700;letter-spacing:2px">DIVINE ABILITY</span>
-    </div>
-    <div class="acard-name" style="color:${p.acc}">${ab.name}</div>
-    <div class="acard-meta">${ab.meta||''}</div>
-    ${ab.targetName?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:5px 10px;background:rgba(255,255,255,.06);border-radius:4px;border:1px solid rgba(255,255,255,.12)"><span style="font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;opacity:.5">TARGET</span><span style="font-size:13px;color:var(--text)">${ab.targetName}</span></div>`:''}
-    ${ab.roll?`<div style="font-size:11px;color:var(--dim);margin-bottom:10px;font-style:italic">${ab.roll}</div>`:''}
-    ${diceHtml}
-    ${dmgHtml}
-    <div class="acard-outcome ${ab.outcomeClass}">
-      <div class="acard-outcome-lbl">${ab.outcomeLabel||''}</div>
-      ${ab.outcomeText||''}
-    </div>
-    ${dmReqHtml}
-    ${harmForm}
-  </div>`;
-}
-
-function toggleCondUnstable(btn){
-  btn.classList.toggle('on');
-  btn.textContent=btn.classList.contains('on')?'⚠ Unstable':'Stable';
-}
-
-async function resolveWithCondition(targetId, targetName, actionId){
-  const label=document.getElementById('cond-label-input')?.value.trim()||'Hit';
-  const harm=parseInt(document.getElementById('cond-harm-input')?.value)||1;
-  const unstable=document.getElementById('unstable-toggle-btn')?.classList.contains('on')||false;
-
-  // Write the condition to the DB
-  const{data:cond,error}=await db.from('conditions').insert({
-    character_id:targetId,label,harm,unstable,is_permanent:false
-  }).select().single();
-  if(error){showToast('DB error: '+error.message);return;}
-
-  // Log it
-  if(!condData[targetId])condData[targetId]=[];
-  condData[targetId].push(cond);
-  await logChange(targetId,'condition_add',`Combat: "${label}" (${harm} harm${unstable?' — unstable':''})`,null,{id:cond.id,label,harm});
-
-  // Flash the party card
-  flashPartyCard(targetId,'harm');
-
-  // Resolve the action
-  document.getElementById('action-card-area').innerHTML='';
-  if(combatSess)await db.from('combat_actions').update({resolved:true}).eq('session_id',combatSess.id).eq('resolved',false);
-  await loadChars();renderPartyGrid();
-  showToast(`${label} (${harm} harm) applied to ${targetName}`);
-}
-
-function flashPartyCard(charId, type){
-  // Flash the party card for the affected character
-  const cards=document.querySelectorAll(`[data-char-id="${charId}"]`);
-  cards.forEach(card=>{
-    card.classList.remove('harm-flash','heal-flash');
-    void card.offsetWidth; // force reflow
-    card.classList.add(type==='harm'?'harm-flash':'heal-flash');
-    setTimeout(()=>card.classList.remove('harm-flash','heal-flash'),900);
-  });
-}
-
-async function resolveAction(){
-  document.getElementById('action-card-area').innerHTML='';
-  if(combatSess)await db.from('combat_actions').update({resolved:true}).eq('session_id',combatSess.id).eq('resolved',false);
-}
-function renderCombatQueue(){
-  const list=document.getElementById('cmb-queue');if(!list)return;
-  if(!combatQ.length){list.innerHTML='<div style="color:var(--dim);font-size:12px;font-style:italic">Queue empty — players click to join.</div>';return;}
-  list.innerHTML='';
-  combatQ.forEach((q,i)=>{
-    const p=PLAYERS.find(pl=>pl.id===q.character_id);
-    const acc=p?p.acc:'var(--gold)';
-    const item=document.createElement('div');
-    item.className=`q-item${q.status==='active'?' active-turn':''}`;
-    item.draggable=true;item.dataset.qId=q.id;
-    item.innerHTML=`<span style="color:var(--dim);font-size:14px;cursor:grab">⋮⋮</span><span style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:${acc}">#${i+1} ${q.character_name||p?.name||q.character_id}</span><span style="font-size:10px;color:var(--dim);margin-left:auto">${q.status}</span><button style="padding:2px 6px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--dim);font-size:10px;cursor:pointer" onclick="removeFromQueue('${q.id}')">✕</button>`;
-    item.addEventListener('dragstart',e=>{e.dataTransfer.setData('qId',q.id);item.style.opacity='.4';});
-    item.addEventListener('dragend',()=>{item.style.opacity='1';document.querySelectorAll('.q-item').forEach(r=>r.classList.remove('drag-over'));});
-    item.addEventListener('dragover',e=>{e.preventDefault();item.classList.add('drag-over');});
-    item.addEventListener('dragleave',()=>item.classList.remove('drag-over'));
-    item.addEventListener('drop',e=>{
-      e.preventDefault();item.classList.remove('drag-over');
-      const dragId=e.dataTransfer.getData('qId');
-      if(dragId===q.id)return;
-      const di=combatQ.findIndex(x=>x.id===dragId);
-      const dri=combatQ.findIndex(x=>x.id===q.id);
-      if(di<0||dri<0)return;
-      const moved=combatQ.splice(di,1)[0];combatQ.splice(dri,0,moved);
-      renderCombatQueue();
-    });
-    list.appendChild(item);
-  });
-}
-async function removeFromQueue(qId){
-  await db.from('combat_queue').update({status:'done',updated_at:new Date().toISOString()}).eq('id',qId);
-  combatQ=combatQ.filter(q=>q.id!==qId);renderCombatQueue();
-}
-function checkRoundEnd(){
-  if(combatParts.filter(c=>c.is_active).every(c=>c.actions_used>=c.actions_max)){
-    document.getElementById('cmb-status').textContent='⟳ All actions used — ready for next round';
-    showToast('All actions used — Next Round when ready');
-  }
-}
-async function skipRound(){
-  if(!combatSess)return;
-  const nr=(combatSess.round||1)+1;
-  combatSess.round=nr;
-  // Reset actions and clear grit_rolled so round-1 initiative gate doesn't persist
-  for(const p of combatParts){
-    p.actions_used=0;
-    await db.from('combat_participants').update({
-      actions_used:0,
-      grit_rolled:false,
-      updated_at:new Date().toISOString()
-    }).eq('id',p.id);
-  }
-  await db.from('combat_sessions').update({
-    round:nr,
-    current_turn_id:null,
-    reaction_pending:null,
-    updated_at:new Date().toISOString()
-  }).eq('id',combatSess.id);
-  await db.from('combat_queue').update({status:'done'}).eq('session_id',combatSess.id);
-  combatQ=[];
-  document.getElementById('round-lbl').textContent=`Round ${nr}`;
-  document.getElementById('cmb-status').textContent='Combat in progress';
-  document.getElementById('action-card-area').innerHTML='';
-  renderCombatants();renderCombatQueue();updateDMTurnBanner();
-  showToast(`Round ${nr} begins`);
-}
-function promptEndCombat(){
-  dmModal('<h3>End Combat?</h3><div style="font-size:13px;color:var(--muted);margin-bottom:16px">This will dismiss the combat overlay for all players.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="closeDMModal();endCombat()">End Combat</button></div>');
-}
-async function endCombat(){
-  if(combatSess){
-    await db.from('combat_sessions').update({
-      status:'ended',
-      current_turn_id:null,
-      reaction_pending:null,
-      updated_at:new Date().toISOString()
-    }).eq('id',combatSess.id);
-    await db.from('dm_settings').update({
-      combat_active:false,
-      combat_session_id:null,
-      updated_at:new Date().toISOString()
-    }).eq('id',1);
-    // Clear Stun conditions from all PC participants — Stun only lasts through end of combat
-    const pcIds=combatParts.filter(p=>p.participant_type==='pc').map(p=>p.participant_id);
-    if(pcIds.length){
-      const{data:stunConds}=await db.from('conditions')
-        .select('id,character_id')
-        .in('character_id',pcIds)
-        .ilike('label','%stun%');
-      if(stunConds&&stunConds.length){
-        for(const c of stunConds){
-          await db.from('conditions').delete().eq('id',c.id);
-        }
-        showToast(`Combat ended — ${stunConds.length} Stun condition${stunConds.length>1?'s':''} cleared`);
-      }
-    }
-  }
-  combatSess=null;combatParts=[];combatQ=[];
-  playDMCombatCinematic('end');
-  document.getElementById('combat-idle').style.display='block';
-  document.getElementById('combat-active').style.display='none';
-  showToast('Combat ended');
-}
-
-// Rolls
-function renderPendingRolls(){
-  const list=document.getElementById('pending-rolls');if(!list)return;
-  const badge=document.getElementById('rolls-badge');
-  if(badge){if(pendingRolls.length){badge.textContent=pendingRolls.length;badge.style.display='inline';}else{badge.style.display='none';}}
-  if(!pendingRolls.length){list.innerHTML='<div style="color:var(--dim);font-size:13px;font-style:italic;text-align:center;padding:12px">No pending rolls.</div>';return;}
-  list.innerHTML='';
-  pendingRolls.forEach(r=>{
-    const p=PLAYERS.find(pl=>pl.id===r.character_id)||{name:r.character_id,acc:'var(--gold)'};
-    const conds=condData[r.character_id]||[];const mod=r.modifier||0;
-    const card=document.createElement('div');
-    card.style.cssText='padding:14px;background:linear-gradient(135deg,#1a1a00,#0a0a00);border:1px solid var(--gold);border-radius:6px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;animation:rollBounce .6s ease 0s 2 both';
-    card.innerHTML=`<div style="flex:1;min-width:120px"><div style="font-family:'Cinzel Decorative',serif;font-size:14px;color:${p.acc}">${p.name}</div><div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Rolling: ${r.skill}</div>${conds.length?`<div style="font-size:11px;color:var(--harm);margin-top:2px">Conditions: ${conds.map(c=>c.label).join(', ')}</div>`:''}</div><div style="font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold)">${r.base_dice}d6</div><div style="display:flex;align-items:center;gap:5px"><button class="btn sm" onclick="adjMod('${r.id}',-1)">−</button><span style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;min-width:28px;text-align:center;color:var(--gold)">${mod>=0?'+':''}${mod}</span><button class="btn sm" onclick="adjMod('${r.id}',1)">+</button></div><button class="btn green sm" onclick="approveRoll('${r.id}')">✓ Roll</button><button class="btn red sm" onclick="cancelRoll('${r.id}')">✕</button>`;
-    list.appendChild(card);
-  });
-}
-async function adjMod(id,d){const r=pendingRolls.find(x=>x.id===id);if(!r)return;r.modifier=(r.modifier||0)+d;await db.from('pending_rolls').update({modifier:r.modifier}).eq('id',id);renderPendingRolls();}
-async function approveRoll(id){const r=pendingRolls.find(x=>x.id===id);if(!r)return;await db.from('pending_rolls').update({status:'confirmed',modifier:r.modifier||0,updated_at:new Date().toISOString()}).eq('id',id);pendingRolls=pendingRolls.filter(x=>x.id!==id);renderPendingRolls();showToast(`${r.skill} approved`);}
-async function cancelRoll(id){await db.from('pending_rolls').update({status:'cancelled',updated_at:new Date().toISOString()}).eq('id',id);pendingRolls=pendingRolls.filter(x=>x.id!==id);renderPendingRolls();}
-function renderRollLog(){
-  const list=document.getElementById('roll-log');if(!list)return;
-  if(!rollLogData.length){list.innerHTML='<div style="color:var(--dim);font-size:13px;font-style:italic;text-align:center;padding:8px">No rolls yet.</div>';return;}
-  list.innerHTML='';
-  rollLogData.slice(0,15).forEach(r=>{
-    const p=PLAYERS.find(pl=>pl.id===r.character_id)||{name:r.character_id,acc:'var(--muted)'};
-    const oc=r.outcome==='success'?'var(--success)':r.outcome==='mixed'?'var(--partial)':'var(--fail)';
-    const time=new Date(r.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    const item=document.createElement('div');item.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surf);border:1px solid var(--border);border-radius:4px;margin-bottom:6px';
-    item.innerHTML=`<span style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;min-width:55px;color:${p.acc}">${p.name}</span><span style="font-size:12px;color:var(--muted);min-width:80px">${r.skill}</span><span style="font-size:12px;color:var(--dim)">[${(r.results||[]).join(', ')}]→${r.highest}</span><span style="font-family:'Cinzel',serif;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:auto;color:${oc}">${r.outcome==='success'?'Full':r.outcome==='mixed'?'Mixed':'Fail'}</span><span style="font-size:10px;color:var(--dim)">${time}</span>`;
-    list.appendChild(item);
-  });
-}
-
-// Equipment
-function buildTagPicker(){
-  const p=document.getElementById('tag-picker');if(!p)return;p.innerHTML='';
-  TAG_DEFS.forEach(grp=>{
-    const l=document.createElement('div');l.className='tag-grp-lbl';l.textContent=grp.grp;p.appendChild(l);
-    grp.tags.forEach(t=>{
-      const cb=document.createElement('input');cb.type='checkbox';cb.className='tcb';cb.id=`t-${t.id}`;cb.value=t.lbl;cb.onchange=updateEqPreview;
-      const lb=document.createElement('label');lb.className='tlbl';lb.htmlFor=`t-${t.id}`;lb.textContent=t.lbl;if(t.tip)lb.dataset.tip=t.tip;
-      p.appendChild(cb);p.appendChild(lb);
-    });
-  });
-}
-function toggleEqFields(){
-  document.getElementById('wpn-fields').style.display=document.getElementById('eq-weapon').checked?'flex':'none';
-  document.getElementById('armor-fields').style.display=document.getElementById('eq-armor').checked?'flex':'none';
-  document.getElementById('heal-fields').style.display=document.getElementById('eq-ishealing').checked?'flex':'none';
-}
-function getTagsSel(){
-  const tags=[];document.querySelectorAll('.tcb:checked').forEach(cb=>tags.push(cb.value));
-  if(document.getElementById('eq-weapon')?.checked){const d=document.getElementById('eq-dmg')?.value;if(d)tags.push(d+' Harm');}
-  return tags;
-}
-function updateEqPreview(){
-  const name=document.getElementById('eq-name')?.value.trim();const tags=getTagsSel();const heal=document.getElementById('eq-ishealing')?.checked?document.getElementById('eq-healval')?.value:'';
-  const prev=document.getElementById('eq-preview');if(!prev)return;
-  if(name||tags.length||heal){prev.style.display='block';document.getElementById('eq-prev-name').textContent=name||'(unnamed)';document.getElementById('eq-prev-tags').textContent=(tags.length?'· '+tags.join(' · '):'')+(heal?' · Heals '+heal:'');}
-  else prev.style.display='none';
-}
-async function sendEquipment(){
-  const name=document.getElementById('eq-name').value.trim();if(!name){showToast('Enter item name');return;}
-  const target=document.getElementById('eq-target').value;
-  const isNPCSend=document.getElementById('eq-target').selectedOptions[0]?.dataset.type==='npc';
-  const tags=getTagsSel();const notes=document.getElementById('eq-notes').value.trim();
-  const isW=document.getElementById('eq-weapon').checked;const isA=document.getElementById('eq-armor').checked;const isH=document.getElementById('eq-ishealing').checked;
-  const dur=isA?parseInt(document.getElementById('eq-dur').value)||3:0;const cov=isA?document.getElementById('eq-cov').value.trim():'';
-  const hv=isH?document.getElementById('eq-healval').value.trim():'';const hu=isH?parseInt(document.getElementById('eq-healuses').value)||1:0;
-  const{error}=await db.from('equipment').insert({owner_id:target,owner_type:isNPCSend?'npc':'character',name,tags,notes,is_weapon:isW,is_armor:isA,durability_current:dur,durability_max:dur,coverage:cov,healing_value:hv||null,uses_current:hu,uses_max:hu,sent_by:'dm'});
-  if(error){showToast('Error sending item');console.error(error);return;}
-  const recip=isNPCSend?(npcData.find(n=>n.id===target)?.name||target):(PLAYERS.find(p=>p.id===target)?.name||target);
-  showToast(name+' sent to '+recip);
-  document.getElementById('eq-name').value='';document.getElementById('eq-notes').value='';
-  ['eq-weapon','eq-armor','eq-ishealing'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
-  document.querySelectorAll('.tcb').forEach(cb=>cb.checked=false);
-  toggleEqFields();updateEqPreview();document.getElementById('eq-preview').style.display='none';
-  await loadInv();renderInv();
-}
-function removeItem(itemId,pName){
-  dmModal('<h3>Remove Item</h3><div style="font-size:14px;color:var(--text);margin-bottom:16px">Remove this item from '+pName+'\'s inventory?</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="confirmRemoveItem(\''+itemId+'\')" >Remove</button></div>');
-}
-async function confirmRemoveItem(itemId){
-  closeDMModal();
-  const{error}=await db.from('equipment').delete().eq('id',itemId);
-  if(error){showToast('DB error: '+error.message);return;}
-  await loadInv();renderInv();showToast('Item removed');
-}
-function renderInv(){
-  const container=document.getElementById('all-inv');if(!container)return;container.innerHTML='';
-  function makeSection(items,label,ownerType,ownerId){
-    const sec=document.createElement('div');sec.style.marginBottom='20px';
-    sec.innerHTML='<div class="sec-title">'+label+'</div>';
-    if(!items.length){sec.innerHTML+='<div style="color:var(--dim);font-size:12px;font-style:italic;padding:8px">No items.</div>';return sec;}
-    const tbl=document.createElement('table');tbl.className='inv-tbl';
-    tbl.innerHTML='<thead><tr><th>Item</th><th>Tags</th><th>Notes</th><th>Uses</th><th>Transfer To</th><th></th></tr></thead>';
-    const tbody=document.createElement('tbody');
-    items.forEach(item=>{
-      const tr=document.createElement('tr');
-      const pcOpts=PLAYERS.filter(p=>!(ownerType==='character'&&p.id===ownerId)).map(p=>'<option value="'+p.id+'" data-type="character">'+p.name+'</option>').join('');
-      const allTransferNPCs=npcData.filter(n=>!(ownerType==='npc'&&n.id===ownerId));
-      const npcOpts=allTransferNPCs.length?('<optgroup label="NPCs">'+allTransferNPCs.map(n=>'<option value="'+n.id+'" data-type="npc">'+n.name+(n.in_scene?' ★':'')+'</option>').join('')+'</optgroup>'):'';
-      const wpnBadge=item.is_weapon?'<span style="font-size:9px;background:#f8717120;color:#f87171;padding:1px 5px;border-radius:8px;margin-left:4px">WPN</span>':'';
-      const armorNote=item.is_armor?' <span style="font-size:10px;color:var(--dim)">('+item.durability_current+'/'+item.durability_max+')</span>':'';
-      tr.innerHTML='<td style="font-weight:600">'+item.name+wpnBadge+armorNote+'</td>'
-        +'<td style="font-size:11px;color:var(--muted)">'+(item.tags||[]).join(', ')+'</td>'
-        +'<td style="font-size:12px;color:var(--dim)">'+(item.notes||'')+(item.healing_value?'<span style="color:var(--success)"> Heals '+item.healing_value+'</span>':'')+'</td>'
-        +'<td style="font-size:12px;color:var(--muted)">'+(item.uses_max>0?item.uses_current+'/'+item.uses_max:'-')+'</td>'
-        +'<td><select class="inp sm" id="xfer-'+item.id+'">'+pcOpts+npcOpts+'</select></td>'
-        +'<td style="display:flex;gap:4px;align-items:center">'
-        +'<button class="btn sm" onclick="transferItemInv(\''+item.id+'\')">Transfer</button>'
-        +' <button class="btn sm red" onclick="removeItem(\''+item.id+'\',\''+label.replace(/<[^>]+>/g,'')+'\')">✕</button>'
-        +'</td>';
-      tbody.appendChild(tr);
-    });
-    tbl.appendChild(tbody);sec.appendChild(tbl);return sec;
-  }
-  PLAYERS.forEach(p=>{
-    container.appendChild(makeSection(invData[p.id]||[],'<span style="color:'+p.acc+'">'+p.emoji+' '+p.name+'</span>','character',p.id));
-  });
-  const scNPCs=npcData.filter(n=>n.in_scene);
-  if(scNPCs.length){
-    const hdr=document.createElement('div');
-    hdr.innerHTML='<div class="sec-title" style="margin-top:8px;color:var(--gold)">&#9876; NPCs in Scene</div>';
-    container.appendChild(hdr);
-    scNPCs.forEach(npc=>{
-      container.appendChild(makeSection(npcInvData[npc.id]||[],'&#128121; '+npc.name,'npc',npc.id));
-    });
-  }
-  updateEqTarget();
-}
-
-function updateEqTarget(){
-  const sel=document.getElementById('eq-target');if(!sel)return;
-  const pcOpts=PLAYERS.map(p=>'<option value="'+p.id+'" data-type="character">'+p.name+'</option>').join('');
-  const npcOpts=npcData.length?('<optgroup label="NPCs">'+npcData.map(n=>'<option value="'+n.id+'" data-type="npc">'+n.name+(n.in_scene?' ★':'')+'</option>').join('')+'</optgroup>'):'';
-  sel.innerHTML=pcOpts+npcOpts;
-}
-
-async function transferItemInv(itemId){
-  const sel=document.getElementById('xfer-'+itemId);if(!sel||!sel.value)return;
-  const targetId=sel.value;
-  const targetType=sel.selectedOptions[0]?.dataset.type||'character';
-  const{error}=await db.from('equipment').update({owner_id:targetId,owner_type:targetType,updated_at:new Date().toISOString()}).eq('id',itemId);
-  if(error){showToast('Transfer error: '+error.message);return;}
-  const targetName=targetType==='npc'?(npcData.find(n=>n.id===targetId)?.name||targetId):(PLAYERS.find(p=>p.id===targetId)?.name||targetId);
-  showToast('Transferred to '+targetName);
-  await loadInv();renderInv();
-}
-
-// Rest
-function promptShortRest(){
-  dmModal('<h3>☝ Short Rest</h3><div style="font-size:13px;color:var(--muted);margin-bottom:16px">Refill Favor for all players. Conditions unchanged.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn gold" onclick="closeDMModal();doShortRest()">Begin Short Rest</button></div>');
-}
-function promptLongRest(){
-  dmModal('<h3>☀ Long Rest</h3><div style="font-size:13px;color:var(--muted);margin-bottom:16px">Refill Favor and clear all non-permanent conditions.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn gold" onclick="closeDMModal();doLongRest()">Begin Long Rest</button></div>');
-}
-async function doShortRest(){
-  // called via modal
-  for(const p of PLAYERS){const m=getMort(p.id)||15;await db.from('characters').update({favor_current:m,updated_at:new Date().toISOString()}).eq('id',p.id);await logChange(p.id,'rest_short','Short Rest — Favor refilled',{favor:charData[p.id]?.favor_current||0},{favor:m});if(charData[p.id])charData[p.id].favor_current=m;}
-  await db.from('rest_events').insert({rest_type:'short',status:'active'});
-  showRestOv('short');renderPartyGrid();showToast('Short Rest — Favor refilled');
-}
-async function doLongRest(){
-  // called via modal
-  for(const p of PLAYERS){
-    const m=getMort(p.id)||15;await db.from('characters').update({favor_current:m,updated_at:new Date().toISOString()}).eq('id',p.id);if(charData[p.id])charData[p.id].favor_current=m;
-    const toRm=(condData[p.id]||[]).filter(c=>!c.is_permanent);
-    for(const c of toRm){await db.from('conditions').delete().eq('id',c.id);await logChange(p.id,'condition_remove',`Long Rest — "${c.label}" cleared`,{id:c.id,label:c.label,harm:c.harm},null);}
-    condData[p.id]=(condData[p.id]||[]).filter(c=>c.is_permanent);
-    await logChange(p.id,'rest_long','Long Rest complete',null,null);
-  }
-  await db.from('rest_events').insert({rest_type:'long',status:'active'});
-  showRestOv('long');renderPartyGrid();showToast('Long Rest complete');
-}
-function showRestOv(type){
-  document.getElementById('rest-icon').textContent=type==='short'?'☽':'☀';
-  document.getElementById('rest-title').textContent=type==='short'?'Short Rest':'Long Rest';
-  document.getElementById('rest-sub').textContent=type==='short'?'All players restore their Favor.':'Favor restored. All non-permanent conditions cleared.';
-  document.getElementById('rest-ov').classList.add('vis');
-}
-
-// Jury
-async function openJury(){
-  const{data}=await db.from('jury_sessions').insert({status:'open',opened_by:'dm'}).select().single();
-  if(!data)return;jurySess=data;juryQ=[];juryVotes={};dmVotes={};
-  document.getElementById('jury-start-btn').style.display='none';document.getElementById('jury-close-btn').style.display='inline-flex';document.getElementById('jury-status').textContent='Session open';
-  renderJuryQueue();showToast('Jury session opened');
-}
-async function closeJury(){
-  if(!jurySess)return;await db.from('jury_sessions').update({status:'complete',updated_at:new Date().toISOString()}).eq('id',jurySess.id);
-  jurySess=null;document.getElementById('jury-start-btn').style.display='inline-flex';document.getElementById('jury-close-btn').style.display='none';document.getElementById('jury-status').textContent='Closed.';document.getElementById('dm-vote-panel').style.display='none';juryQ=[];renderJuryQueue();showToast('Jury closed');
-}
-async function activateJuryItem(id){
-  if(!jurySess)return;
-  for(const q of juryQ){if(q.status==='active'&&q.id!==id){await db.from('jury_queue').update({status:'queued',updated_at:new Date().toISOString()}).eq('id',q.id);q.status='queued';}}
-  await db.from('jury_queue').update({status:'active',updated_at:new Date().toISOString()}).eq('id',id);await db.from('jury_sessions').update({status:'voting',updated_at:new Date().toISOString()}).eq('id',jurySess.id);
-  const q=juryQ.find(x=>x.id===id);if(q)q.status='active';renderJuryQueue();updateDMVotePanel();
-}
-function updateDMVotePanel(){
-  const active=juryQ.find(q=>q.status==='active');const panel=document.getElementById('dm-vote-panel');if(!panel)return;
-  if(!active){panel.style.display='none';return;}
-  panel.style.display='block';document.getElementById('dm-active-text').textContent=`${active.character_id} · ${active.item_type}: "${active.item_text}"`;
-  const mv=dmVotes[active.id];document.getElementById('dm-vote-yes').disabled=mv!==undefined;document.getElementById('dm-vote-no').disabled=mv!==undefined;
-  const votes=juryVotes[active.id]||[];document.getElementById('dm-tally').textContent=`${votes.filter(v=>v.vote).length}Y / ${votes.filter(v=>!v.vote).length}N · ${votes.length}/4`;
-}
-async function dmVote(v){
-  const active=juryQ.find(q=>q.status==='active');if(!active)return;if(dmVotes[active.id]!==undefined){showToast('Already voted');return;}
-  const{data}=await db.from('jury_votes').insert({queue_item_id:active.id,voter_id:'dm',vote:v}).select().single();if(!data)return;
-  dmVotes[active.id]=v;if(!juryVotes[active.id])juryVotes[active.id]=[];juryVotes[active.id].push(data);
-  document.getElementById('dm-vote-yes').disabled=true;document.getElementById('dm-vote-no').disabled=true;updateDMVotePanel();
-  if((juryVotes[active.id]||[]).length>=4)await resolveJuryItem(active.id);
-}
-async function resolveJuryItem(id){
-  const q=juryQ.find(x=>x.id===id);if(!q)return;const votes=juryVotes[id]||[];const approved=votes.filter(v=>v.vote).length>=2;
-  await db.from('jury_queue').update({status:approved?'approved':'rejected',updated_at:new Date().toISOString()}).eq('id',id);q.status=approved?'approved':'rejected';
-  if(approved){const{data}=await db.from('advancement').select('*').eq('character_id',q.character_id).single();if(data){const xp=Math.min(4,(data.xp_current||0)+1);await db.from('advancement').update({xp_current:xp,updated_at:new Date().toISOString()}).eq('character_id',q.character_id);await logChange(q.character_id,'xp_change','XP +1 (Jury approved)',{xp:data.xp_current},{xp});} showToast(`✓ XP awarded to ${q.character_id}`);}
-  else showToast(`✕ Rejected for ${q.character_id}`);
-  document.getElementById('dm-vote-panel').style.display='none';renderJuryQueue();
-}
-function renderJuryQueue(){
-  const c=document.getElementById('jury-queue-cont');if(!c)return;
-  if(!juryQ.length){c.innerHTML='<div style="color:var(--dim);font-size:13px;font-style:italic">Open a session, then players add their traits and drives.</div>';return;}
-  c.innerHTML='';juryQ.forEach(item=>{
-    const votes=juryVotes[item.id]||[];const yc=votes.filter(v=>v.vote).length;const nc=votes.filter(v=>!v.vote).length;
-    const pConf=PLAYERS.find(p=>p.id===item.character_id);
-    const card=document.createElement('div');card.className=`jqcard${item.status==='active'?' active':''}`;
-    let ab='';if(item.status==='queued')ab=`<button class="btn sm gold" onclick="activateJuryItem('${item.id}')">▶ Discuss</button>`;else if(item.status==='active')ab=`<button class="btn sm" onclick="resolveJuryItem('${item.id}')">✓ Resolve (${yc}Y/${nc}N)</button>`;
-    card.innerHTML=`<span class="jqcard-player" style="color:${pConf?.acc||'var(--text)'}">${item.character_id}</span><span class="jqcard-type">${item.item_type}</span><span class="jqcard-text">${item.item_text||''}</span>${votes.length?`<span style="font-family:'Cinzel Decorative',serif;font-size:14px;color:var(--gold);min-width:36px;text-align:center">${yc}/${votes.length}</span>`:''}<span class="jqcard-status ${item.status}">${item.status}</span>${ab}`;
-    c.appendChild(card);
-  });
-}
-
-// Change Log
-async function logChange(charId,type,desc,oldVal,newVal){
-  await db.from('change_log').insert({character_id:charId,change_type:type,description:desc,old_value:oldVal?JSON.stringify(oldVal):null,new_value:newVal?JSON.stringify(newVal):null});
-}
-function renderLog(){
-  const list=document.getElementById('log-list');if(!list)return;
-  const filterEl=document.getElementById('log-filter');
-  const filter=filterEl?filterEl.value:'';
-  const filtered=filter?logData.filter(e=>e.character_id===filter):logData;
-  if(!filtered.length){list.innerHTML=`<div style="color:var(--dim);font-style:italic;text-align:center;padding:12px">${filter?'No entries for '+filter+'.':'No changes yet.'}</div>`;return;}
-  list.innerHTML='';
-  filtered.forEach(e=>{
-    const p=PLAYERS.find(pl=>pl.id===e.character_id);const time=new Date(e.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    const item=document.createElement('div');item.className=`log-item${e.undone?' undone':''}`;
-    item.innerHTML=`<span class="log-char" style="color:${p?.acc||'var(--muted)'}">${e.character_id}</span><span class="log-desc">${e.description}</span><span class="log-time">${time}</span>${!e.undone?`<button class="btn sm red" onclick="undoChange('${e.id}','${e.character_id}','${e.change_type}',${e.old_value?`\`${e.old_value.replace(/\`/g,"'")}\``:'null'})">Undo</button>`:''}`;
-    list.appendChild(item);
-  });
-}
-function undoChangePrompt(logId,charId,type,desc){
-  dmModal('<h3>Undo Change</h3><div style="font-size:13px;color:var(--muted);margin-bottom:8px">'+desc+'</div><div style="font-size:12px;color:var(--dim);margin-bottom:16px">This will revert the change and notify the player.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn red" onclick="closeDMModal();undoChange(\''+logId+'\',\''+charId+'\',\''+type+'\',null)">Undo</button></div>');
-}
-async function undoChange(logId,charId,type,oldValStr){
-  // called via modal
-  let old=null;try{old=oldValStr&&oldValStr!=='null'?JSON.parse(oldValStr):null;}catch(e){}
-  if(type==='momentum_wisdom'&&old?.wisdom!==undefined)await db.from('characters').update({wisdom:old.wisdom,updated_at:new Date().toISOString()}).eq('id',charId);
-  else if(type==='momentum_grit'&&old?.grit!==undefined)await db.from('characters').update({grit:old.grit,updated_at:new Date().toISOString()}).eq('id',charId);
-  else if(type==='momentum_bond'&&old?.bond!==undefined)await db.from('characters').update({bond:old.bond,updated_at:new Date().toISOString()}).eq('id',charId);
-  else if(type==='xp_change'&&old?.xp!==undefined)await db.from('advancement').update({xp_current:old.xp,updated_at:new Date().toISOString()}).eq('character_id',charId);
-  else if(type==='condition_add'&&old?.id)await db.from('conditions').delete().eq('id',old.id);
-  else if(type==='favor_change'&&old?.favor!==undefined)await db.from('characters').update({favor_current:old.favor,updated_at:new Date().toISOString()}).eq('id',charId);
-  await db.from('change_log').update({undone:true,undone_at:new Date().toISOString()}).eq('id',logId);
-  // Notify player screen via a special pending_undo flag in dm_settings or rest_events
-  await db.from('rest_events').insert({rest_type:'short',initiated_by:`undo_${charId}_${type}`,status:'pending'});
-  await loadChars();renderPartyGrid();await loadLog();showToast(`Undone — ${charId} notified`);
-}
-
-// Advanced
-async function forceAdvance(){
-  const charId=document.getElementById('adv-player').value;const pts=parseInt(document.getElementById('adv-pts').value)||1;
-  // no confirm needed
-  const curr=charData[charId]?.pending_advances||0;
-  await db.from('characters').update({pending_advances:curr+pts,updated_at:new Date().toISOString()}).eq('id',charId);
-  if(charData[charId])charData[charId].pending_advances=curr+pts;
-  await logChange(charId,'xp_change',`Force advancement: ${pts} point${pts>1?'s':''} granted`,{pending:curr},{pending:curr+pts});
-  showToast(`${pts} advancement point${pts>1?'s':''} granted to ${charId}`);
-}
-async function addPermCond(){
-  const charId=document.getElementById('pc-player').value;const label=document.getElementById('pc-label').value.trim();const harm=parseInt(document.getElementById('pc-harm').value)||2;
-  if(!label){showToast('Enter condition name');return;}
-  const{data}=await db.from('conditions').insert({character_id:charId,label,harm,unstable:false,is_permanent:true}).select().single();
-  if(data){if(!condData[charId])condData[charId]=[];condData[charId].push(data);await logChange(charId,'condition_add',`Added permanent "${label}" (${harm})`,null,{id:data.id,label,harm,is_permanent:true});renderPartyGrid();document.getElementById('pc-label').value='';showToast(`Permanent condition added to ${charId}`);}
-}
-
-// ── MARKUP MODE ──
-let markupMode = false;
-
-async function toggleMarkupMode(){
-  markupMode = !markupMode;
-  await db.from('dm_settings').update({markup_mode: markupMode, updated_at: new Date().toISOString()}).eq('id',1);
-  updateMarkupBtn();
-  showToast(markupMode ? '📝 Markup Mode ON — players can freely edit' : '🔒 Markup Mode OFF');
-}
-function updateMarkupBtn(){
-  const btn = document.getElementById('markup-toggle-btn');
-  if(!btn) return;
-  btn.textContent = markupMode ? '⬤ Markup Mode: ON' : '⬤ Markup Mode: Off';
-  btn.className = 'markup-toggle-btn' + (markupMode ? ' active' : '');
-  const badge = document.getElementById('markup-hdr-badge');
-  if(badge) badge.style.display = markupMode ? 'inline' : 'none';
-}
-
-// ── WIPE CHARACTER SHEET ──
-function promptWipeCharacter(){
-  const sel = document.getElementById('wipe-player');
-  const id = sel?.value;
-  const p = PLAYERS.find(pl => pl.id === id);
-  if(!p) return;
-  dmModal(`<h3 style="color:var(--fail)">⚠ Wipe ${p.name}'s Sheet?</h3>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">
-      This will permanently delete all of ${p.name}'s:<br>
-      <span style="color:var(--text)">Skills · Conditions · Inventory · Feats · Divine Powers · Traits · Drives · XP</span><br><br>
-      Stats (Favor, Grit, Wisdom, Bond) will be reset to 0.<br><br>
-      <strong style="color:var(--fail)">This cannot be undone.</strong>
-    </div>
-    <div class="dm-mbtns">
-      <button class="btn" onclick="closeDMModal()">Cancel</button>
-      <button class="btn red" onclick="closeDMModal();confirmWipe1('${id}','${p.name}')">Continue →</button>
-    </div>`);
-}
-function confirmWipe1(id, name){
-  dmModal(`<h3 style="color:var(--fail)">Final Confirmation</h3>
-    <div style="font-size:14px;color:var(--text);margin-bottom:16px">
-      Are you absolutely sure you want to wipe <strong>${name}</strong>'s entire sheet?
-    </div>
-    <div class="dm-mbtns">
-      <button class="btn" onclick="closeDMModal()">No — Cancel</button>
-      <button class="btn red" onclick="closeDMModal();executeWipe('${id}','${name}')">Yes — Wipe Everything</button>
-    </div>`);
-}
-async function executeWipe(id, name){
-  showToast(`Wiping ${name}'s sheet…`);
-  try {
-    // Delete all character-linked table rows
-    await db.from('conditions').delete().eq('character_id', id);
-    await db.from('equipment').delete().eq('owner_id', id).eq('owner_type','character');
-    await db.from('character_skills').delete().eq('character_id', id);
-    await db.from('unlocked_powers').delete().eq('character_id', id);
-    await db.from('unlocked_feats').delete().eq('character_id', id);
-    await db.from('traits_drives').delete().eq('character_id', id);
-    await db.from('pending_rolls').delete().eq('character_id', id);
-    await db.from('hero_advancements').delete().eq('character_id', id);
-    await db.from('advancement').update({xp_current:0, total_advances:0, pending_advances:0, updated_at:new Date().toISOString()}).eq('character_id', id);
-    // Reset character stats including hero ability pool
-    await db.from('characters').update({
-      favor_current:0, wisdom:0, grit:0, bond:0, hero_adv_pool:0,
-      updated_at: new Date().toISOString()
-    }).eq('id', id);
-    await logChange(id, 'wipe', `Full sheet wipe by Weaver`, null, null);
-    showToast(`✓ ${name}'s sheet wiped`);
-    await loadChars(); renderPartyGrid();
-  } catch(e) {
-    showToast('Error during wipe: ' + e.message);
-  }
-}
-
-function updateKaraBtn(){
-
-  const btn=document.getElementById('kara-reveal-btn');if(!btn)return;
-  const undo=document.getElementById('kara-reveal-undo');
-  if(dmSettings.kara_revealed){
-    btn.textContent='✓ Automaton Revealed';btn.className='btn green sm';btn.disabled=true;
-    if(undo)undo.style.display='inline-block';
-  } else {
-    btn.textContent='🔒 Reveal Automaton Nature';btn.className='btn gold';btn.disabled=false;
-    if(undo)undo.style.display='none';
-  }
-}
-function promptRevealKara(){
-  dmModal('<h3>Reveal Kara\'s Automaton Nature?</h3><div style="font-size:13px;color:var(--muted);margin-bottom:16px">This permanently unlocks the hidden Automaton branch. Cannot be undone.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn gold" onclick="closeDMModal();revealKara()">Reveal</button></div>');
-}
-async function revealKara(){
-  if(dmSettings.kara_revealed)return;
-  dmSettings.kara_revealed=true;await db.from('dm_settings').update({kara_revealed:true,updated_at:new Date().toISOString()}).eq('id',1);updateKaraBtn();showToast('Kara\'s automaton nature revealed!');
-}
-function promptUndoRevealKara(){
-  dmModal('<h3>Undo Automaton Reveal?</h3><div style="font-size:13px;color:var(--muted);margin-bottom:16px">This will hide Kara\'s Automaton branch again on her sheet.</div><div class="dm-mbtns"><button class="btn" onclick="closeDMModal()">Cancel</button><button class="btn" style="border-color:#ef4444;color:#ef4444" onclick="closeDMModal();undoRevealKara()">Undo Reveal</button></div>');
-}
-async function undoRevealKara(){
-  dmSettings.kara_revealed=false;
-  await db.from('dm_settings').update({kara_revealed:false,updated_at:new Date().toISOString()}).eq('id',1);
-  updateKaraBtn();
-  showToast('Automaton reveal undone.');
-}
-
-// Subscriptions
-function subscribeAll(){
-  db.channel('dm-chars').on('postgres_changes',{event:'*',schema:'public',table:'characters'},async()=>{await loadChars();renderPartyGrid();}).subscribe();
-  db.channel('dm-conds').on('postgres_changes',{event:'*',schema:'public',table:'conditions'},async()=>{await loadChars();renderPartyGrid();}).subscribe();
-  db.channel('dm-pending').on('postgres_changes',{event:'*',schema:'public',table:'pending_rolls'},async()=>{await loadPendingRolls();renderPendingRolls();}).subscribe();
-  db.channel('dm-rolllog').on('postgres_changes',{event:'*',schema:'public',table:'roll_log'},async()=>{await loadRollLog();renderRollLog();}).subscribe();
-  db.channel('dm-inv').on('postgres_changes',{event:'*',schema:'public',table:'equipment'},async()=>{await loadInv();if(currentTab==='equipment')renderInv();}).subscribe();
-  db.channel('dm-jury-q').on('postgres_changes',{event:'*',schema:'public',table:'jury_queue'},async()=>{if(jurySess)await loadJuryQ();}).subscribe();
-  db.channel('dm-jury-v').on('postgres_changes',{event:'*',schema:'public',table:'jury_votes'},async()=>{if(jurySess)await loadJuryQ();}).subscribe();
-  db.channel('dm-jury-s').on('postgres_changes',{event:'*',schema:'public',table:'jury_sessions'},async()=>{await loadJury();}).subscribe();
-  // ── Combat queue changes
-  db.channel('dm-cq').on('postgres_changes',{event:'*',schema:'public',table:'combat_queue'},async()=>{
-    if(!combatSess)return;
-    const{data}=await db.from('combat_queue').select('*').eq('session_id',combatSess.id).in('status',['waiting','active']).order('created_at');
-    combatQ=data||[];
-    renderCombatQueue();
-  }).subscribe();
-  // ── Incoming PC action cards
-  db.channel('dm-ca').on('postgres_changes',{event:'*',schema:'public',table:'combat_actions'},async(pl)=>{
-    if(pl.new&&!pl.new.resolved&&pl.new.actor_type==='pc')showActionCard(pl.new);
-  }).subscribe();
-  // ── Participant row changes (actions, death, grit_rolled)
-  db.channel('dm-cp').on('postgres_changes',{event:'*',schema:'public',table:'combat_participants'},async()=>{
-    await loadCombatParts();
-    renderCombatants();
-  }).subscribe();
-  // Ability use notifications
-  db.channel('dm-ability-log').on('postgres_changes',{event:'INSERT',schema:'public',table:'ability_log'},payload=>{
-    if(payload.new) showAbilityNotification(payload.new);
-  }).subscribe();
-}
-
-// Utils
-function setSyncDot(on){const d=document.getElementById('sync-dot');if(d)d.classList.toggle('off',!on);}
-function showToast(m,d=2500){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),d);}
-
-function playDMCombatCinematic(type){
-  const el=document.getElementById('dm-combat-cinematic');
-  const word=document.getElementById('dm-cine-word');
-  const sub=document.getElementById('dm-cine-sub');
-  if(!el)return;
-  if(type==='start'){
-    word.textContent='⚔ Combat Begins';sub.textContent='Participants locked in';
-    el.className='vis start';
-  } else {
-    word.textContent='✦ Combat Ended';sub.textContent='The scene clears';
-    el.className='vis end';
-  }
-  setTimeout(()=>{el.className='';},800);
-}
-
-function startCanvas(){
-  const c=document.getElementById('bg');const ctx=c.getContext('2d');let pts=[];
-  function rs(){c.width=innerWidth;c.height=innerHeight;}
-  function ip(){pts=[];for(let i=0;i<40;i++)pts.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.2+.3,vx:(Math.random()-.5)*.08,vy:(Math.random()-.5)*.08,a:Math.random()*.2+.05});}
-  function dr(){ctx.clearRect(0,0,c.width,c.height);const g=ctx.createRadialGradient(c.width/2,0,0,c.width/2,c.height*.5,c.height*.8);g.addColorStop(0,'rgba(212,168,75,.04)');g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.fillRect(0,0,c.width,c.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=c.width;if(p.x>c.width)p.x=0;if(p.y<0)p.y=c.height;if(p.y>c.height)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(212,168,75,${p.a*.4})`;ctx.fill();});requestAnimationFrame(dr);}
-  rs();ip();dr();addEventListener('resize',()=>{rs();ip();});
-}
-
-// ── ABILITY NOTIFICATIONS ──
-function showAbilityNotification(entry){
-  const p=PLAYERS.find(pl=>pl.id===entry.character_id)||{name:entry.character_id,acc:'var(--gold)'};
-  const container=document.getElementById('ability-notif');if(!container)return;
-
-  // Try to parse cost_str for embedded description (hero abilities embed desc there sometimes)
-  // The main upgrade: show a full card with description if the meta contains useful info
-  const isHeroAbility=(entry.ability_meta||'').includes('Hero Advancement')||
-                       (entry.ability_meta||'').includes('Hero Ability');
-  const hasDmInfo=isHeroAbility; // hero abilities always need DM info displayed prominently
-
-  const card=document.createElement('div');
-  card.className='ability-notif-card'+(hasDmInfo?' anc-wide':'');
-
-  if(hasDmInfo){
-    // Find the HERO_ADVANCES data embedded in the notification
-    // cost_str format: "-1 bond" or "Free" — desc is in ability_meta field
-    const dmPromptHtml=HERO_ADV_PROMPTS[entry.ability_name]
-      ?`<div class="anc-prompt"><span class="anc-prompt-lbl">⚠ Weaver:</span> ${HERO_ADV_PROMPTS[entry.ability_name]}</div>`:'';
-    const descHtml=HERO_ADV_DESCS[entry.ability_name]
-      ?`<div class="anc-desc">${HERO_ADV_DESCS[entry.ability_name]}</div>`:'';
-    card.innerHTML=
-      `<div class="anc-header">`
-      +`<span class="anc-player" style="color:${p.acc}">${p.name}</span>`
-      +`<span class="anc-ability">${entry.ability_name}</span>`
-      +`<span class="anc-cost">${entry.cost_str||''}</span>`
-      +`</div>`
-      +descHtml
-      +dmPromptHtml
-      +`<button class="anc-dismiss" onclick="this.closest('.ability-notif-card').remove()">Dismiss</button>`;
-  } else {
-    card.innerHTML=`<div class="anc-player" style="color:${p.acc}">${p.name}</div><div style="flex:1"><div class="anc-ability">${entry.ability_name}</div><div class="anc-meta">${entry.ability_meta||''}</div></div><div class="anc-cost">${entry.cost_str||''}</div>`;
-  }
-
-  container.appendChild(card);
-  // Wide cards stay longer; slim cards auto-dismiss
-  const ttl=hasDmInfo?18000:5000;
-  setTimeout(()=>{card.classList.add('hiding');setTimeout(()=>card.remove(),300);},ttl);
-}
-
-// Lookup tables so DM card doesn't need to re-parse JS
-const HERO_ADV_DESCS={
-  "Body Language":"Spend 1 Bond to sense whether someone is lying or glimpse their concealed emotions and motivations.",
-  "Study":"In a library, archive, or place of knowledge, spend 1 Bond to ask the Weaver one yes/no question.",
-  "Resourceful":"Once per scene, declare you have one mundane item you could have reasonably prepared for this situation.",
-  "Read the Room":"Once per scene, ask the Weaver: What does this group want most right now? No roll required.",
-  "Silver Tongue":"Once per scene, spend 1 Wisdom to reroll one failed Persuade or Charm roll.",
-  "Quick Learner":"Once per session, spend 1 Wisdom to ask the Weaver to confirm or deny one assumption.",
-  "Analytical":"Study a target on your turn — learn one tactical fact (weakness, plan, or vulnerability).",
-};
-const HERO_ADV_PROMPTS={
-  "Body Language":"Tell this player honestly: is the target lying? What emotion is underneath? What do they actually want?",
-  "Study":"Answer their yes/no question honestly based on what could be found in this place.",
-  "Resourceful":"Confirm if the item they declare is plausible given the situation. If yes, they have it.",
-  "Read the Room":"Answer: what does this group want most right now? Be specific and honest.",
-  "Silver Tongue":"Player will reroll their Persuade or Charm — let them proceed.",
-  "Quick Learner":"Player will state an assumption — answer true or false?",
-  "Analytical":"Tell this player one useful tactical fact about the target: a weakness, their plan this round, or something that can hurt them.",
-};
-
-// ── DM MODAL SYSTEM ──
-function dmModal(html){document.getElementById('dm-mbox').innerHTML=html;document.getElementById('dm-modal').classList.add('vis');}
-function closeDMModal(){document.getElementById('dm-modal').classList.remove('vis');}
-
-init().catch(e=>{console.error(e);setSyncDot(false);});
 </script>
 </body>
 </html>
