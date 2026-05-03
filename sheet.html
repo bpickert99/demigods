@@ -604,8 +604,8 @@ select.input{cursor:pointer}
 <div class="toast" id="toast"></div>
 
 <script>
-const SUPABASE_URL = 'https://hcrfqtwpraerheiuirem.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_C3dTYXnpaYOg1QCBgXMcBQ_V9cE4Na1'
+const SUPABASE_URL = 'YOUR_SUPABASE_URL'
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY'
 
 let db
 const G = {
@@ -910,72 +910,75 @@ function togglePbPreview(id) { document.getElementById(id)?.classList.toggle('on
 
 // Score drag/drop
 const _slotChips = {bold:null,sharp:null,slick:null,heart:null,steel:null}
+let _draggedChipId = null
 
 function initDragDrop() {
-  // Reset state when entering step 4
-  Object.keys(_slotChips).forEach(k=>_slotChips[k]=null)
-  Object.keys(G._scoreSlots).forEach(k=>G._scoreSlots[k]=null)
-  setTimeout(()=>{
-    setupPoolDrag()
-    document.querySelectorAll('.score-slot').forEach(slot=>{
-      // Remove old listeners by cloning
-      const fresh = slot.cloneNode(true)
-      slot.parentNode.replaceChild(fresh, slot)
-      fresh.addEventListener('dragover',e=>{e.preventDefault();fresh.classList.add('drag-over')})
-      fresh.addEventListener('dragleave',()=>fresh.classList.remove('drag-over'))
-      fresh.addEventListener('drop',e=>{
-        e.preventDefault();fresh.classList.remove('drag-over')
-        const chipId = e.dataTransfer.getData('text')
-        assignChipToSlot(chipId, fresh.dataset.score)
-      })
-      fresh.addEventListener('click',()=>returnChipFromSlot(fresh.dataset.score))
-    })
-  },50)
-}
-
-function setupPoolDrag() {
-  document.querySelectorAll('#chips-pool .chip').forEach(chip=>{
-    chip.setAttribute('draggable','true')
-    chip.addEventListener('dragstart',e=>{e.dataTransfer.setData('text',chip.id);chip.classList.add('dragging')})
-    chip.addEventListener('dragend',()=>chip.classList.remove('dragging'))
+  // Reset all slots to empty
+  Object.keys(_slotChips).forEach(k => { _slotChips[k]=null; G._scoreSlots[k]=null })
+  // Show all chips
+  document.querySelectorAll('#chips-pool .chip').forEach(chip => { chip.style.display='' })
+  // Reset all slot displays
+  ;['bold','sharp','slick','heart','steel'].forEach(score => {
+    const sv = document.getElementById('slv-'+score)
+    if(sv){sv.textContent='';sv.style.color=''}
+    const slot = document.querySelector('.score-slot[data-score="'+score+'"]')
+    if(slot) slot.classList.remove('filled')
   })
+  document.getElementById('step4-next').disabled = true
+
+  setTimeout(() => {
+    // Chips: use on* to avoid stacking listeners
+    document.querySelectorAll('#chips-pool .chip').forEach(chip => {
+      chip.draggable = true
+      chip.ondragstart = () => { _draggedChipId = chip.id; chip.classList.add('dragging') }
+      chip.ondragend   = () => chip.classList.remove('dragging')
+    })
+    // Slots
+    document.querySelectorAll('.score-slot').forEach(slot => {
+      slot.ondragover  = e => { e.preventDefault(); slot.classList.add('drag-over') }
+      slot.ondragleave = () => slot.classList.remove('drag-over')
+      slot.ondrop      = e => { e.preventDefault(); slot.classList.remove('drag-over'); assignChipToSlot(_draggedChipId, slot.dataset.score) }
+      slot.onclick     = () => returnChipFromSlot(slot.dataset.score)
+    })
+  }, 50)
 }
 
 function assignChipToSlot(chipId, score) {
+  if(!chipId) return
   const chip = document.getElementById(chipId); if(!chip) return
-  // Return whatever is currently in this slot first
+  // If this chip is already in another slot, free it first
+  Object.entries(_slotChips).forEach(([s,cid]) => { if(cid===chipId) returnChipFromSlot(s) })
+  // If target slot is occupied, return its chip to pool
   if(_slotChips[score]) returnChipFromSlot(score)
-  // Also remove this chip from any other slot it might be in
-  Object.entries(_slotChips).forEach(([s,cid])=>{ if(cid===chipId) returnChipFromSlot(s) })
-  // Hide chip from pool
-  chip.style.display='none'
+  // Assign
+  chip.style.display = 'none'
   _slotChips[score] = chipId
   G._scoreSlots[score] = parseInt(chip.dataset.value)
-  // Update slot display
   const num = G._scoreSlots[score]
-  const lbl = num>0?'+'+num:num===0?'0':''+num
+  const lbl = num>0?'+'+num : num===0?'0' : ''+num
   const sv = document.getElementById('slv-'+score)
-  if(sv){sv.textContent=lbl;sv.style.color='var(--acc-l)'}
+  if(sv) { sv.textContent=lbl; sv.style.color='var(--acc-l)' }
   const slot = document.querySelector('.score-slot[data-score="'+score+'"]')
-  if(slot){slot.classList.add('filled');slot.title='Click to return to pool'}
+  if(slot) { slot.classList.add('filled'); slot.title='Click to return to pool' }
   checkScoresDone()
 }
 
 function returnChipFromSlot(score) {
   const chipId = _slotChips[score]; if(!chipId) return
   const chip = document.getElementById(chipId)
-  if(chip){chip.style.display='';setupPoolDrag()}
-  _slotChips[score]=null; G._scoreSlots[score]=null
+  if(chip) chip.style.display = ''
+  _slotChips[score] = null
+  G._scoreSlots[score] = null
   const sv = document.getElementById('slv-'+score)
-  if(sv){sv.textContent='';sv.style.color=''}
+  if(sv) { sv.textContent=''; sv.style.color='' }
   const slot = document.querySelector('.score-slot[data-score="'+score+'"]')
-  if(slot){slot.classList.remove('filled');slot.title=''}
+  if(slot) { slot.classList.remove('filled'); slot.title='' }
   checkScoresDone()
 }
 
 function checkScoresDone() {
-  const btn=document.getElementById('step4-next')
-  if(btn) btn.disabled=Object.values(G._scoreSlots).filter(v=>v!==null&&v!==undefined).length<5
+  const btn = document.getElementById('step4-next')
+  if(btn) btn.disabled = Object.values(G._scoreSlots).filter(v=>v!==null&&v!==undefined).length < 5
 }
 
 async function step4Next() {
