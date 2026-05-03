@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paragon</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg:#060611;--surf:#0c0c1e;--surf2:#12122a;--surf3:#181832;--bor:#1c1c38;--bor2:#262650;--text:#e8e6f5;--muted:#6860a0;--dim:#38346a;--acc:#7c3aed;--acc-l:#a78bfa;--acc-d:#4c1d95;--acc-rgb:124,58,237;--harm:#ef4444;--warn:#f59e0b;--ok:#10b981;--info:#38bdf8;--r:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:'Crimson Pro',Georgia,serif;min-height:100vh}
+.wrap{max-width:700px;margin:0 auto;padding:0 0 60px}
+.hdr{display:flex;align-items:center;gap:14px;padding:16px;background:var(--surf);border-bottom:1px solid var(--bor2)}
+.hdr-ava{font-size:34px;filter:drop-shadow(0 0 8px rgba(var(--acc-rgb),.6))}
+.hdr-name{font-family:'Cinzel Decorative',serif;font-size:20px;font-weight:700;color:var(--acc-l);line-height:1.1}
+.hdr-sub{font-family:'Cinzel',serif;font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.hdr-r{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.harm-lbl{font-family:'Cinzel',serif;font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.harm-nums{font-family:'Cinzel',serif;font-size:22px;font-weight:700;line-height:1}
+.sync{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 6px var(--ok);transition:all .3s}
+.sync.saving{background:var(--warn);box-shadow:0 0 6px var(--warn)}
+.sync.err{background:var(--fail);box-shadow:0 0 6px var(--fail)}
+.tabs{display:flex;background:var(--surf);border-bottom:1px solid var(--bor2);position:sticky;top:0;z-index:50;overflow-x:auto}
+.tab{flex:1;padding:10px 4px;border:none;background:none;color:var(--muted);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;min-width:0}
+.tab.on{color:var(--acc-l);border-bottom-color:var(--acc)}
+.panel{display:none;padding:16px}.panel.on{display:block}
+.stitle{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.stitle-bar{height:1px;flex:1;background:var(--bor)}
+.divider{height:1px;background:var(--bor);margin:14px 0}
+.tip{position:relative;display:inline-flex;align-items:center}
+.tip-q{font-family:'Cinzel',serif;font-size:8px;border:1px solid var(--dim);border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);cursor:help}
+.tip:hover .tip-q{border-color:var(--acc);color:var(--acc-l)}
+.tip-box{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surf3);border:1px solid var(--bor2);border-radius:6px;padding:8px 10px;width:220px;z-index:200;font-size:12px;line-height:1.5;color:var(--text);box-shadow:0 4px 20px rgba(0,0,0,.5);pointer-events:none}
+.tip:hover .tip-box{display:block}
+/* SCORES */
+.scores-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:16px}
+.score-box{background:var(--surf2);border:1px solid var(--bor2);border-radius:var(--r);padding:10px 4px;text-align:center}
+.score-name{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.score-val{font-family:'Cinzel',serif;font-size:20px;font-weight:700;color:var(--acc-l);line-height:1}
+/* SCORE SETUP */
+.setup-section{background:var(--surf2);border:1px solid var(--acc);border-radius:var(--r);padding:14px;margin-bottom:16px}
+.chips{display:flex;gap:8px;justify-content:center;margin-bottom:12px;flex-wrap:wrap;min-height:48px}
+.chip{background:var(--acc-d);border:2px solid var(--acc);border-radius:6px;padding:8px 16px;font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:var(--acc-l);cursor:grab;user-select:none;transition:all .2s}
+.chip:hover{background:var(--acc);transform:translateY(-2px)}
+.chip.dragging{opacity:.4}
+.slots{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px}
+.slot{background:var(--surf);border:2px dashed var(--bor2);border-radius:var(--r);padding:10px 4px;text-align:center;transition:all .2s;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.slot.drag-over{border-color:var(--acc);background:rgba(var(--acc-rgb),.1)}
+.slot.filled{border-style:solid;border-color:var(--acc)}
+.slot-lbl{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.slot-val{font-family:'Cinzel',serif;font-size:20px;font-weight:700;color:var(--acc-l);line-height:1;min-height:24px}
+.confirm-btn{width:100%;padding:10px;background:var(--acc);border:none;border-radius:6px;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:white;cursor:pointer}
+.confirm-btn:disabled{background:var(--dim);color:var(--muted);cursor:not-allowed}
+/* TRACKS */
+.track-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.track-group{background:var(--surf2);border:1px solid var(--bor);border-radius:var(--r);padding:12px}
+.track-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.track-row:last-child{margin-bottom:0}
+.track-name{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:4px}
+.pips{display:flex;gap:4px}
+.pip{width:18px;height:18px;border-radius:3px;border:1px solid var(--bor2);background:var(--surf);cursor:pointer;transition:all .2s}
+.pip.on{background:var(--acc);border-color:var(--acc-l);box-shadow:0 0 8px rgba(var(--acc-rgb),.5)}
+.pip.ok{background:var(--ok)!important;border-color:#34d399!important;box-shadow:0 0 6px rgba(16,185,129,.4)!important}
+.pip.warn{background:var(--warn)!important;border-color:#fcd34d!important}
+.pip.harm{background:var(--harm)!important;border-color:#fca5a5!important;box-shadow:0 0 6px rgba(239,68,68,.4)!important}
+.adv-lbl{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.adv-lbl.mortal{color:#60a5fa}.adv-lbl.divine{color:var(--acc-l)}
+/* PULL */
+.pull-section{background:var(--surf2);border:1px solid var(--bor);border-radius:var(--r);padding:12px;margin-bottom:16px}
+.pull-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.pull-ttl{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
+.pull-num{margin-left:auto;font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:var(--acc-l)}
+.pull-track{display:flex;align-items:center;gap:4px}
+.pull-end{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.pull-end.m{color:#60a5fa}.pull-end.d{color:var(--acc-l)}
+.pull-steps{display:flex;gap:3px;flex:1;justify-content:center}
+.pull-step{width:28px;height:28px;border-radius:4px;border:1px solid var(--bor2);background:var(--surf);font-family:'Cinzel',serif;font-size:9px;font-weight:700;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .2s}
+.pull-step.active{background:var(--acc);border-color:var(--acc-l);color:white;box-shadow:0 0 10px rgba(var(--acc-rgb),.5)}
+.pull-step.clickable{cursor:pointer}
+/* CONDITIONS/INVENTORY */
+.item-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.cond-item{display:flex;align-items:center;gap:8px;background:var(--surf2);border:1px solid var(--bor);border-left:3px solid var(--harm);border-radius:var(--r);padding:8px 10px}
+.cond-item.unstable{border-left-color:var(--warn);animation:pw 2s infinite}
+@keyframes pw{0%,100%{box-shadow:none}50%{box-shadow:0 0 6px rgba(245,158,11,.3)}}
+.cond-name{flex:1;font-size:14px;font-weight:600}
+.cond-harm{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--harm)}
+.badge{font-family:'Cinzel',serif;font-size:7px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:1px 5px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.badge.warn{border:1px solid var(--warn);color:var(--warn)}
+.badge.stable{border:1px solid var(--bor2);color:var(--muted)}
+.rm-btn{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;padding:0;transition:color .2s;line-height:1}
+.rm-btn:hover{color:var(--harm)}
+.inv-item{background:var(--surf2);border:1px solid var(--bor);border-radius:var(--r);padding:8px 10px}
+.inv-top{display:flex;align-items:baseline;gap:8px}
+.inv-name{font-size:14px;font-weight:600;flex:1}
+.inv-harm{font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:var(--warn)}
+.inv-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.tag-chip{font-family:'Cinzel',serif;font-size:7px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border:1px solid var(--bor2);border-radius:10px;padding:1px 6px}
+.inv-notes{font-size:12px;color:var(--muted);font-style:italic;margin-top:3px}
+/* ADD FORMS */
+.add-form{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.ai{flex:1;min-width:80px;padding:7px 10px;background:var(--surf);border:1px solid var(--bor2);border-radius:6px;color:var(--text);font-family:'Crimson Pro',serif;font-size:14px;outline:none;transition:border-color .2s}
+.ai:focus{border-color:var(--acc)}
+.ai.sm{max-width:64px;flex:none}
+.chk{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.chk input{accent-color:var(--warn)}
+.add-btn{padding:7px 14px;background:var(--acc-d);border:1px solid var(--acc);border-radius:6px;color:var(--acc-l);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap}
+.add-btn:hover{background:var(--acc)}
+.inv-add-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.inv-add-grid .full{grid-column:1/-1}
+/* MOVES */
+.move-card{background:var(--surf2);border:1px solid var(--bor);border-radius:var(--r);padding:12px;margin-bottom:8px}
+.move-card.locked{opacity:.45}
+.move-hdr{display:flex;align-items:center;gap:8px;cursor:pointer}
+.move-n{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text);flex:1}
+.move-meta{font-family:'Cinzel',serif;font-size:8px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.roll-btn{padding:4px 10px;background:transparent;border:1px solid var(--acc);border-radius:4px;color:var(--acc-l);font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap}
+.roll-btn:hover{background:var(--acc);color:white}
+.move-body{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--bor)}
+.move-card.open .move-body,.divine-move.open .divine-move-body{display:block}
+.move-trig{font-size:13px;font-style:italic;color:var(--muted);margin-bottom:8px;line-height:1.5}
+.move-txt{font-size:13px;line-height:1.6;color:var(--text)}
+.out{border-left:2px solid var(--bor2);padding:4px 0 4px 10px;margin-bottom:5px}
+.out.success{border-left-color:var(--ok)}.out.partial{border-left-color:var(--warn)}.out.fail{border-left-color:var(--harm)}
+.out-lbl{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px}
+.out.success .out-lbl{color:var(--ok)}.out.partial .out-lbl{color:var(--warn)}.out.fail .out-lbl{color:var(--harm)}
+.out-txt{font-size:13px;line-height:1.5;color:var(--text)}
+.move-note{font-family:'Cinzel',serif;font-size:8px;font-style:italic;color:var(--info);margin-top:6px;line-height:1.4}
+.move-prereq{font-family:'Cinzel',serif;font-size:8px;font-style:italic;color:var(--muted);margin-top:6px}
+/* DIVINE */
+.branch-section{margin-bottom:20px}
+.branch-ttl{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--acc-l);padding:8px 0;border-bottom:1px solid var(--bor2);margin-bottom:10px}
+.divine-move{background:var(--surf2);border:1px solid var(--bor);border-radius:var(--r);padding:10px;margin-bottom:6px;transition:all .2s}
+.divine-move.unlocked{border-left:3px solid var(--acc)}
+.divine-move.locked{opacity:.5;border-left:3px solid var(--dim)}
+.divine-move-hdr{display:flex;align-items:center;gap:8px;cursor:pointer}
+.divine-move-n{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;flex:1}
+.divine-move.unlocked .divine-move-n{color:var(--acc-l)}
+.divine-move.locked .divine-move-n{color:var(--muted)}
+.divine-move-tier{font-family:'Cinzel',serif;font-size:7px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.divine-move-body{display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--bor)}
+.unlock-toggle{padding:3px 8px;background:transparent;border:1px solid var(--dim);border-radius:4px;color:var(--muted);font-family:'Cinzel',serif;font-size:7px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.unlock-toggle.on{border-color:var(--acc);color:var(--acc-l)}
+/* INSTRUMENT */
+.instrument-box{background:var(--surf2);border:1px solid var(--acc);border-radius:var(--r);padding:14px;margin-bottom:16px;box-shadow:0 0 20px rgba(var(--acc-rgb),.08)}
+.inst-ttl{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--acc-l);margin-bottom:8px}
+.inst-name{font-family:'Cinzel Decorative',serif;font-size:13px;color:var(--acc-l);margin-bottom:8px}
+.inst-demand{font-size:13px;line-height:1.6;color:var(--text);font-style:italic;margin-bottom:10px}
+.inst-detail{font-size:12px;color:var(--muted);line-height:1.6;border-top:1px solid var(--bor);padding-top:8px}
+.anchor-box{background:var(--surf2);border:1px solid var(--bor);border-radius:var(--r);padding:12px;margin-bottom:16px}
+.anchor-ttl{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.ef{width:100%;background:transparent;border:none;border-bottom:1px solid var(--bor2);color:var(--text);font-family:'Crimson Pro',serif;font-size:14px;padding:4px 0;outline:none;transition:border-color .2s}
+.ef:focus{border-bottom-color:var(--acc)}
+textarea.ef{resize:vertical;min-height:52px;border:1px solid var(--bor2);border-radius:4px;padding:6px;background:var(--surf);margin-top:6px}
+/* TRAITS */
+.traits-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.trait-group{background:var(--surf2);border:1px solid var(--bor);border-radius:var(--r);padding:10px}
+.trait-group-lbl{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.trait-item{display:flex;align-items:flex-start;gap:6px;padding:4px 0;border-bottom:1px solid var(--bor)}
+.trait-item:last-child{border-bottom:none}
+.trait-txt{flex:1;font-size:13px;line-height:1.4}
+.trait-passed{font-family:'Cinzel',serif;font-size:7px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:1px 5px;border-radius:8px;border:1px solid var(--ok);color:var(--ok);white-space:nowrap}
+/* JURY */
+.jury-panel{background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.3);border-radius:var(--r);padding:14px;margin-bottom:16px}
+.jury-ttl{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--info);margin-bottom:8px}
+.jury-vote-row{display:flex;gap:8px}
+.jury-vbtn{flex:1;padding:8px;border:1px solid;border-radius:6px;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;background:transparent}
+.jury-vbtn.yes{border-color:var(--ok);color:var(--ok)}.jury-vbtn.yes:hover{background:rgba(16,185,129,.15)}
+.jury-vbtn.no{border-color:var(--dim);color:var(--muted)}.jury-vbtn.no:hover{background:rgba(255,255,255,.04)}
+/* ROLL MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(6,6,17,.85);z-index:500;align-items:flex-end;justify-content:center}
+.modal-ov.on{display:flex}
+.modal-box{background:var(--surf);border:1px solid var(--bor2);border-top:2px solid var(--acc);border-radius:16px 16px 0 0;padding:20px 18px 32px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;animation:sup .25s ease}
+@keyframes sup{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-mv{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--acc-l);margin-bottom:8px}
+.modal-trig{font-size:13px;font-style:italic;color:var(--muted);line-height:1.5;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--bor)}
+.modal-score-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.modal-score-lbl{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.modal-score-val{font-family:'Cinzel',serif;font-size:22px;font-weight:700;color:var(--acc-l)}
+.modal-bonus-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.modal-bonus-lbl{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.bonus-in{width:56px;padding:5px 8px;background:var(--surf2);border:1px solid var(--bor2);border-radius:5px;color:var(--text);font-family:'Cinzel',serif;font-size:14px;text-align:center;outline:none}
+.bonus-in:focus{border-color:var(--acc)}
+.wis-btn{padding:6px 12px;background:transparent;border:1px solid var(--acc);border-radius:5px;color:var(--acc-l);font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.wis-btn:hover:not(:disabled){background:rgba(var(--acc-rgb),.2)}
+.wis-btn:disabled{opacity:.35;cursor:not-allowed}
+.dice-row{display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:16px;min-height:54px;flex-wrap:wrap}
+.die{width:44px;height:44px;border-radius:8px;border:2px solid var(--bor2);background:var(--surf2);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:22px;font-weight:700;color:var(--acc-l);transition:all .3s}
+.die.rolled{animation:ri .35s ease}
+@keyframes ri{0%{transform:rotate(-180deg) scale(.5);opacity:0}100%{transform:rotate(0) scale(1);opacity:1}}
+.die.d1{color:var(--harm);border-color:var(--harm)}
+.roll-total{font-family:'Cinzel',serif;font-size:32px;font-weight:700;color:var(--text);opacity:.4}
+.roll-btn{width:100%;padding:14px;background:var(--acc);border:none;border-radius:8px;font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:white;cursor:pointer;transition:all .2s;margin-bottom:14px}
+.roll-btn:hover{background:var(--acc-l);color:var(--acc-d)}
+.roll-btn:disabled{background:var(--dim);color:var(--muted);cursor:not-allowed}
+.result-box{border-radius:8px;padding:12px;margin-bottom:10px;animation:fi .3s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.result-box.success{background:rgba(16,185,129,.08);border:1px solid var(--ok)}
+.result-box.partial{background:rgba(245,158,11,.08);border:1px solid var(--warn)}
+.result-box.fail{background:rgba(239,68,68,.08);border:1px solid var(--harm)}
+.result-tier{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px}
+.result-box.success .result-tier{color:var(--ok)}.result-box.partial .result-tier{color:var(--warn)}.result-box.fail .result-tier{color:var(--harm)}
+.result-body{font-size:13px;line-height:1.6;color:var(--text)}
+.choice-btn{display:block;width:100%;text-align:left;padding:8px 12px;background:var(--surf2);border:1px solid var(--bor2);border-radius:6px;color:var(--text);font-family:'Crimson Pro',serif;font-size:13px;cursor:pointer;transition:all .2s;margin-bottom:4px}
+.choice-btn:hover{border-color:var(--acc);color:var(--acc-l)}
+.choice-btn.chosen{border-color:var(--ok);color:var(--ok)}
+.bond-row{display:flex;align-items:center;gap:8px;padding:8px;background:var(--surf2);border-radius:6px;margin-bottom:10px}
+.bond-row-lbl{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);flex:1}
+.bond-btn{padding:5px 10px;background:transparent;border:1px solid var(--bor2);border-radius:5px;color:var(--muted);font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.bond-btn:hover{border-color:var(--acc);color:var(--acc-l)}
+.modal-close{width:100%;padding:10px;background:transparent;border:1px solid var(--bor2);border-radius:8px;color:var(--muted);font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.modal-close:hover{border-color:var(--text);color:var(--text)}
+/* ADV MODAL */
+.adv-ov{display:none;position:fixed;inset:0;background:rgba(6,6,17,.88);z-index:600;align-items:center;justify-content:center;padding:16px}
+.adv-ov.on{display:flex}
+.adv-modal{background:var(--surf);border:2px solid var(--acc);border-radius:12px;padding:22px;width:100%;max-width:500px;max-height:82vh;overflow-y:auto;animation:fi .3s ease}
+.adv-modal-track{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.adv-modal-head{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--acc-l);margin-bottom:16px}
+.adv-opt{background:var(--surf2);border:1px solid var(--bor2);border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;transition:all .2s}
+.adv-opt:hover{border-color:var(--acc);background:rgba(var(--acc-rgb),.05)}
+.adv-opt-t{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text);margin-bottom:3px}
+.adv-opt-d{font-size:12px;color:var(--muted);line-height:1.5}
+.adv-back{padding:6px 12px;background:transparent;border:1px solid var(--bor2);border-radius:5px;color:var(--muted);font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-bottom:12px;transition:all .2s;display:inline-block}
+.adv-back:hover{border-color:var(--text);color:var(--text)}
+.adv-sub-item{padding:10px 12px;background:var(--surf);border:1px solid var(--bor2);border-radius:6px;cursor:pointer;transition:all .2s;font-size:13px;color:var(--text);margin-bottom:6px}
+.adv-sub-item:hover{border-color:var(--ok);color:var(--ok)}
+.adv-sub-note{font-size:11px;color:var(--muted);margin-top:2px}
+/* DEATH */
+.death-ov{display:none;position:fixed;inset:0;background:rgba(6,6,17,.96);z-index:700;align-items:center;justify-content:center;padding:16px}
+.death-ov.on{display:flex}
+.death-modal{background:var(--surf);border:2px solid var(--harm);border-radius:12px;padding:24px;width:100%;max-width:480px;text-align:center;animation:fi .3s ease}
+.death-icon{font-size:48px;margin-bottom:12px}
+.death-ttl{font-family:'Cinzel Decorative',serif;font-size:20px;color:var(--harm);margin-bottom:8px}
+.death-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:18px}
+.death-opt{background:var(--surf2);border:1px solid var(--bor2);border-radius:8px;padding:14px;margin-bottom:8px;cursor:pointer;transition:all .2s;text-align:left}
+.death-opt:hover{border-color:var(--harm);background:rgba(239,68,68,.06)}
+.death-opt-t{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text);margin-bottom:4px}
+.death-opt-d{font-size:12px;color:var(--muted);line-height:1.5}
+/* MISC */
+.empty{font-family:'Cinzel',serif;font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;padding:14px 0}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--surf3);border:1px solid var(--bor2);border-radius:8px;padding:10px 18px;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text);opacity:0;transition:all .3s;z-index:800;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.mkbanner{display:none;position:sticky;top:0;z-index:100;background:rgba(var(--acc-rgb),.18);border-bottom:1px solid var(--acc);text-align:center;padding:6px;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--acc-l)}
+.mkbanner.on{display:block}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bor2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="mkbanner" id="mkbanner">✏ Markup Mode — Weaver Controls Enabled</div>
+<div class="wrap">
+  <header class="hdr">
+    <div class="hdr-ava" id="hdr-ava">⚡</div>
+    <div><div class="hdr-name" id="hdr-name">—</div><div class="hdr-sub" id="hdr-sub">—</div></div>
+    <div class="hdr-r">
+      <div><div class="harm-lbl">Harm / Limit</div>
+        <div class="harm-nums"><span id="total-harm" style="color:var(--harm)">0</span><span style="color:var(--dim)"> / </span><span id="harm-limit" style="color:var(--muted)">10</span></div>
+      </div>
+      <div class="sync" id="sync"></div>
+    </div>
+  </header>
+  <nav class="tabs">
+    <button class="tab on" data-tab="hero">⚔ Hero</button>
+    <button class="tab" data-tab="divine">✦ Divine</button>
+    <button class="tab" data-tab="core">📖 Moves</button>
+    <button class="tab" data-tab="tags">🏷 Tags</button>
+  </nav>
+  <div class="panel on" id="panel-hero">
+    <div id="jury-section"></div>
+    <div id="scores-section"></div>
+    <div class="track-grid">
+      <div class="track-group">
+        <div class="stitle">Momentum</div>
+        <div class="track-row"><span class="track-name">Wisdom <div class="tip"><span class="tip-q">?</span><div class="tip-box">Spend 1 before rolling: add one extra die, drop the lowest.</div></div></span><div class="pips" id="pips-wisdom"></div></div>
+        <div class="track-row"><span class="track-name">Grit <div class="tip"><span class="tip-q">?</span><div class="tip-box">Spend 1 in combat: use a Grit Maneuver, or negate 1 incoming Harm.</div></div></span><div class="pips" id="pips-grit"></div></div>
+        <div class="track-row"><span class="track-name">Bond <div class="tip"><span class="tip-q">?</span><div class="tip-box">Spend 1 after rolling while an ally is present: add a die, reroll, take the new result.</div></div></span><div class="pips" id="pips-bond"></div></div>
+      </div>
+      <div class="track-group">
+        <div class="stitle">Resources</div>
+        <div class="track-row"><span class="track-name">Supply</span><div class="pips" id="pips-supply"></div></div>
+        <div class="divider" style="margin:8px 0"></div>
+        <div class="stitle">Advancement</div>
+        <div class="track-row"><span class="adv-lbl mortal">Mortal</span><div class="pips" id="adv-mortal"></div></div>
+        <div class="track-row" style="margin-bottom:8px"><span class="adv-lbl divine">Divine</span><div class="pips" id="adv-divine"></div></div>
+        <div class="track-row"><span class="track-name">Refusals <div class="tip"><span class="tip-q">?</span><div class="tip-box">At 3, all +Pull divine moves cost 1 Harm until reconciled.</div></div></span><div class="pips" id="pips-refusals"></div></div>
+      </div>
+    </div>
+    <div class="pull-section">
+      <div class="pull-hdr"><span class="pull-ttl">The Pull</span><span class="pull-num" id="pull-num">0</span></div>
+      <div class="pull-track"><span class="pull-end m">◄ Mortal</span><div class="pull-steps" id="pull-steps"></div><span class="pull-end d">Divine ►</span></div>
+    </div>
+    <div class="stitle">Conditions <div class="stitle-bar"></div></div>
+    <div id="conds-list"></div>
+    <div id="cond-add-form" style="display:none">
+      <div class="add-form">
+        <input class="ai" id="ci-name" placeholder="Condition name…" maxlength="40">
+        <input class="ai sm" id="ci-harm" type="number" placeholder="Harm" min="1" max="9" value="1">
+        <label class="chk"><input type="checkbox" id="ci-unstable"> Unstable</label>
+        <button class="add-btn" data-action="add-cond">Add</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="stitle">Inventory <div class="stitle-bar"></div></div>
+    <div id="inv-list"></div>
+    <div id="inv-add-form" style="display:none">
+      <div class="inv-add-grid">
+        <input class="ai full" id="ii-name" placeholder="Item name…" maxlength="50">
+        <input class="ai" id="ii-harm" placeholder="Harm" maxlength="10">
+        <input class="ai" id="ii-tags" placeholder="Tags (e.g. Close, Precise)" maxlength="80">
+        <input class="ai full" id="ii-notes" placeholder="Notes…" maxlength="100">
+        <button class="add-btn full" data-action="add-inv">Add Item</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="stitle">Hero Moves <div class="stitle-bar"></div></div>
+    <div id="hero-moves-list"></div>
+    <div class="divider"></div>
+    <div class="stitle">Traits &amp; Drives <div class="stitle-bar"></div></div>
+    <div id="traits-section"></div>
+  </div>
+  <div class="panel" id="panel-divine"><div id="divine-content"></div></div>
+  <div class="panel" id="panel-core"><div id="core-moves-list"></div></div>
+  <div class="panel" id="panel-tags"><div id="tags-list"></div></div>
+</div>
+
+<!-- ROLL MODAL -->
+<div class="modal-ov" id="roll-modal">
+  <div class="modal-box">
+    <div style="font-family:Cinzel,serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Rolling</div>
+    <div class="modal-mv" id="roll-mv-name">—</div>
+    <div class="modal-trig" id="roll-trig">—</div>
+    <div class="modal-score-row"><span class="modal-score-lbl" id="roll-score-lbl">Bold</span><span class="modal-score-val" id="roll-score-val">+0</span></div>
+    <div class="modal-bonus-row">
+      <span class="modal-bonus-lbl">Forward / Bonus</span>
+      <input class="bonus-in" id="roll-bonus" type="number" value="0">
+      <button class="wis-btn" id="wis-btn" data-action="spend-wisdom">+ Wisdom (<span id="wis-avail">0</span>)</button>
+    </div>
+    <div id="bond-area"></div>
+    <div class="dice-row"><div class="die" id="die1">–</div><div class="die" id="die2">–</div><div class="roll-total" id="roll-total">+</div><div class="die" id="die-extra" style="display:none">–</div></div>
+    <button class="roll-btn" id="roll-exec-btn" data-action="execute-roll">Roll 2d6</button>
+    <div id="roll-result"></div>
+    <button class="modal-close" data-action="close-roll">Close</button>
+  </div>
+</div>
+
+<!-- ADVANCE MODAL -->
+<div class="adv-ov" id="adv-ov">
+  <div class="adv-modal">
+    <div class="adv-modal-track" id="adv-track-lbl">Track Complete</div>
+    <div class="adv-modal-head">Choose an Advancement</div>
+    <div id="adv-content"></div>
+  </div>
+</div>
+
+<!-- DEATH MODAL -->
+<div class="death-ov" id="death-ov">
+  <div class="death-modal">
+    <div class="death-icon">☽</div>
+    <div class="death-ttl">Death's Threshold</div>
+    <div class="death-desc">Your total Harm has reached your Limit. The Weaver pauses. You must choose.</div>
+    <div class="death-opt" data-action="accept-death">
+      <div class="death-opt-t">Accept Death</div>
+      <div class="death-opt-d">Your story ends here. A new hero joins when dramatically appropriate.</div>
+    </div>
+    <div class="death-opt" data-action="divine-intervene">
+      <div class="death-opt-t">The Divine World Intervenes</div>
+      <div class="death-opt-d">Take permanent condition "Claimed" (2 Harm). Pull moves two steps toward Divine. The Weaver defines what holds over you.</div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'YOUR_SUPABASE_URL'
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY'
+
+// ── DATA ──────────────────────────────────────────────────────
+const D = {
+  char:{}, heroPlaybook:null, god:null, heroMoves:[], divineMoves:{},
+  patronage:[], coreMoves:[], feats:[], unlockedMoves:new Set(), traits:[], conds:[], inv:[],
+  advType:null, roll:null, wisdomSpent:false
+}
+let db, CHAR_ID
+
+// ── INIT ──────────────────────────────────────────────────────
+async function init() {
+  CHAR_ID = new URLSearchParams(location.search).get('char')||'lewis'
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:false,autoRefreshToken:false,detectSessionFromUrl:false}})
+  await loadAll()
+  subscribeRealtime()
+  renderAll()
+}
+
+async function loadAll() {
+  sync('saving')
+  const [charRes, cmRes, patronRes, coreRes] = await Promise.all([
+    db.from('characters').select('*, playbooks!playbook_id(*), gods!god_id(*, playbooks!fk_god_playbook(*))').eq('id',CHAR_ID).single(),
+    db.from('character_moves').select('move_id').eq('character_id',CHAR_ID),
+    db.from('character_patronage').select('*, gods(*, playbooks(*))').eq('character_id',CHAR_ID),
+    db.from('moves').select('*').is('playbook_id',null).order('order_index')
+  ])
+  if (charRes.error) { sync('err'); return }
+  D.char = charRes.data
+  D.heroPlaybook = charRes.data.playbooks
+  D.god = charRes.data.gods
+  D.conds = D.char.conditions||[]
+  D.inv = D.char.inventory||[]
+  D.traits = D.char.traits_drives||[]
+  D.unlockedMoves = new Set((cmRes.data||[]).map(r=>r.move_id))
+  D.patronage = patronRes.data||[]
+  D.coreMoves = (coreRes.data||[]).filter(m=>m.type==='core')
+  D.feats = (coreRes.data||[]).filter(m=>m.type==='feat')
+
+  // Apply theme from playbook
+  if (D.heroPlaybook) {
+    const r=document.documentElement
+    r.style.setProperty('--acc', D.heroPlaybook.color||'#7c3aed')
+    r.style.setProperty('--acc-l', D.heroPlaybook.color_light||'#a78bfa')
+    r.style.setProperty('--acc-rgb', D.heroPlaybook.color_rgb||'124,58,237')
+    document.title = D.char.id.charAt(0).toUpperCase()+D.char.id.slice(1)+' — Paragon'
+  }
+
+  // Load hero moves
+  if (D.heroPlaybook) {
+    const {data} = await db.from('moves').select('*').eq('playbook_id',D.heroPlaybook.id).order('order_index')
+    D.heroMoves = data||[]
+  }
+
+  // Load divine moves (birth god + patronage)
+  const divinePlaybookIds = []
+  if (D.god?.playbooks?.[0]) divinePlaybookIds.push(D.god.playbooks[0].id)
+  D.patronage.forEach(p => { if (p.gods?.playbooks?.[0]) divinePlaybookIds.push(p.gods.playbooks[0].id) })
+  D.divineMoves = {}
+  if (divinePlaybookIds.length) {
+    const {data} = await db.from('moves').select('*').in('playbook_id',divinePlaybookIds).order('order_index')
+    ;(data||[]).forEach(m => {
+      if (!D.divineMoves[m.playbook_id]) D.divineMoves[m.playbook_id] = []
+      D.divineMoves[m.playbook_id].push(m)
+    })
+  }
+  sync('ok')
+}
+
+async function save(updates) {
+  sync('saving')
+  const {error} = await db.from('characters').update({...updates,updated_at:new Date().toISOString()}).eq('id',CHAR_ID)
+  if (error){sync('err');return}
+  Object.assign(D.char,updates)
+  sync('ok')
+}
+
+function subscribeRealtime() {
+  db.channel('sheet:'+CHAR_ID)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'characters',filter:'id=eq.'+CHAR_ID},p=>{
+      Object.assign(D.char,p.new); D.conds=D.char.conditions||[]; D.inv=D.char.inventory||[]; D.traits=D.char.traits_drives||[]; renderAll()
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'character_moves',filter:'character_id=eq.'+CHAR_ID},async()=>{
+      const {data}=await db.from('character_moves').select('move_id').eq('character_id',CHAR_ID)
+      D.unlockedMoves=new Set((data||[]).map(r=>r.move_id)); renderAll()
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'moves'},async()=>{
+      await loadAll(); renderAll()
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'character_patronage',filter:'character_id=eq.'+CHAR_ID},async()=>{
+      await loadAll(); renderAll()
+    })
+    .subscribe()
+
+  db.channel('jury-bc')
+    .on('broadcast',{event:'jury-state'},({payload})=>{
+      window._juryState=payload; renderJury()
+    }).subscribe()
+}
+
+// ── EVENTS ────────────────────────────────────────────────────
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-action]'); if(!el) return
+  ACTIONS[el.dataset.action]?.(e,el)
+})
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t))
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='panel-'+t.dataset.tab))
+}))
+
+const ACTIONS = {
+  'toggle-pip': (e,el)=>togglePip(el.dataset.track,+el.dataset.i),
+  'toggle-supply': (e,el)=>toggleSupply(+el.dataset.i),
+  'toggle-adv': (e,el)=>toggleAdv(el.dataset.type,+el.dataset.i),
+  'toggle-refusal': (e,el)=>toggleRefusal(+el.dataset.i),
+  'set-pull': (e,el)=>{ if(D.char.markup_mode) setPull(+el.dataset.v) },
+  'toggle-move': (e,el)=>{ if(!e.target.closest('button[data-action="open-roll"]')&&!e.target.closest('[data-action="toggle-power"]')) document.getElementById(el.dataset.id)?.classList.toggle('open') },
+  'open-roll': (e,el)=>{ e.stopPropagation(); openRoll(el.dataset) },
+  'add-cond': ()=>addCond(), 'remove-cond': (e,el)=>removeCond(+el.dataset.i),
+  'toggle-unstable': (e,el)=>toggleUnstable(+el.dataset.i),
+  'add-inv': ()=>addInv(), 'remove-inv': (e,el)=>removeInv(+el.dataset.i),
+  'add-trait': ()=>addTrait(), 'remove-trait': (e,el)=>removeTrait(+el.dataset.i),
+  'spend-wisdom': ()=>spendWisdom(), 'execute-roll': ()=>executeRoll(),
+  'close-roll': ()=>document.getElementById('roll-modal').classList.remove('on'),
+  'choose-clash': (e,el)=>{ document.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('chosen')); el.classList.add('chosen') },
+  'use-feat': (e,el)=>useFeat(el.dataset.id),
+  'add-momentum': (e,el)=>addMomentum(el.dataset.track,+el.dataset.count),
+  'spend-bond': ()=>spendBond(),
+  'toggle-power': (e,el)=>{ e.stopPropagation(); D.char.markup_mode&&togglePower(el.dataset.id) },
+  'confirm-scores': ()=>confirmScores(),
+  'jury-vote': (e,el)=>castVote(el.dataset.vote),
+  'adv-choose': (e,el)=>handleAdvChoice(el.dataset.option),
+  'adv-back': ()=>showAdvMain(D.advType),
+  'adv-score-up': (e,el)=>applyScoreUp(el.dataset.score),
+  'adv-unlock-move': (e,el)=>unlockHeroMove(el.dataset.id),
+  'adv-unlock-divine': (e,el)=>unlockDivineMove(el.dataset.id),
+  'adv-add-trait-confirm': ()=>advAddTrait(),
+  'adv-complete': ()=>finalizeAdv(),
+  'accept-death': ()=>acceptDeath(), 'divine-intervene': ()=>divineIntervene()
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function renderAll() {
+  renderHeader(); renderMarkup(); renderJury(); renderScores(); renderMomentum()
+  renderAdvancement(); renderPull(); renderConds(); renderInv(); renderHeroMoves()
+  renderTraits(); renderDivine(); renderCore(); renderTags()
+}
+
+function renderHeader() {
+  const pb = D.heroPlaybook||{}; const god = D.god||{}
+  document.getElementById('hdr-ava').textContent = pb.emoji||'⚡'
+  document.getElementById('hdr-name').textContent = D.char.id?.charAt(0).toUpperCase()+(D.char.id?.slice(1)||'')||'—'
+  document.getElementById('hdr-sub').textContent = (pb.name||'')+(god.name?' · Child of '+god.name:'')
+  const harm = D.conds.reduce((s,c)=>s+(c.harm||0),0)
+  const lim = D.char.harm_limit||10
+  document.getElementById('total-harm').textContent = harm
+  document.getElementById('harm-limit').textContent = lim
+  if (harm>=lim) document.getElementById('death-ov').classList.add('on')
+}
+function renderMarkup(){ document.getElementById('mkbanner').classList.toggle('on',!!D.char.markup_mode) }
+
+function renderJury() {
+  const j=window._juryState; const sec=document.getElementById('jury-section')
+  if (!j?.active){sec.innerHTML='';return}
+  const item=j.current_item; const voted=j.votes?.[CHAR_ID]!==undefined
+  let h='<div class="jury-panel"><div class="jury-ttl">⚖ Jury in Session</div>'
+  if (item) {
+    h+=`<div style="font-size:14px;color:var(--text);padding-left:10px;border-left:2px solid var(--info);margin-bottom:8px">${esc(item.text)}</div>`
+    h+=`<div style="font-size:12px;color:var(--muted);font-style:italic;margin-bottom:10px">${esc(item.type)} — ${esc(item.character||'')}</div>`
+    if (voted) h+='<div style="font-family:Cinzel,serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ok);text-align:center;padding:6px">✓ Vote recorded</div>'
+    else h+='<div class="jury-vote-row"><button class="jury-vbtn yes" data-action="jury-vote" data-vote="yes">Yes — Embodied</button><button class="jury-vbtn no" data-action="jury-vote" data-vote="no">No — Not Quite</button></div>'
+  }
+  h+='</div>'; sec.innerHTML=h
+}
+
+function renderScores() {
+  const sec=document.getElementById('scores-section')
+  if (!D.char.scores_set){sec.innerHTML=buildScoreSetup();initDrag();return}
+  const S=['bold','sharp','slick','heart','steel'],L={bold:'Bold',sharp:'Sharp',slick:'Slick',heart:'Heart',steel:'Steel'}
+  let h='<div class="stitle">Scores</div><div class="scores-grid">'
+  S.forEach(s=>{
+    const v=D.char[s]||0
+    h+=`<div class="score-box"><div class="score-name">${L[s]}</div><div class="score-val${v<0?' neg':''}">${v>0?'+':v===0?'':'' }${v}</div></div>`
+  })
+  sec.innerHTML=h+'</div>'
+}
+
+function buildScoreSetup() {
+  const S=['bold','sharp','slick','heart','steel'],L={bold:'Bold',sharp:'Sharp',slick:'Slick',heart:'Heart',steel:'Steel'}
+  let h='<div class="setup-section"><div class="stitle">Assign Your Scores</div>'
+  h+='<div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic">Drag each value to a score. Array: +2, +1, +1, 0, −1</div>'
+  h+='<div class="chips" id="chips-pool">'
+  ;[{v:2,id:'chip-2'},{v:1,id:'chip-1a'},{v:1,id:'chip-1b'},{v:0,id:'chip-0'},{v:-1,id:'chip-n1'}].forEach(c=>{
+    const l=c.v>0?'+'+c.v:c.v===0?'0':''+c.v
+    h+=`<div class="chip" id="${c.id}" draggable="true" data-value="${c.v}">${l}</div>`
+  })
+  h+='</div><div class="slots">'
+  S.forEach(s=>{h+=`<div class="slot" id="slot-${s}" data-score="${s}"><div class="slot-lbl">${L[s]}</div><div class="slot-val" id="slv-${s}">—</div></div>`})
+  h+='</div><button class="confirm-btn" id="confirm-scores-btn" disabled data-action="confirm-scores">Confirm Scores</button></div>'
+  return h
+}
+
+const _slots={bold:null,sharp:null,slick:null,heart:null,steel:null}
+function initDrag() {
+  setTimeout(()=>{
+    const pool=document.getElementById('chips-pool'); if(!pool) return
+    pool.querySelectorAll('.chip').forEach(chip=>{
+      chip.addEventListener('dragstart',e=>{e.dataTransfer.setData('text',chip.dataset.value+'|'+chip.id);chip.classList.add('dragging')})
+      chip.addEventListener('dragend',()=>chip.classList.remove('dragging'))
+    })
+    document.querySelectorAll('.slot').forEach(slot=>{
+      slot.addEventListener('dragover',e=>{e.preventDefault();slot.classList.add('drag-over')})
+      slot.addEventListener('dragleave',()=>slot.classList.remove('drag-over'))
+      slot.addEventListener('drop',e=>{
+        e.preventDefault(); slot.classList.remove('drag-over')
+        const [val,chipId]=e.dataTransfer.getData('text').split('|')
+        const score=slot.dataset.score, num=parseInt(val), lbl=num>0?'+'+num:num===0?'0':''+num
+        // restore prev
+        const prev=_slots[score]
+        if (prev!==null&&prev!==undefined) {
+          pool.querySelectorAll('.chip').forEach(c=>{if(parseInt(c.dataset.value)===prev&&c.classList.contains('used'))c.classList.remove('used')})
+        }
+        _slots[score]=num
+        const sv=document.getElementById('slv-'+score); if(sv){sv.textContent=lbl;sv.style.color='var(--acc-l)'}
+        slot.classList.add('filled')
+        document.getElementById(chipId)?.classList.add('used')
+        const btn=document.getElementById('confirm-scores-btn')
+        if(btn) btn.disabled=Object.values(_slots).filter(v=>v!==null&&v!==undefined).length<5
+      })
+    })
+  },60)
+}
+
+async function confirmScores() {
+  if (Object.values(_slots).filter(v=>v!==null&&v!==undefined).length<5) return
+  await save({bold:_slots.bold,sharp:_slots.sharp,slick:_slots.slick,heart:_slots.heart,steel:_slots.steel,scores_set:true})
+  renderScores(); toast('Scores confirmed!')
+}
+
+function renderMomentum() {
+  const rp=(id,v,max,tr)=>{
+    const el=document.getElementById(id); if(!el) return
+    let h=''
+    for(let i=0;i<max;i++) h+=`<div class="pip${i<v?' on':''}" data-action="toggle-pip" data-track="${tr}" data-i="${i}"></div>`
+    el.innerHTML=h
+  }
+  rp('pips-wisdom',D.char.wisdom||0,4,'wisdom')
+  rp('pips-grit',D.char.grit||0,4,'grit')
+  rp('pips-bond',D.char.bond||0,4,'bond')
+  const el=document.getElementById('pips-supply'); if(!el) return
+  const sv=D.char.supply!==undefined?D.char.supply:4; let h=''
+  for(let i=0;i<4;i++) h+=`<div class="pip ok${i<sv?' on':''}" data-action="toggle-supply" data-i="${i}"></div>`
+  el.innerHTML=h
+}
+
+async function togglePip(tr,i) {
+  const cur=D.char[tr]||0; const nv=i<cur?i:i+1; const u={}; u[tr]=Math.min(4,Math.max(0,nv)); await save(u); renderMomentum()
+}
+async function toggleSupply(i) {
+  const cur=D.char.supply!==undefined?D.char.supply:4; const nv=i<cur?i:i+1; await save({supply:Math.min(4,Math.max(0,nv))}); renderMomentum()
+}
+
+function renderAdvancement() {
+  const ra=(id,v,type)=>{
+    const el=document.getElementById(id); if(!el) return
+    let h=''
+    for(let i=0;i<4;i++) h+=`<div class="pip${i<v?' on':''}" style="${i<v?'background:'+( type==='mortal'?'#3b82f6':'var(--acc)')+';border-color:'+( type==='mortal'?'#60a5fa':'var(--acc-l)'):''};" data-action="toggle-adv" data-type="${type}" data-i="${i}"></div>`
+    el.innerHTML=h
+  }
+  ra('adv-mortal',D.char.mortal_track||0,'mortal'); ra('adv-divine',D.char.divine_track||0,'divine')
+  const el=document.getElementById('pips-refusals'); if(!el) return
+  const rv=D.char.refusals||0; let h=''
+  for(let i=0;i<3;i++) h+=`<div class="pip harm${i<rv?' on':''}" data-action="toggle-refusal" data-i="${i}"></div>`
+  el.innerHTML=h
+}
+
+async function toggleAdv(type,i) {
+  const key=type+'_track'; const cur=D.char[key]||0; const nv=Math.min(4,i<cur?i:i+1); const u={}; u[key]=nv; await save(u); renderAdvancement()
+  if (nv===4){D.advType=type;openAdvModal(type)}
+}
+async function toggleRefusal(i) {
+  const nv=Math.min(3,i<(D.char.refusals||0)?i:i+1); await save({refusals:nv}); renderAdvancement()
+  if (nv===3) toast('Three Refusals — +Pull divine moves cost 1 Harm until reconciled')
+}
+async function setPull(v){ await save({pull:Math.min(3,Math.max(-3,v))}); renderPull() }
+
+function renderPull() {
+  const p=D.char.pull||0; document.getElementById('pull-num').textContent=p>0?'+'+p:p===0?'0':''+p
+  const el=document.getElementById('pull-steps'); if(!el) return; let h=''
+  for(let v=-3;v<=3;v++){
+    const l=v>0?'+'+v:v===0?'0':''+v
+    h+=`<div class="pull-step${v===p?' active':''}${D.char.markup_mode?' clickable':''}" data-action="set-pull" data-v="${v}">${l}</div>`
+  }
+  el.innerHTML=h
+}
+
+function renderConds() {
+  const list=document.getElementById('conds-list'), form=document.getElementById('cond-add-form')
+  if (!list) return
+  list.innerHTML=D.conds.length?'<div class="item-list">'+D.conds.map((c,i)=>
+    `<div class="cond-item${c.unstable?' unstable':''}">
+      <span class="cond-name">${esc(c.name)}</span>
+      <span class="cond-harm">${c.harm||1}</span>
+      <span class="badge ${c.unstable?'warn':'stable'}" data-action="toggle-unstable" data-i="${i}">${c.unstable?'⚠ Unstable':'Stable'}</span>
+      ${D.char.markup_mode?`<button class="rm-btn" data-action="remove-cond" data-i="${i}">×</button>`:''}
+    </div>`
+  ).join('')+'</div>':'<div class="empty">No conditions</div>'
+  if (form) form.style.display=D.char.markup_mode?'block':'none'
+}
+
+function renderInv() {
+  const list=document.getElementById('inv-list'), form=document.getElementById('inv-add-form'); if(!list) return
+  list.innerHTML=D.inv.length?'<div class="item-list">'+D.inv.map((item,i)=>{
+    const tags=item.tags?item.tags.split(',').map(t=>`<span class="tag-chip">${esc(t.trim())}</span>`).join(''):''
+    return `<div class="inv-item"><div class="inv-top"><span class="inv-name">${esc(item.name)}</span>${item.harm?`<span class="inv-harm">${esc(item.harm)} Harm</span>`:''} ${D.char.markup_mode?`<button class="rm-btn" data-action="remove-inv" data-i="${i}">×</button>`:''}</div>${tags?'<div class="inv-tags">'+tags+'</div>':''}${item.notes?`<div class="inv-notes">${esc(item.notes)}</div>`:''}</div>`
+  }).join('')+'</div>':'<div class="empty">No items</div>'
+  if (form) form.style.display=D.char.markup_mode?'block':'none'
+}
+
+async function addCond() {
+  const name=document.getElementById('ci-name')?.value?.trim(); if(!name) return
+  const harm=parseInt(document.getElementById('ci-harm')?.value)||1
+  const unstable=document.getElementById('ci-unstable')?.checked||false
+  D.conds.push({name,harm,unstable}); await save({conditions:D.conds}); renderConds(); renderHeader()
+  document.getElementById('ci-name').value=''; document.getElementById('ci-harm').value='1'; document.getElementById('ci-unstable').checked=false
+}
+async function removeCond(i){D.conds.splice(i,1);await save({conditions:D.conds});renderConds();renderHeader()}
+async function toggleUnstable(i){if(!D.conds[i])return;D.conds[i].unstable=!D.conds[i].unstable;await save({conditions:D.conds});renderConds()}
+async function addInv() {
+  const name=document.getElementById('ii-name')?.value?.trim(); if(!name) return
+  D.inv.push({name,harm:document.getElementById('ii-harm')?.value?.trim()||'',tags:document.getElementById('ii-tags')?.value?.trim()||'',notes:document.getElementById('ii-notes')?.value?.trim()||''})
+  await save({inventory:D.inv}); renderInv()
+  ;['ii-name','ii-harm','ii-tags','ii-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+}
+async function removeInv(i){D.inv.splice(i,1);await save({inventory:D.inv});renderInv()}
+
+function renderHeroMoves() {
+  const list=document.getElementById('hero-moves-list'); if(!list) return
+  list.innerHTML=D.heroMoves.map(m=>{
+    const unlocked=D.unlockedMoves.has(m.id)||m.tier==='Unlocked'
+    return `<div class="move-card${unlocked?'':' locked'}" id="hm-${m.id}">
+      <div class="move-hdr" data-action="toggle-move" data-id="hm-${m.id}">
+        <span class="move-n">${esc(m.name)}</span>
+        <span class="move-meta">${unlocked?'Unlocked':'Locked'}</span>
+      </div>
+      <div class="move-body">${buildMoveBody(m)}</div>
+    </div>`
+  }).join('')||'<div class="empty">No hero moves</div>'
+}
+
+function renderTraits() {
+  const sec=document.getElementById('traits-section'); if(!sec) return
+  const traits=D.traits.filter(t=>t.type==='trait'), drives=D.traits.filter(t=>t.type==='drive')
+  let h='<div class="traits-grid">'+buildTraitGroup('Traits',traits)+buildTraitGroup('Drives',drives)+'</div>'
+  if (D.char.markup_mode) {
+    h+=`<div class="add-form" style="margin-top:8px"><input class="ai" id="trait-in" placeholder="New trait or drive…" style="flex:2"><select class="ai" id="trait-type-in" style="flex:none;width:80px"><option value="trait">Trait</option><option value="drive">Drive</option></select><button class="add-btn" data-action="add-trait">Add</button></div>`
+  }
+  sec.innerHTML=h
+}
+function buildTraitGroup(label,items) {
+  return `<div class="trait-group"><div class="trait-group-lbl">${label}</div>${
+    items.length?items.map(t=>{
+      const gi=D.traits.indexOf(t)
+      return `<div class="trait-item"><div class="trait-txt">${esc(t.text)}</div>${t.passed?'<span class="trait-passed">Passed</span>':''}${D.char.markup_mode?`<button class="rm-btn" data-action="remove-trait" data-i="${gi}">×</button>`:''}</div>`
+    }).join(''):'<div style="font-size:12px;color:var(--dim);font-style:italic">None yet</div>'
+  }</div>`
+}
+async function addTrait(){const text=document.getElementById('trait-in')?.value?.trim();const type=document.getElementById('trait-type-in')?.value||'trait';if(!text)return;D.traits.push({text,type,passed:false});await save({traits_drives:D.traits});renderTraits();document.getElementById('trait-in').value=''}
+async function removeTrait(i){D.traits.splice(i,1);await save({traits_drives:D.traits});renderTraits()}
+
+function renderDivine() {
+  const sec=document.getElementById('divine-content'); if(!sec) return
+  let h=''
+  const allDivinePlaybooks=[]
+  if (D.god?.playbooks?.[0]) allDivinePlaybooks.push({god:D.god, pb:D.god.playbooks[0], isPrimary:true})
+  D.patronage.forEach(p=>{ if(p.gods?.playbooks?.[0]) allDivinePlaybooks.push({god:p.gods,pb:p.gods.playbooks[0],isPrimary:false}) })
+
+  allDivinePlaybooks.forEach(({god,pb,isPrimary})=>{
+    if (!isPrimary) h+=`<div style="font-family:Cinzel,serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--info);padding:10px 0 4px;border-top:1px solid var(--bor2);margin-top:16px">Patron — ${esc(pb.name)}</div>`
+    h+=`<div class="instrument-box"><div class="inst-ttl">Divine Instrument</div><div class="inst-name">${esc(god.instrument_name||'')}</div><div class="inst-demand">${esc(god.instrument_demand||'')}</div><div class="inst-detail">${esc(god.instrument_detail||'')}</div></div>`
+    h+=`<div class="anchor-box"><div class="anchor-ttl">Anchor — Mortal Connection</div>`
+    if (D.char.markup_mode) {
+      h+=`<input class="ef" id="anchor-in" value="${esc(D.char.anchor||'')}" placeholder="Who anchors you to the mortal world?"><textarea class="ef" id="anchor-note-in" placeholder="What do they mean to you?">${esc(D.char.anchor_note||'')}</textarea><div style="margin-top:8px"><button class="add-btn" onclick="saveAnchor()">Save</button></div>`
+    } else {
+      h+=`<div style="font-size:14px;color:var(--text)">${esc(D.char.anchor||'Not yet named')}</div>${D.char.anchor_note?`<div style="font-size:12px;color:var(--muted);font-style:italic;margin-top:6px;border-top:1px solid var(--bor);padding-top:6px">${esc(D.char.anchor_note)}</div>`:''}`
+    }
+    h+='</div>'
+    // Branches
+    const moves=D.divineMoves[pb.id]||[]
+    const branches=[...new Set(moves.map(m=>m.branch||'General'))]
+    branches.forEach(branch=>{
+      const bMoves=moves.filter(m=>(m.branch||'General')===branch)
+      h+=`<div class="branch-section"><div class="branch-ttl">${esc(branch)}</div>`
+      bMoves.forEach(m=>{
+        const unlocked=D.unlockedMoves.has(m.id)
+        h+=`<div class="divine-move${unlocked?' unlocked':' locked'}" id="dm-${m.id}">
+          <div class="divine-move-hdr" data-action="toggle-move" data-id="dm-${m.id}">
+            <span class="divine-move-n">${esc(m.name)}</span>
+            <span class="divine-move-tier">${esc(m.tier||'')}</span>
+            ${D.char.markup_mode?`<button class="unlock-toggle${unlocked?' on':''}" data-action="toggle-power" data-id="${m.id}">${unlocked?'Unlocked':'Locked'}</button>`:''}
+          </div>
+          <div class="divine-move-body">${buildMoveBody(m)}${m.prereq_move_ids?.length?`<div class="move-prereq">Prereqs: ${m.prereq_move_ids.map(pid=>{const pm=moves.find(x=>x.id===pid);return pm?esc(pm.name):pid}).join(', ')}</div>`:''}</div>
+        </div>`
+      })
+      h+='</div>'
+    })
+  })
+  sec.innerHTML=h||'<div class="empty">No divine playbooks assigned. Contact the Weaver.</div>'
+}
+
+function buildMoveBody(m) {
+  let h=''
+  if (m.trigger_text) h+=`<div class="move-trig">${esc(m.trigger_text)}</div>`
+  if (m.roll_score&&m.roll_score!=='varies'&&m.roll_score!==null) {
+    const scoreVal=m.roll_score==='pull'?D.char.pull||0:D.char[m.roll_score]||0
+    const l={bold:'Bold',sharp:'Sharp',slick:'Slick',heart:'Heart',steel:'Steel',pull:'Pull'}[m.roll_score]||m.roll_score
+    h+=`<button class="roll-btn" data-action="open-roll" data-move-name="${esc(m.name)}" data-score-key="${m.roll_score}" data-trigger="${esc(m.trigger_text||'')}">Roll +${l} (${scoreVal>=0?'+':'' }${scoreVal})</button>`
+  }
+  if (m.body) h+=`<div class="move-txt">${esc(m.body)}</div>`
+  if (m.outcomes?.length) {
+    m.outcomes.forEach(o=>{
+      h+=`<div class="out ${o.tier}"><div class="out-lbl">${esc(o.label)}</div><div class="out-txt">${esc(o.text)}</div></div>`
+    })
+  }
+  if (m.note) h+=`<div class="move-note">${esc(m.note)}</div>`
+  return h
+}
+
+function renderCore() {
+  const list=document.getElementById('core-moves-list'); if(!list) return
+  const unlockedFeats=D.feats.filter(f=>D.unlockedMoves.has(f.id))
+  const lockedFeats=D.feats.filter(f=>!D.unlockedMoves.has(f.id))
+  let h=''
+  D.coreMoves.forEach(m=>{
+    const sid='cm-'+m.id
+    h+=`<div class="move-card" id="${sid}">
+      <div class="move-hdr" data-action="toggle-move" data-id="${sid}">
+        <span class="move-n">${esc(m.name)}</span>
+        <span class="move-meta">${m.roll_score?({bold:'Bold',sharp:'Sharp',slick:'Slick',heart:'Heart',steel:'Steel',pull:'Pull'}[m.roll_score]||m.roll_score):'No Roll'}</span>
+        ${m.roll_score&&m.roll_score!=='varies'?`<button class="roll-btn" data-action="open-roll" data-move-name="${esc(m.name)}" data-score-key="${m.roll_score}" data-trigger="${esc(m.trigger_text||'')}">Roll</button>`:''}
+      </div>
+      <div class="move-body">${buildMoveBody(m)}${
+        m.name==='Clash'?buildFeatBlock('Grit Maneuvers — spend 1 Grit on 10+',unlockedFeats.filter(f=>f.branch==='Offensive'),lockedFeats.filter(f=>f.branch==='Offensive')):''}${
+        m.name==='Face Danger'?buildFeatBlock('Defensive Reactions — spend 1 Grit (Reaction)',unlockedFeats.filter(f=>f.branch==='Defensive'),lockedFeats.filter(f=>f.branch==='Defensive')):''
+      }</div>
+    </div>`
+  })
+  list.innerHTML=h
+}
+
+function buildFeatBlock(title,unlocked,locked) {
+  if (!unlocked.length&&!locked.length) return ''
+  let h=`<div style="margin-top:8px;padding:8px;background:rgba(var(--acc-rgb),.05);border:1px solid var(--bor);border-radius:6px"><div style="font-family:Cinzel,serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--acc-l);margin-bottom:6px">${esc(title)}</div>`
+  unlocked.forEach(f=>{ h+=`<div style="font-size:12px;color:var(--text);margin-bottom:4px;padding-left:8px;border-left:2px solid var(--acc)"><b>${esc(f.name)}</b> — ${esc(f.body||'')}<button class="roll-btn" style="margin-left:8px;padding:2px 6px" data-action="use-feat" data-id="${f.id}">Use (1 Grit)</button></div>` })
+  locked.forEach(f=>{ h+=`<div style="font-size:12px;color:var(--dim);margin-bottom:4px;padding-left:8px;border-left:2px solid var(--bor2)"><b>${esc(f.name)}</b> — ${esc(f.body||'')} <span style="opacity:.5">[Locked]</span></div>` })
+  return h+'</div>'
+}
+
+function renderTags() {
+  const list=document.getElementById('tags-list'); if(!list) return
+  const tags=[
+    ['Intimate','Effective in close-body range. Daggers, fists.'],
+    ['Close',"Effective at arm's reach. Short swords, most hand weapons."],
+    ['Reach',"Effective at spear's length. Polearms."],
+    ['Far','Can hit from a distance. Bows, firearms, thrown weapons.'],
+    ['X Harm','When dealing damage, the weapon deals this Harm value.'],
+    ['X Ammo','Decrease by 1 on each miss. At 0, empty.'],
+    ['Heavy','Deals +1 Harm but slow. −1 Forward on Slick actions while using it.'],
+    ['Precise','+1 Forward when aiming carefully or targeting weak points.'],
+    ['Hidden','Can be concealed until deliberately revealed.'],
+    ['Returning','Always comes back when thrown or lost.'],
+    ['Blessed','Deals Harm to beings normally immune to mortal weapons.'],
+    ['Fragile','Breaks on a miss or 7–9. Must be repaired.'],
+    ['Area','Can strike multiple foes in one Clash roll. Weaver determines scope.'],
+    ['Entangling','Can restrain or hinder instead of dealing Harm.'],
+    ['Obvious','Cannot be concealed. Openly visible.'],
+    ['Piercing','Ignores armor on a 10+ Clash result.'],
+    ['Intact / Damaged / Broken','Armor condition track. Damaged = half protection. Broken = none.'],
+  ]
+  list.innerHTML='<div style="display:grid;gap:6px">'+tags.map(([name,desc])=>`<div style="background:var(--surf2);border:1px solid var(--bor);border-radius:var(--r);padding:10px"><div style="font-family:Cinzel,serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc-l);margin-bottom:3px">${esc(name)}</div><div style="font-size:13px;color:var(--text);line-height:1.5">${esc(desc)}</div></div>`).join('')+'</div>'
+}
+
+// ── ROLL ──────────────────────────────────────────────────────
+function openRoll(data) {
+  D.roll=data; D.wisdomSpent=false
+  const sk=data.scoreKey||'bold', sv=sk==='pull'?D.char.pull||0:D.char[sk]||0
+  const sl={bold:'Bold',sharp:'Sharp',slick:'Slick',heart:'Heart',steel:'Steel',pull:'Pull'}[sk]||sk
+  document.getElementById('roll-mv-name').textContent=data.moveName||'?'
+  document.getElementById('roll-trig').textContent=data.trigger||''
+  document.getElementById('roll-score-lbl').textContent=sl
+  document.getElementById('roll-score-val').textContent=(sv>0?'+':sv===0?'':'')+sv
+  document.getElementById('roll-bonus').value=0
+  document.getElementById('wis-avail').textContent=D.char.wisdom||0
+  const wb=document.getElementById('wis-btn'); wb.disabled=(D.char.wisdom||0)<=0; wb.classList.remove('spent')
+  const bond=D.char.bond||0
+  document.getElementById('bond-area').innerHTML=bond>0?`<div class="bond-row"><span class="bond-row-lbl">Bond (${bond}) — spend to reroll</span><button class="bond-btn" id="bond-btn" data-action="spend-bond">Spend Bond</button></div>`:''
+  ;['die1','die2','die-extra'].forEach(id=>{const d=document.getElementById(id);if(d){d.textContent='–';d.className='die';d.style.display=id==='die-extra'?'none':'flex'}})
+  document.getElementById('roll-total').textContent='+'
+  document.getElementById('roll-result').innerHTML=''
+  document.getElementById('roll-exec-btn').textContent='Roll 2d6'
+  document.getElementById('roll-modal').classList.add('on')
+}
+
+async function spendWisdom() {
+  if (D.wisdomSpent||(D.char.wisdom||0)<=0) return
+  D.wisdomSpent=true
+  const btn=document.getElementById('wis-btn'); btn.textContent='Wisdom spent ✓'; btn.classList.add('spent'); btn.disabled=true
+  await save({wisdom:Math.max(0,(D.char.wisdom||0)-1)}); renderMomentum()
+}
+
+async function spendBond() {
+  if ((D.char.bond||0)<=0) return
+  const btn=document.getElementById('bond-btn'); if(btn){btn.textContent='Bond spent ✓';btn.disabled=true}
+  await save({bond:Math.max(0,(D.char.bond||0)-1)}); renderMomentum(); executeRoll()
+}
+
+function executeRoll() {
+  const sk=D.roll?.scoreKey||'bold', sv=sk==='pull'?D.char.pull||0:D.char[sk]||0
+  const bonus=parseInt(document.getElementById('roll-bonus')?.value)||0
+  const d1=Math.ceil(Math.random()*6), d2=Math.ceil(Math.random()*6), d3=D.wisdomSpent?Math.ceil(Math.random()*6):null
+  const D1=document.getElementById('die1'),D2=document.getElementById('die2'),DE=document.getElementById('die-extra')
+  D1.textContent=d1; D1.className='die rolled'+(d1===1?' d1':'')
+  D2.textContent=d2; D2.className='die rolled'+(d2===1?' d1':'')
+  let used=[d1,d2]
+  if (d3!==null){DE.style.display='flex';DE.textContent=d3;DE.className='die rolled'+(d3===1?' d1':'');used=[d1,d2,d3].sort((a,b)=>b-a).slice(0,2)}
+  const total=used[0]+used[1]+sv+bonus
+  document.getElementById('roll-total').textContent=''+total
+  let cls,lbl,body
+  if (total>=10){cls='success';lbl='10+ — Full Success';body='You get what you want with no complications.'}
+  else if (total>=7){cls='partial';lbl='7–9 — Partial';body="The Weaver picks a cost: Harm / lost item or opportunity / something followed you / someone else pays."}
+  else{cls='fail';lbl='6 or Lower — Miss';body='The Weaver makes a hard move. Nothing stops.'}
+  let h=`<div class="result-box ${cls}"><div class="result-tier">${lbl}</div><div class="result-body">${body}</div>`
+  if (cls==='success'&&D.roll?.moveName==='Clash') {
+    h+=`<div style="margin-top:8px">
+      <div style="font-family:Cinzel,serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Choose one:</div>
+      ${ ["Avoid their attack — take no Harm this exchange.","Create an opening — ally gains +1 Forward.","Press hard — deal +2 additional Harm."].map((c,i)=>`<button class="choice-btn" data-action="choose-clash" data-i="${i}">${c}</button>`).join('') }
+      ${ D.feats.filter(f=>f.branch==='Offensive'&&D.unlockedMoves.has(f.id)).length?'<div style="font-family:Cinzel,serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--acc-l);margin:8px 0 4px">Or spend 1 Grit for a Maneuver:</div>'+D.feats.filter(f=>f.branch==='Offensive'&&D.unlockedMoves.has(f.id)).map(f=>`<button class="choice-btn" data-action="use-feat" data-id="${f.id}">${esc(f.name)}</button>`).join(''):'' }
+    </div>`
+  }
+  h+='</div>'
+  const ones=[d1,d2,d3].filter(d=>d===1).length
+  if (ones>0) {
+    h+=`<div style="background:rgba(var(--acc-rgb),.07);border:1px solid var(--bor);border-radius:6px;padding:10px;margin-bottom:8px">
+      <div style="font-family:Cinzel,serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--acc-l);margin-bottom:6px">Rolled ${ones} one${ones>1?'s':''} — Momentum!</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Add ${ones} pip${ones>1?'s':''} to one track:</div>
+      <div style="display:flex;gap:6px">
+        <button class="add-btn" style="flex:1" data-action="add-momentum" data-track="wisdom" data-count="${ones}">Wisdom</button>
+        <button class="add-btn" style="flex:1" data-action="add-momentum" data-track="grit" data-count="${ones}">Grit</button>
+        <button class="add-btn" style="flex:1" data-action="add-momentum" data-track="bond" data-count="${ones}">Bond</button>
+      </div></div>`
+  }
+  document.getElementById('roll-result').innerHTML=h
+  document.getElementById('roll-exec-btn').textContent='Reroll'
+}
+
+async function addMomentum(track,count){const cur=D.char[track]||0;const u={};u[track]=Math.min(4,cur+count);await save(u);renderMomentum();toast('+'+count+' '+track)}
+async function useFeat(id){if((D.char.grit||0)<=0){toast('No Grit');return}await save({grit:(D.char.grit||0)-1});renderMomentum();const f=D.feats.find(x=>x.id===id);toast((f?.name||'Maneuver')+'! 1 Grit spent.')}
+
+// ── ADVANCEMENT ───────────────────────────────────────────────
+function openAdvModal(type){
+  D.advType=type
+  document.getElementById('adv-track-lbl').textContent=(type==='mortal'?'Mortal':'Divine')+' Track Complete'
+  showAdvMain(type); document.getElementById('adv-ov').classList.add('on')
+}
+
+function showAdvMain(type){
+  const c=document.getElementById('adv-content'); let h=''
+  if (type==='mortal') {
+    const opts=[['new_hero_move','New Hero Move','Unlock a locked move from your playbook.'],['score_up','+1 to a Score','Add +1 to one score. Each score may increase once.'],['deepen_anchor','Deepen a Mortal Relationship','Write one true thing about your Anchor. The Weaver must now use them.'],['new_trait','New Trait or Drive','Add one to your sheet. Goes to the next Jury.']]
+    opts.forEach(([id,t,d])=>{ h+=`<div class="adv-opt" data-action="adv-choose" data-option="${id}"><div class="adv-opt-t">${t}</div><div class="adv-opt-d">${d}</div></div>` })
+  } else {
+    const opts=[['new_divine_move','New Divine Move','Unlock an eligible move from your divine playbooks.'],['divine_insight','Divine Insight','Your divine parent reveals one true thing about your nature.'],['divine_peer','Recognized as Peer','A powerful divine being treats you as an equal. The Weaver introduces this as a scene.']]
+    opts.forEach(([id,t,d])=>{ h+=`<div class="adv-opt" data-action="adv-choose" data-option="${id}"><div class="adv-opt-t">${t}</div><div class="adv-opt-d">${d}</div></div>` })
+  }
+  c.innerHTML=h
+}
+
+async function handleAdvChoice(option) {
+  const c=document.getElementById('adv-content')
+  if (option==='new_hero_move') {
+    const locked=D.heroMoves.filter(m=>!D.unlockedMoves.has(m.id)&&m.tier!=='Unlocked')
+    c.innerHTML='<button class="adv-back" data-action="adv-back">← Back</button>'+(locked.length?locked.map(m=>`<div class="adv-sub-item" data-action="adv-unlock-move" data-id="${m.id}">${esc(m.name)}<div class="adv-sub-note">${esc((m.body||'').substring(0,80))}…</div></div>`).join(''):'<div style="color:var(--muted);font-style:italic">All hero moves unlocked.</div>')
+  } else if (option==='score_up') {
+    const inc=D.char.scores_increased||[],S=['bold','sharp','slick','heart','steel'],L={bold:'Bold',sharp:'Sharp',slick:'Slick',heart:'Heart',steel:'Steel'}
+    c.innerHTML='<button class="adv-back" data-action="adv-back">← Back</button>'+S.filter(s=>!inc.includes(s)).map(s=>{const cur=D.char[s]||0;return `<div class="adv-sub-item" data-action="adv-score-up" data-score="${s}">${L[s]}: ${cur>0?'+':cur===0?'':''}${cur} → ${cur+1>0?'+':cur+1===0?'':''}${cur+1}</div>`}).join('')
+  } else if (option==='new_divine_move') {
+    const all=Object.values(D.divineMoves).flat().filter(m=>!D.unlockedMoves.has(m.id))
+    const avail=all.filter(m=>!m.prereq_move_ids?.length||m.prereq_move_ids.every(pid=>D.unlockedMoves.has(pid)))
+    c.innerHTML='<button class="adv-back" data-action="adv-back">← Back</button>'+(avail.length?avail.map(m=>`<div class="adv-sub-item" data-action="adv-unlock-divine" data-id="${m.id}"><span style="font-size:10px;color:var(--acc-l);font-family:Cinzel,serif;letter-spacing:1px;text-transform:uppercase">${esc(m.branch||'')}</span> — ${esc(m.name)}<div class="adv-sub-note">${esc(m.tier||'')}</div></div>`).join(''):'<div style="color:var(--muted);font-style:italic">No eligible moves. Unlock prerequisites first.</div>')
+  } else if (option==='deepen_anchor') {
+    c.innerHTML='<button class="adv-back" data-action="adv-back">← Back</button><div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6">Go to the Divine tab and update your Anchor note.</div><div class="adv-opt" data-action="adv-complete">Done — Written it ✓</div>'
+  } else if (option==='new_trait') {
+    c.innerHTML='<button class="adv-back" data-action="adv-back">← Back</button><div class="add-form"><input class="ai" id="adv-trait-in" placeholder="New trait or drive…" style="flex:2"><select class="ai" id="adv-type-in" style="flex:none;width:80px"><option value="trait">Trait</option><option value="drive">Drive</option></select></div><div class="adv-opt" style="margin-top:8px" data-action="adv-add-trait-confirm">Add to Sheet</div>'
+  } else if (['divine_insight','divine_peer'].includes(option)) {
+    await finalizeAdv(); toast('Advancement complete! The Weaver will handle the fiction.')
+  }
+}
+
+async function applyScoreUp(score){const cur=D.char[score]||0;const inc=D.char.scores_increased||[];inc.push(score);const u={scores_increased:inc};u[score]=cur+1;await save(u);await finalizeAdv();toast(score+' increased to '+(cur+1>0?'+'+(cur+1):cur+1))}
+async function unlockHeroMove(id){await db.from('character_moves').insert({character_id:CHAR_ID,move_id:id});D.unlockedMoves.add(id);renderHeroMoves();await finalizeAdv();toast('Hero Move unlocked!')}
+async function unlockDivineMove(id){await db.from('character_moves').insert({character_id:CHAR_ID,move_id:id});D.unlockedMoves.add(id);renderDivine();await finalizeAdv();toast('Move unlocked!')}
+async function advAddTrait(){const text=document.getElementById('adv-trait-in')?.value?.trim();const type=document.getElementById('adv-type-in')?.value||'trait';if(!text)return;D.traits.push({text,type,passed:false});await save({traits_drives:D.traits});renderTraits();await finalizeAdv();toast('Added to sheet!')}
+async function finalizeAdv(){const key=D.advType+'_track';await save({[key]:0});document.getElementById('adv-ov').classList.remove('on');renderAdvancement();toast('Advancement recorded.')}
+
+async function togglePower(id){
+  if(D.unlockedMoves.has(id)){await db.from('character_moves').delete().eq('character_id',CHAR_ID).eq('move_id',id);D.unlockedMoves.delete(id)}
+  else{await db.from('character_moves').insert({character_id:CHAR_ID,move_id:id});D.unlockedMoves.add(id)}
+  renderDivine();renderHeroMoves()
+}
+
+async function castVote(vote){
+  if(!window._juryState?.session_id)return
+  await db.channel('jury-bc').send({type:'broadcast',event:'vote',payload:{character:CHAR_ID,vote:vote==='yes'}})
+  toast('Vote cast: '+(vote==='yes'?'Yes':'No')); renderJury()
+}
+
+async function acceptDeath(){await db.channel('jury-bc').send({type:'broadcast',event:'death',payload:{character:CHAR_ID,type:'accepted'}});document.getElementById('death-ov').classList.remove('on');toast('The Weaver has been notified.')}
+async function divineIntervene(){D.conds.push({name:'Claimed',harm:2,unstable:false});await save({pull:Math.min(3,(D.char.pull||0)+2),conditions:D.conds});document.getElementById('death-ov').classList.remove('on');renderAll();toast('Claimed. Pull shifts toward Divine.')}
+
+async function saveAnchor(){await save({anchor:document.getElementById('anchor-in')?.value?.trim()||'',anchor_note:document.getElementById('anchor-note-in')?.value?.trim()||''});toast('Anchor saved')}
+window.saveAnchor=saveAnchor
+
+function sync(s){const el=document.getElementById('sync');if(el)el.className='sync'+(s!=='ok'?' '+s:'')}
+function esc(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function toast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),3000)}
+
+document.addEventListener('DOMContentLoaded',init)
+</script>
+</body>
+</html>

@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paragon — Weaver</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg:#04040d;--surf:#0a0a1a;--surf2:#101020;--surf3:#161628;--bor:#181830;--bor2:#222240;--text:#e0ddf0;--muted:#5a5490;--dim:#2a2550;--acc:#6d28d9;--acc-l:#8b5cf6;--acc-d:#3b0764;--acc-rgb:109,40,217;--harm:#ef4444;--warn:#f59e0b;--ok:#10b981;--info:#38bdf8;--r:6px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{font-size:13px}
+body{background:var(--bg);color:var(--text);font-family:'Crimson Pro',Georgia,serif;min-height:100vh;overflow-x:hidden}
+.layout{display:grid;grid-template-rows:auto 1fr;height:100vh}
+.hdr{padding:10px 16px;background:var(--surf);border-bottom:1px solid var(--bor2);display:flex;align-items:center;gap:12px}
+.hdr-ttl{font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--acc-l);letter-spacing:1px}
+.hdr-sub{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
+.sync{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 5px var(--ok);margin-left:auto;transition:all .3s}
+.sync.saving{background:var(--warn)}.sync.err{background:var(--harm)}
+.pw-screen{position:fixed;inset:0;background:var(--bg);z-index:900;display:flex;align-items:center;justify-content:center}
+.pw-box{background:var(--surf);border:1px solid var(--bor2);border-radius:10px;padding:28px;width:320px;text-align:center}
+.pw-ttl{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--acc-l);margin-bottom:6px}
+.pw-sub{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:20px}
+.pw-in{width:100%;padding:10px 14px;background:var(--surf2);border:1px solid var(--bor2);border-radius:6px;color:var(--text);font-family:'Crimson Pro',serif;font-size:16px;text-align:center;outline:none;margin-bottom:12px}
+.pw-in:focus{border-color:var(--acc)}
+.pw-btn{width:100%;padding:10px;background:var(--acc);border:none;border-radius:6px;font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:white;cursor:pointer}
+.pw-err{color:var(--harm);font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-top:8px}
+.main{display:grid;grid-template-columns:auto 1fr;overflow:hidden}
+.sidebar{width:200px;background:var(--surf);border-right:1px solid var(--bor2);overflow-y:auto;flex-shrink:0}
+.sb-item{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--bor);transition:all .2s;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.sb-item:hover{background:var(--surf2);color:var(--text)}
+.sb-item.on{background:var(--acc-d);color:var(--acc-l);border-right:2px solid var(--acc)}
+.content{overflow-y:auto;padding:0}
+.tab-pane{display:none;padding:16px}.tab-pane.on{display:block}
+.stitle{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.stitle-bar{height:1px;flex:1;background:var(--bor)}
+.divider{height:1px;background:var(--bor);margin:14px 0}
+/* CHAR CARDS */
+.char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.char-card{background:var(--surf);border:1px solid var(--bor2);border-radius:var(--r);overflow:hidden}
+.char-card-hdr{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--bor)}
+.char-ava{font-size:24px}
+.char-name{font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:var(--acc-l);letter-spacing:1px}
+.char-sub{font-family:'Cinzel',serif;font-size:8px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.char-body{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.stat-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.stat-lbl{font-family:'Cinzel',serif;font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.pips{display:flex;gap:3px}
+.pip{width:14px;height:14px;border-radius:2px;border:1px solid var(--bor2);background:var(--surf);cursor:pointer;transition:all .15s}
+.pip.on{background:var(--acc);border-color:var(--acc-l)}
+.pip.ok{background:var(--ok)!important;border-color:#34d399!important}
+.pip.warn{background:var(--warn)!important;border-color:#fcd34d!important}
+.pip.harm{background:var(--harm)!important;border-color:#fca5a5!important}
+.cond-list{display:flex;flex-wrap:wrap;gap:4px}
+.cond-pill{display:flex;align-items:center;gap:4px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:2px 7px;font-size:11px}
+.cond-pill .h{font-family:'Cinzel',serif;font-size:9px;font-weight:700;color:var(--harm)}
+.tag{font-family:'Cinzel',serif;font-size:7px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border-radius:8px;padding:2px 6px}
+.tag.ok{border:1px solid var(--ok);color:var(--ok)}.tag.warn{border:1px solid var(--warn);color:var(--warn)}.tag.harm{border:1px solid var(--harm);color:var(--harm)}.tag.info{border:1px solid var(--info);color:var(--info)}
+.pull-track{display:flex;gap:2px}
+.pull-step{width:22px;height:22px;border-radius:3px;border:1px solid var(--bor2);background:var(--surf);font-family:'Cinzel',serif;font-size:8px;font-weight:700;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s}
+.pull-step.active{background:var(--acc);border-color:var(--acc-l);color:white;box-shadow:0 0 8px rgba(var(--acc-rgb),.5)}
+.harm-display{font-family:'Cinzel',serif;font-size:14px;font-weight:700}
+.harm-display .h{color:var(--harm)}.harm-display .lim{color:var(--muted)}
+.card-actions{padding:8px 12px;border-top:1px solid var(--bor);display:flex;gap:6px;flex-wrap:wrap}
+.btn{padding:5px 10px;border-radius:4px;font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;border:1px solid;white-space:nowrap}
+.btn-acc{background:var(--acc-d);border-color:var(--acc);color:var(--acc-l)}.btn-acc:hover{background:var(--acc)}
+.btn-harm{background:rgba(239,68,68,.1);border-color:var(--harm);color:var(--harm)}.btn-harm:hover{background:rgba(239,68,68,.2)}
+.btn-ghost{background:transparent;border-color:var(--bor2);color:var(--muted)}.btn-ghost:hover{border-color:var(--text);color:var(--text)}
+.btn-ok{background:rgba(16,185,129,.1);border-color:var(--ok);color:var(--ok)}.btn-ok:hover{background:rgba(16,185,129,.2)}
+/* JURY */
+.jury-box{background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.25);border-radius:var(--r);padding:14px;margin-bottom:16px}
+.jury-ttl{font-family:'Cinzel Decorative',serif;font-size:14px;color:var(--info);margin-bottom:12px}
+.jury-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surf2);border:1px solid var(--bor);border-radius:5px;margin-bottom:6px;cursor:pointer;transition:all .2s}
+.jury-item.active{border-color:var(--info);background:rgba(56,189,248,.06)}
+.jury-item-txt{flex:1;font-size:13px}
+.jury-item-type{font-family:'Cinzel',serif;font-size:7px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.vote-bar{display:flex;gap:4px;margin-top:6px}
+.vote-seg{flex:1;height:20px;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border-radius:3px;transition:all .2s}
+.vote-seg.yes{background:rgba(16,185,129,.2);color:var(--ok);border:1px solid var(--ok)}
+.vote-seg.no{background:rgba(239,68,68,.1);color:var(--muted);border:1px solid var(--bor)}
+.vote-seg.pend{background:var(--surf2);color:var(--dim);border:1px solid var(--bor)}
+/* NPCs */
+.npc-item{background:var(--surf2);border:1px solid var(--bor);border-radius:var(--r);padding:10px 12px;margin-bottom:6px}
+.npc-top{display:flex;align-items:center;gap:8px}
+.npc-name{font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--text);flex:1}
+.npc-notes{font-size:12px;color:var(--muted);margin-top:5px;padding-top:5px;border-top:1px solid var(--bor);line-height:1.5}
+.npc-harm{font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--harm)}
+/* MOVES EDITOR */
+.moves-layout{display:grid;grid-template-columns:220px 1fr;gap:0;min-height:calc(100vh - 80px)}
+.tree-panel{background:var(--surf);border-right:1px solid var(--bor2);overflow-y:auto;padding:8px 0}
+.tree-node{padding:5px 12px 5px 24px;cursor:pointer;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);transition:all .15s;display:flex;align-items:center;gap:6px;user-select:none}
+.tree-node:hover{background:var(--surf2);color:var(--text)}
+.tree-node.on{background:var(--acc-d);color:var(--acc-l)}
+.tree-node.section{padding-left:12px;font-size:8px;letter-spacing:2px;color:var(--muted);cursor:default}
+.tree-node.section:hover{background:transparent;color:var(--muted)}
+.tree-node.child{padding-left:32px}
+.tree-node.grandchild{padding-left:44px;font-size:8px}
+.tree-caret{font-size:8px;transition:transform .15s;flex-shrink:0}
+.tree-count{font-family:'Cinzel',serif;font-size:7px;color:var(--dim);margin-left:auto}
+.editor-panel{padding:16px;overflow-y:auto}
+.move-list-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surf2);border:1px solid var(--bor);border-radius:5px;margin-bottom:5px;cursor:pointer;transition:all .2s}
+.move-list-item:hover{border-color:var(--acc-l);background:rgba(var(--acc-rgb),.05)}
+.move-list-item.editing{border-color:var(--acc);background:rgba(var(--acc-rgb),.08)}
+.mli-name{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text);flex:1}
+.mli-branch{font-family:'Cinzel',serif;font-size:7px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.mli-tier{font-family:'Cinzel',serif;font-size:7px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.mli-actions{display:flex;gap:4px}
+/* EDIT FORM */
+.edit-form{background:var(--surf2);border:1px solid var(--acc);border-radius:var(--r);padding:16px;margin-top:12px;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg.full{grid-column:1/-1}
+.fl{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.fi{padding:7px 10px;background:var(--surf);border:1px solid var(--bor2);border-radius:5px;color:var(--text);font-family:'Crimson Pro',serif;font-size:13px;outline:none;transition:border-color .2s;width:100%}
+.fi:focus{border-color:var(--acc)}
+textarea.fi{resize:vertical;min-height:64px;font-size:13px;line-height:1.5}
+select.fi{cursor:pointer}
+/* OUTCOMES */
+.out-row{display:flex;gap:6px;align-items:flex-start;margin-bottom:6px}
+.out-row-num{font-family:'Cinzel',serif;font-size:9px;font-weight:700;color:var(--muted);padding-top:9px;width:14px;flex-shrink:0;text-align:right}
+.out-remove{background:none;border:none;color:var(--dim);font-size:16px;cursor:pointer;padding:0;line-height:1;padding-top:8px;transition:color .2s}
+.out-remove:hover{color:var(--harm)}
+.prereq-sel{display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto;padding:4px;background:var(--surf);border:1px solid var(--bor2);border-radius:5px}
+.prereq-item{display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer}
+.prereq-item input{accent-color:var(--acc)}
+/* WARN MODAL */
+.warn-modal-bg{display:none;position:fixed;inset:0;background:rgba(4,4,13,.85);z-index:800;align-items:center;justify-content:center;padding:16px}
+.warn-modal-bg.on{display:flex}
+.warn-modal{background:var(--surf);border:1px solid var(--warn);border-radius:10px;padding:20px;max-width:440px;width:100%}
+.warn-ttl{font-family:'Cinzel',serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--warn);margin-bottom:8px}
+.warn-body{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:14px}
+.warn-btns{display:flex;gap:8px;justify-content:flex-end}
+/* MISC */
+.ai{padding:7px 10px;background:var(--surf);border:1px solid var(--bor2);border-radius:5px;color:var(--text);font-family:'Crimson Pro',serif;font-size:13px;outline:none;transition:border-color .2s}
+.ai:focus{border-color:var(--acc)}
+.toast{position:fixed;bottom:16px;right:16px;background:var(--surf3);border:1px solid var(--bor2);border-radius:6px;padding:8px 14px;font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text);opacity:0;transition:all .3s;z-index:1000;pointer-events:none}
+.toast.on{opacity:1}
+.empty{font-family:'Cinzel',serif;font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;padding:14px 0}
+.log-item{padding:7px 10px;border-bottom:1px solid var(--bor);font-size:12px;line-height:1.5}
+.log-time{font-family:'Cinzel',serif;font-size:9px;color:var(--muted)}
+.log-msg{color:var(--text)}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bor2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="pw-screen" id="pw-screen">
+  <div class="pw-box">
+    <div class="pw-ttl">Paragon</div>
+    <div class="pw-sub">Weaver Access</div>
+    <input class="pw-in" id="pw-in" type="password" placeholder="Password" autocomplete="current-password">
+    <button class="pw-btn" onclick="checkPw()">Enter</button>
+    <div class="pw-err" id="pw-err" style="display:none">Incorrect</div>
+  </div>
+</div>
+
+<div class="layout" id="app" style="display:none">
+  <header class="hdr">
+    <span style="font-size:20px">🌒</span>
+    <div><div class="hdr-ttl">Paragon</div><div class="hdr-sub">Weaver Screen</div></div>
+    <div class="sync" id="sync"></div>
+  </header>
+  <div class="main">
+    <nav class="sidebar">
+      <div class="sb-item on" data-tab="overview">🗺 Overview</div>
+      <div class="sb-item" data-tab="jury">⚖ Jury</div>
+      <div class="sb-item" data-tab="npcs">👥 NPCs</div>
+      <div class="sb-item" data-tab="pull">⚡ Pull &amp; Harm</div>
+      <div class="sb-item" data-tab="moves">📖 Moves</div>
+      <div class="sb-item" data-tab="tools">🔧 Tools</div>
+      <div class="sb-item" data-tab="log">📜 Log</div>
+    </nav>
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <div class="tab-pane on" id="tab-overview">
+        <div class="char-grid" id="char-grid"></div>
+      </div>
+
+      <!-- JURY -->
+      <div class="tab-pane" id="tab-jury">
+        <div class="jury-box">
+          <div class="jury-ttl">⚖ Jury</div>
+          <div id="jury-session-info"></div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button class="btn btn-acc" id="jury-start-btn" onclick="juryStart()">Start Session</button>
+            <button class="btn btn-ghost" id="jury-end-btn" onclick="juryEnd()" style="display:none">End Session</button>
+          </div>
+          <div id="jury-items-list"></div>
+          <div class="divider"></div>
+          <div class="stitle">Add Item <div class="stitle-bar"></div></div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <select class="ai" id="jury-char-sel" style="flex:none;width:90px"><option value="">Char</option><option value="lewis">Lewis</option><option value="murphy">Murphy</option><option value="kara">Kara</option><option value="finn">Finn</option></select>
+            <select class="ai" id="jury-type-sel" style="flex:none;width:80px"><option value="trait">Trait</option><option value="drive">Drive</option></select>
+            <input class="ai" id="jury-text-in" style="flex:1" placeholder="Trait or Drive text…">
+            <button class="btn btn-acc" onclick="juryAddItem()">Add</button>
+          </div>
+          <div id="jury-results" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- NPCS -->
+      <div class="tab-pane" id="tab-npcs">
+        <div class="stitle">Session NPCs <div class="stitle-bar"></div></div>
+        <div id="npc-list"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input class="ai" id="npc-name-in" style="flex:1" placeholder="Name…">
+          <input class="ai" id="npc-harm-in" style="width:70px" placeholder="Harm">
+          <input class="ai" id="npc-notes-in" style="flex:2" placeholder="Notes…">
+          <button class="btn btn-acc" onclick="addNpc()">Add</button>
+        </div>
+        <div class="divider"></div>
+        <div class="stitle">Quick Notes <div class="stitle-bar"></div></div>
+        <textarea class="ai" id="session-notes" style="width:100%;min-height:120px;resize:vertical" placeholder="Session notes…"></textarea>
+        <button class="btn btn-ghost" style="margin-top:8px" onclick="saveNotes()">Save Notes</button>
+        <div id="notes-saved" style="display:none;font-family:Cinzel,serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ok);margin-top:6px">Saved ✓</div>
+      </div>
+
+      <!-- PULL & HARM -->
+      <div class="tab-pane" id="tab-pull">
+        <div class="stitle">Pull Control <div class="stitle-bar"></div></div>
+        <div id="pull-controls"></div>
+        <div class="divider"></div>
+        <div class="stitle">Apply Harm <div class="stitle-bar"></div></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select class="ai" id="harm-char-sel" style="width:100px"><option value="">Target…</option><option value="lewis">Lewis</option><option value="murphy">Murphy</option><option value="kara">Kara</option><option value="finn">Finn</option></select>
+          <input class="ai" id="harm-name-in" style="flex:1;min-width:120px" placeholder="Condition name…">
+          <input class="ai" id="harm-val-in" style="width:60px" type="number" placeholder="Harm" min="1" max="9" value="1">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap"><input type="checkbox" id="harm-unstable" style="accent-color:var(--warn)"> Unstable</label>
+          <button class="btn btn-harm" onclick="applyHarm()">Apply Harm</button>
+        </div>
+        <div class="divider"></div>
+        <div class="stitle">Markup Mode <div class="stitle-bar"></div></div>
+        <div id="markup-controls"></div>
+        <div class="divider"></div>
+        <div class="stitle">Advancement Awards <div class="stitle-bar"></div></div>
+        <div id="adv-controls"></div>
+      </div>
+
+      <!-- MOVES EDITOR -->
+      <div class="tab-pane" id="tab-moves" style="padding:0">
+        <div class="moves-layout">
+          <div class="tree-panel" id="tree-panel"></div>
+          <div class="editor-panel" id="editor-panel"><div class="empty">Select a playbook from the tree</div></div>
+        </div>
+      </div>
+
+      <!-- TOOLS -->
+      <div class="tab-pane" id="tab-tools">
+        <div class="stitle">Patronage Grants <div class="stitle-bar"></div></div>
+        <div id="patronage-section"></div>
+        <div class="divider"></div>
+        <div class="stitle">Send Equipment <div class="stitle-bar"></div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
+          <select class="ai" id="eq-char-sel" style="width:100px"><option value="">Recipient…</option><option value="lewis">Lewis</option><option value="murphy">Murphy</option><option value="kara">Kara</option><option value="finn">Finn</option></select>
+          <input class="ai" id="eq-name-in" style="flex:1;min-width:100px" placeholder="Item name…">
+          <input class="ai" id="eq-harm-in" style="width:70px" placeholder="Harm">
+          <input class="ai" id="eq-tags-in" style="flex:1;min-width:100px" placeholder="Tags…">
+          <input class="ai" id="eq-notes-in" style="flex:2;min-width:120px" placeholder="Notes…">
+          <button class="btn btn-acc" onclick="sendEquipment()">Send</button>
+        </div>
+        <div class="divider"></div>
+        <div class="stitle">Jury Award — Mortal Track <div class="stitle-bar"></div></div>
+        <div style="display:flex;gap:8px">
+          <select class="ai" id="award-char" style="flex:1"><option value="">Character…</option><option value="lewis">Lewis</option><option value="murphy">Murphy</option><option value="kara">Kara</option><option value="finn">Finn</option></select>
+          <button class="btn btn-ok" onclick="awardMortalTrack()">+1 Mortal Track</button>
+        </div>
+      </div>
+
+      <!-- LOG -->
+      <div class="tab-pane" id="tab-log">
+        <div class="stitle">Activity Log <div class="stitle-bar"></div></div>
+        <div id="log-list"></div>
+        <button class="btn btn-ghost" style="margin-top:8px" onclick="clearLog()">Clear Log</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="warn-modal-bg" id="warn-modal-bg">
+  <div class="warn-modal">
+    <div class="warn-ttl" id="warn-ttl">Warning</div>
+    <div class="warn-body" id="warn-body"></div>
+    <div class="warn-btns" id="warn-btns"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'YOUR_SUPABASE_URL'
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY'
+const PW = '112899'
+
+let db, _npcs=[], _notes='', _log=[], _juryState={active:false,session_id:null,items:[],votes:{},current_index:0}
+const D={chars:{},playbooks:[],gods:[],pantheons:[],moves:[],charMoves:{},patronage:{}}
+
+function checkPw(){
+  const v=document.getElementById('pw-in').value
+  if(v===PW){document.getElementById('pw-screen').style.display='none';document.getElementById('app').style.display='grid';init()}
+  else{const e=document.getElementById('pw-err');e.style.display='block';setTimeout(()=>e.style.display='none',2000)}
+}
+document.getElementById('pw-in').addEventListener('keydown',e=>e.key==='Enter'&&checkPw())
+
+document.querySelectorAll('.sb-item').forEach(s=>s.addEventListener('click',()=>{
+  document.querySelectorAll('.sb-item').forEach(x=>x.classList.toggle('on',x===s))
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('on',p.id==='tab-'+s.dataset.tab))
+  if(s.dataset.tab==='moves')renderMovesTree()
+}))
+
+async function init(){
+  db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionFromUrl:false}})
+  await loadAll(); subscribeRealtime(); renderAll()
+  const n=localStorage.getItem('dm_notes'); if(n)document.getElementById('session-notes').value=n
+  const np=localStorage.getItem('dm_npcs'); if(np){_npcs=JSON.parse(np);renderNpcs()}
+  const lg=localStorage.getItem('dm_log'); if(lg){_log=JSON.parse(lg);renderLog()}
+}
+
+async function loadAll(){
+  sync('saving')
+  const [charsRes,pbRes,godRes,panRes,movesRes,cmRes,patRes]=await Promise.all([
+    db.from('characters').select('*').in('id',['lewis','murphy','kara','finn']),
+    db.from('playbooks').select('*').order('type').order('name'),
+    db.from('gods').select('*'),
+    db.from('pantheons').select('*'),
+    db.from('moves').select('*').order('order_index'),
+    db.from('character_moves').select('*'),
+    db.from('character_patronage').select('*'),
+  ])
+  if(charsRes.error){sync('err');return}
+  charsRes.data.forEach(c=>{D.chars[c.id]=c})
+  D.playbooks=pbRes.data||[]
+  D.gods=godRes.data||[]
+  D.pantheons=panRes.data||[]
+  D.moves=movesRes.data||[]
+  D.charMoves={}
+  ;(cmRes.data||[]).forEach(r=>{
+    if(!D.charMoves[r.character_id])D.charMoves[r.character_id]=new Set()
+    D.charMoves[r.character_id].add(r.move_id)
+  })
+  D.patronage={}
+  ;(patRes.data||[]).forEach(r=>{
+    if(!D.patronage[r.character_id])D.patronage[r.character_id]=[]
+    D.patronage[r.character_id].push(r)
+  })
+  sync('ok')
+}
+
+function subscribeRealtime(){
+  db.channel('dm-watch')
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'characters'},p=>{D.chars[p.new.id]=p.new;renderOverview();renderPullControls();renderMarkupControls();renderAdvControls()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'character_moves'},async()=>{
+      const {data}=await db.from('character_moves').select('*')
+      D.charMoves={}; data.forEach(r=>{if(!D.charMoves[r.character_id])D.charMoves[r.character_id]=new Set();D.charMoves[r.character_id].add(r.move_id)})
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'character_patronage'},async()=>{
+      const {data}=await db.from('character_patronage').select('*')
+      D.patronage={}; data.forEach(r=>{if(!D.patronage[r.character_id])D.patronage[r.character_id]=[];D.patronage[r.character_id].push(r)})
+      renderPatronage()
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'moves'},async()=>{
+      const {data}=await db.from('moves').select('*').order('order_index')
+      D.moves=data||[]; if(document.getElementById('tab-moves').classList.contains('on'))renderMovesTree()
+    })
+    .subscribe()
+  db.channel('jury-bc')
+    .on('broadcast',{event:'vote'},({payload})=>{
+      if(!_juryState.votes[_juryState.current_index])_juryState.votes[_juryState.current_index]={}
+      _juryState.votes[_juryState.current_index][payload.character]=payload.vote
+      broadcastJury(); renderJury()
+    })
+    .subscribe()
+}
+
+function renderAll(){renderOverview();renderJury();renderNpcs();renderPullControls();renderMarkupControls();renderAdvControls();renderPatronage()}
+
+// ── OVERVIEW ──────────────────────────────────────────────────
+function renderOverview(){
+  const grid=document.getElementById('char-grid'); if(!grid) return
+  const CHARS=['lewis','murphy','kara','finn']
+  grid.innerHTML=CHARS.map(id=>{
+    const c=D.chars[id]||{}; const pb=D.playbooks.find(p=>p.id===c.playbook_id)||{}
+    const god=D.gods.find(g=>g.id===c.god_id)||{}
+    const conds=(c.conditions||[])
+    const harm=conds.reduce((s,x)=>s+(x.harm||0),0)
+    const lim=(c.harm_limit||10)+(pb.harm_limit_bonus||0)
+    const harmPct=Math.min(100,Math.round(harm/lim*100))
+    const harmColor=harmPct>66?'var(--harm)':harmPct>33?'var(--warn)':'var(--ok)'
+    return `<div class="char-card">
+      <div class="char-card-hdr">
+        <div class="char-ava">${esc(pb.emoji||'⚡')}</div>
+        <div>
+          <div class="char-name">${id.charAt(0).toUpperCase()+id.slice(1)}</div>
+          <div class="char-sub">${esc(pb.name||'—')} · ${esc(god.name||'—')}</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div class="harm-display"><span class="h">${harm}</span><span class="lim"> / ${lim}</span></div>
+          <div style="font-family:Cinzel,serif;font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${harmColor}">HARM</div>
+        </div>
+      </div>
+      <div class="char-body">
+        <div class="stat-row">
+          <span class="stat-lbl">Momentum</span>
+          ${['wisdom','grit','bond'].map(tr=>`<span style="font-family:Cinzel,serif;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">${tr.charAt(0).toUpperCase()}</span>${pipsHtml(c[tr]||0,4,'')}`).join('')}
+        </div>
+        <div class="stat-row">
+          <span class="stat-lbl">Pull</span>
+          ${pullHtml(c.pull||0)}
+          <span class="stat-lbl" style="margin-left:8px">Adv</span>
+          <span style="font-family:Cinzel,serif;font-size:8px;color:#60a5fa">${c.mortal_track||0}/4</span>
+          <span style="color:var(--muted)">M</span>
+          <span style="font-family:Cinzel,serif;font-size:8px;color:var(--acc-l)">${c.divine_track||0}/4</span>
+          <span style="color:var(--muted)">D</span>
+        </div>
+        ${conds.length?`<div class="cond-list">${conds.map(c=>`<div class="cond-pill${c.unstable?' unstable':''}">${esc(c.name)}<span class="h">${c.harm}</span>${c.unstable?'<span class="tag warn">⚠</span>':''}</div>`).join('')}</div>`:''}
+        ${c.markup_mode?'<div class="tag warn" style="text-align:center">✏ Markup Mode On</div>':''}
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-acc btn-sm" onclick="grantAdvTrack('${id}','divine')">+Divine Track</button>
+        <button class="btn btn-ghost" onclick="toggleMarkup('${id}')">Markup ${c.markup_mode?'Off':'On'}</button>
+        <button class="btn btn-harm" onclick="quickHarmModal('${id}')">Apply Harm</button>
+      </div>
+    </div>`
+  }).join('')
+}
+
+function pipsHtml(v,max,cl){
+  let h='<div class="pips">'
+  for(let i=0;i<max;i++) h+=`<div class="pip${cl?` ${cl}`:''} ${i<v?'on':''}"></div>`
+  return h+'</div>'
+}
+function pullHtml(p){
+  let h='<div class="pull-track">'
+  for(let v=-3;v<=3;v++) h+=`<div class="pull-step${v===p?' active':''}">${v>0?'+'+v:v===0?'0':''+v}</div>`
+  return h+'</div>'
+}
+
+// ── JURY ──────────────────────────────────────────────────────
+function renderJury(){
+  const si=document.getElementById('jury-session-info'), list=document.getElementById('jury-items-list'), res=document.getElementById('jury-results')
+  if(!si) return
+  const btn_s=document.getElementById('jury-start-btn'), btn_e=document.getElementById('jury-end-btn')
+  if (_juryState.active){
+    si.innerHTML=`<div class="tag info" style="margin-bottom:8px">Session Active</div>`
+    btn_s.style.display='none'; btn_e.style.display='inline-block'
+    const item=_juryState.items[_juryState.current_index]
+    list.innerHTML=item?`<div style="font-family:Cinzel,serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Current (${_juryState.current_index+1}/${_juryState.items.length}): ${esc(item.type)} — ${esc(item.character)}</div>
+      <div class="jury-item active"><span class="jury-item-txt">${esc(item.text)}</span><span class="jury-item-type">Voting</span></div>
+      ${buildVoteBar(_juryState.current_index)}
+      <div style="display:flex;gap:6px;margin-top:8px">
+        ${_juryState.current_index>0?`<button class="btn btn-ghost" onclick="juryPrev()">← Prev</button>`:''}
+        ${_juryState.current_index<_juryState.items.length-1?`<button class="btn btn-acc" onclick="juryNext()">Next →</button>`:''}
+        <button class="btn btn-ok" onclick="juryAward()">Award Mortal Track</button>
+      </div>`:
+      '<div class="empty">Add items below to begin</div>'
+    const summary=[]
+    _juryState.items.forEach((it,i)=>{
+      const votes=_juryState.votes[i]||{}; const yes=Object.values(votes).filter(v=>v).length; const total=Object.keys(votes).length
+      if(total) summary.push(`<div style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--bor)">${esc(it.character)} — ${esc(it.type)}: <span style="color:var(--text)">${esc(it.text)}</span> → <span style="color:${yes>=2?'var(--ok)':'var(--dim)'}">${yes}/${total} Yes</span></div>`)
+    })
+    if(summary.length) res.innerHTML='<div class="stitle" style="margin-top:8px">Results <div class="stitle-bar"></div></div>'+summary.join('')
+  } else {
+    si.innerHTML=''; btn_s.style.display='inline-block'; btn_e.style.display='none'
+    list.innerHTML=_juryState.items.length?_juryState.items.map((it,i)=>`<div class="jury-item"><span class="jury-item-txt">${esc(it.text)} <span style="font-family:Cinzel,serif;font-size:8px;color:var(--muted)">${esc(it.character)}</span></span><span class="jury-item-type">${esc(it.type)}</span><button class="btn btn-ghost" style="padding:2px 6px;font-size:7px" onclick="juryRemoveItem(${i})">×</button></div>`).join(''):'<div class="empty">No items added yet</div>'
+    res.innerHTML=''
+  }
+}
+
+function buildVoteBar(idx){
+  const votes=_juryState.votes[idx]||{}; const chars=['lewis','murphy','kara','finn']
+  return `<div class="vote-bar">${chars.map(c=>{
+    const v=votes[c]; const n=c.charAt(0).toUpperCase()+c.slice(1)
+    return `<div class="vote-seg ${v===undefined?'pend':v?'yes':'no'}">${n}: ${v===undefined?'?':v?'Yes':'No'}</div>`
+  }).join('')}</div>`
+}
+
+function juryStart(){if(!_juryState.items.length){toast('Add items first');return};_juryState.active=true;_juryState.current_index=0;_juryState.votes={};broadcastJury();renderJury()}
+function juryEnd(){_juryState.active=false;broadcastJury();renderJury();toast('Jury session ended')}
+function juryNext(){if(_juryState.current_index<_juryState.items.length-1){_juryState.current_index++;broadcastJury();renderJury()}}
+function juryPrev(){if(_juryState.current_index>0){_juryState.current_index--;broadcastJury();renderJury()}}
+function juryAddItem(){const ch=document.getElementById('jury-char-sel').value,type=document.getElementById('jury-type-sel').value,text=document.getElementById('jury-text-in').value.trim();if(!ch||!text)return;_juryState.items.push({character:ch,type,text});document.getElementById('jury-text-in').value='';broadcastJury();renderJury()}
+function juryRemoveItem(i){_juryState.items.splice(i,1);broadcastJury();renderJury()}
+async function juryAward(){const it=_juryState.items[_juryState.current_index];if(!it)return;const c=D.chars[it.character];if(!c)return;await db.from('characters').update({mortal_track:Math.min(4,(c.mortal_track||0)+1),updated_at:new Date().toISOString()}).eq('id',it.character);toast(it.character+' +1 Mortal Track');addLog(`Jury: ${it.character} awarded +1 Mortal Track for "${it.text}"`)}
+function broadcastJury(){db.channel('jury-bc').send({type:'broadcast',event:'jury-state',payload:{..._juryState}})}
+
+// ── NPCS ──────────────────────────────────────────────────────
+function renderNpcs(){
+  const list=document.getElementById('npc-list'); if(!list) return
+  list.innerHTML=_npcs.length?_npcs.map((n,i)=>`<div class="npc-item">
+    <div class="npc-top"><span class="npc-name">${esc(n.name)}</span>${n.harm?`<span class="npc-harm">${esc(n.harm)} Harm`:''}${`</span>`}<button class="btn btn-ghost" style="padding:2px 7px" onclick="removeNpc(${i})">×</button></div>
+    ${n.notes?`<div class="npc-notes">${esc(n.notes)}</div>`:''}
+  </div>`).join(''):'<div class="empty">No NPCs this session</div>'
+}
+function addNpc(){const name=document.getElementById('npc-name-in').value.trim();if(!name)return;_npcs.push({name,harm:document.getElementById('npc-harm-in').value.trim(),notes:document.getElementById('npc-notes-in').value.trim()});document.getElementById('npc-name-in').value='';document.getElementById('npc-harm-in').value='';document.getElementById('npc-notes-in').value='';saveLocal();renderNpcs()}
+function removeNpc(i){_npcs.splice(i,1);saveLocal();renderNpcs()}
+function saveNotes(){const n=document.getElementById('session-notes').value;localStorage.setItem('dm_notes',n);const s=document.getElementById('notes-saved');s.style.display='block';setTimeout(()=>s.style.display='none',2000)}
+function saveLocal(){localStorage.setItem('dm_npcs',JSON.stringify(_npcs));localStorage.setItem('dm_log',JSON.stringify(_log))}
+
+// ── PULL & HARM ───────────────────────────────────────────────
+function renderPullControls(){
+  const el=document.getElementById('pull-controls'); if(!el) return
+  el.innerHTML=['lewis','murphy','kara','finn'].map(id=>{
+    const c=D.chars[id]||{}; const p=c.pull||0
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px;background:var(--surf2);border:1px solid var(--bor);border-radius:var(--r)">
+      <span style="font-family:Cinzel,serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;width:60px">${id.charAt(0).toUpperCase()+id.slice(1)}</span>
+      <div style="display:flex;gap:3px">${[-3,-2,-1,0,1,2,3].map(v=>`<div class="pull-step${v===p?' active':''}" style="cursor:pointer" onclick="setPull('${id}',${v})">${v>0?'+'+v:v===0?'0':''+v}</div>`).join('')}</div>
+      <span style="font-family:Cinzel,serif;font-size:12px;font-weight:700;color:var(--acc-l);margin-left:auto">${p>0?'+'+p:p===0?'0':''+p}</span>
+    </div>`
+  }).join('')
+}
+
+async function setPull(id,v){await db.from('characters').update({pull:v,updated_at:new Date().toISOString()}).eq('id',id);D.chars[id].pull=v;renderPullControls();renderOverview()}
+
+async function applyHarm(){
+  const id=document.getElementById('harm-char-sel').value,name=document.getElementById('harm-name-in').value.trim()
+  if(!id||!name){toast('Select target and name');return}
+  const harm=parseInt(document.getElementById('harm-val-in').value)||1
+  const unstable=document.getElementById('harm-unstable').checked
+  const c=D.chars[id]; const conds=[...(c.conditions||[]),{name,harm,unstable}]
+  await db.from('characters').update({conditions:conds,updated_at:new Date().toISOString()}).eq('id',id)
+  D.chars[id].conditions=conds; document.getElementById('harm-name-in').value=''; document.getElementById('harm-val-in').value='1'; document.getElementById('harm-unstable').checked=false
+  renderOverview(); addLog(`Applied "${name}" (${harm} Harm) to ${id}`); toast('Harm applied')
+}
+
+function quickHarmModal(id){document.getElementById('harm-char-sel').value=id;document.querySelectorAll('.sb-item').forEach(s=>s.classList.toggle('on',s.dataset.tab==='pull'));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('on',p.id==='tab-pull'))}
+
+function renderMarkupControls(){
+  const el=document.getElementById('markup-controls'); if(!el) return
+  el.innerHTML=['lewis','murphy','kara','finn'].map(id=>{
+    const c=D.chars[id]||{}
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="font-family:Cinzel,serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;width:60px">${id.charAt(0).toUpperCase()+id.slice(1)}</span><button class="btn ${c.markup_mode?'btn-acc':'btn-ghost'}" onclick="toggleMarkup('${id}')">${c.markup_mode?'On — Click to Disable':'Off — Click to Enable'}</button></div>`
+  }).join('')
+}
+
+async function toggleMarkup(id){const c=D.chars[id]||{};const v=!c.markup_mode;await db.from('characters').update({markup_mode:v,updated_at:new Date().toISOString()}).eq('id',id);D.chars[id].markup_mode=v;renderMarkupControls();renderOverview();toast(id+' markup '+(v?'enabled':'disabled'))}
+
+function renderAdvControls(){
+  const el=document.getElementById('adv-controls'); if(!el) return
+  el.innerHTML=['lewis','murphy','kara','finn'].map(id=>{
+    const c=D.chars[id]||{}
+    return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+      <span style="font-family:Cinzel,serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;width:60px">${id.charAt(0).toUpperCase()+id.slice(1)}</span>
+      <span style="font-size:12px;color:var(--muted)">Mortal ${c.mortal_track||0}/4</span>
+      <button class="btn btn-ghost" onclick="awardTrack('${id}','mortal')">+M</button>
+      <span style="font-size:12px;color:var(--muted)">Divine ${c.divine_track||0}/4</span>
+      <button class="btn btn-ghost" onclick="awardTrack('${id}','divine')">+D</button>
+    </div>`
+  }).join('')
+}
+
+async function awardTrack(id,type){const c=D.chars[id]||{};const key=type+'_track';const nv=Math.min(4,(c[key]||0)+1);await db.from('characters').update({[key]:nv,updated_at:new Date().toISOString()}).eq('id',id);D.chars[id][key]=nv;renderAdvControls();renderOverview();addLog(id+' +1 '+type+' track ('+nv+'/4)')}
+async function awardMortalTrack(){const id=document.getElementById('award-char').value;if(!id)return;await awardTrack(id,'mortal')}
+
+// ── MOVES EDITOR ──────────────────────────────────────────────
+let _selectedNode=null, _editingMoveId=null
+
+function renderMovesTree(){
+  const panel=document.getElementById('tree-panel'); if(!panel) return
+  const coreCount=D.moves.filter(m=>!m.playbook_id).length
+  let h=`<div class="tree-node${_selectedNode==='core'?' on':''}" onclick="selectNode('core')"><span class="tree-caret">▶</span>Core Moves<span class="tree-count">${coreCount}</span></div>`
+  // Hero Playbooks
+  const heroes=D.playbooks.filter(p=>p.type==='hero')
+  h+=`<div class="tree-node section">Hero Playbooks</div>`
+  heroes.forEach(pb=>{
+    const cnt=D.moves.filter(m=>m.playbook_id===pb.id).length
+    const key='pb:'+pb.id
+    h+=`<div class="tree-node child${_selectedNode===key?' on':''}" onclick="selectNode('${key}')"><span style="margin-right:3px">${esc(pb.emoji||'')}</span>${esc(pb.name)}<span class="tree-count">${cnt}</span></div>`
+  })
+  // Divine (by pantheon > god > playbook)
+  D.pantheons.forEach(pan=>{
+    h+=`<div class="tree-node section">Pantheons › ${esc(pan.name)}</div>`
+    const gods=D.gods.filter(g=>g.pantheon_id===pan.id)
+    gods.forEach(god=>{
+      const divPb=D.playbooks.find(p=>p.god_id===god.id&&p.type==='divine')
+      if(!divPb) return
+      const branches=[...new Set(D.moves.filter(m=>m.playbook_id===divPb.id).map(m=>m.branch||'General'))]
+      const cnt=D.moves.filter(m=>m.playbook_id===divPb.id).length
+      const godKey='pb:'+divPb.id
+      h+=`<div class="tree-node child${_selectedNode===godKey?' on':''}" onclick="selectNode('${godKey}')"><span style="margin-right:3px">${esc(divPb.emoji||'')}</span>${esc(god.name)}<span class="tree-count">${cnt}</span></div>`
+      if(branches.length>1) branches.forEach(br=>{
+        const bKey='branch:'+divPb.id+':'+br, bCnt=D.moves.filter(m=>m.playbook_id===divPb.id&&(m.branch||'General')===br).length
+        h+=`<div class="tree-node grandchild${_selectedNode===bKey?' on':''}" onclick="selectNode('${bKey}')">↳ ${esc(br)}<span class="tree-count">${bCnt}</span></div>`
+      })
+    })
+  })
+  panel.innerHTML=h
+}
+
+function selectNode(key){
+  _selectedNode=key; _editingMoveId=null; renderMovesTree(); renderMoveList()
+}
+
+function renderMoveList(){
+  const panel=document.getElementById('editor-panel'); if(!panel) return
+  let moves=[], pbId=null, title='', branchFilter=null
+  if(_selectedNode==='core'){moves=D.moves.filter(m=>!m.playbook_id);title='Core Moves'}
+  else if(_selectedNode?.startsWith('pb:')){pbId=_selectedNode.slice(3);moves=D.moves.filter(m=>m.playbook_id===pbId);const pb=D.playbooks.find(p=>p.id===pbId);title=pb?.name||'Playbook'}
+  else if(_selectedNode?.startsWith('branch:')){const parts=_selectedNode.split(':');pbId=parts[1];branchFilter=parts[2];moves=D.moves.filter(m=>m.playbook_id===pbId&&(m.branch||'General')===branchFilter);title=branchFilter}
+  if(!_selectedNode){panel.innerHTML='<div class="empty">Select a playbook from the tree</div>';return}
+  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="font-family:Cinzel Decorative,serif;font-size:16px;color:var(--acc-l)">${esc(title)}</div><button class="btn btn-acc" onclick="startNewMove('${esc(pbId||'')}','${esc(branchFilter||'')}')">+ New Move</button></div>`
+  if(moves.length){
+    moves.forEach(m=>{
+      h+=`<div class="move-list-item${_editingMoveId===m.id?' editing':''}" onclick="editMove('${m.id}')">
+        <div style="flex:1"><div class="mli-name">${esc(m.name)}</div><div style="display:flex;gap:8px;margin-top:2px"><span class="mli-branch">${esc(m.branch||'')}</span><span class="mli-tier">${esc(m.tier||'')}</span>${m.roll_score?`<span class="tag ok">${esc(m.roll_score)}</span>`:''}</div></div>
+        <button class="btn btn-harm" style="padding:3px 8px;font-size:7px" onclick="event.stopPropagation();confirmDeleteMove('${m.id}','${esc(m.name)}')">Del</button>
+      </div>`
+    })
+  } else h+='<div class="empty">No moves yet</div>'
+  h+=`<div id="edit-form-slot"></div>`
+  panel.innerHTML=h
+  if(_editingMoveId) renderEditForm(D.moves.find(m=>m.id===_editingMoveId))
+}
+
+function startNewMove(pbId,branch){
+  _editingMoveId='new'
+  const panel=document.getElementById('editor-panel'); if(!panel) return
+  renderMoveList()
+}
+
+function editMove(id){_editingMoveId=id;renderMoveList()}
+
+function renderEditForm(move){
+  const slot=document.getElementById('edit-form-slot'); if(!slot) return
+  const isNew=_editingMoveId==='new'
+  const m=isNew?{playbook_id:_selectedNode?.startsWith('pb:')?_selectedNode.slice(3):null,branch:_selectedNode?.startsWith('branch:')?_selectedNode.split(':')[2]:'',type:'hero',outcomes:[],prereq_move_ids:[],can_take_any_order:true,is_active:true}:move
+  // Playbook peers for prereq
+  const peers=m.playbook_id?D.moves.filter(x=>x.playbook_id===m.playbook_id&&x.id!==m.id):[]
+  const outs=(m.outcomes||[])
+  let h=`<div class="edit-form" id="edit-form">
+    <div style="font-family:Cinzel,serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--acc-l);margin-bottom:12px">${isNew?'New Move':'Edit: '+esc(m.name)}</div>
+    <div class="form-grid">
+      <div class="fg full"><span class="fl">Name</span><input class="fi" id="ef-name" value="${esc(m.name||'')}"></div>
+      <div class="fg"><span class="fl">Type</span><select class="fi" id="ef-type"><option value="core"${m.type==='core'?' selected':''}>core</option><option value="hero"${m.type==='hero'?' selected':''}>hero</option><option value="divine"${m.type==='divine'?' selected':''}>divine</option><option value="feat"${m.type==='feat'?' selected':''}>feat</option></select></div>
+      <div class="fg"><span class="fl">Branch / Section</span><input class="fi" id="ef-branch" value="${esc(m.branch||'')}"></div>
+      <div class="fg"><span class="fl">Tier</span><input class="fi" id="ef-tier" value="${esc(m.tier||'')}"></div>
+      <div class="fg"><span class="fl">Order Index</span><input class="fi" id="ef-ord" type="number" value="${m.order_index||0}"></div>
+      <div class="fg"><span class="fl">Roll Score</span><select class="fi" id="ef-roll"><option value="">None</option>${['bold','sharp','slick','heart','steel','pull','varies'].map(s=>`<option value="${s}"${m.roll_score===s?' selected':''}>${s}</option>`).join('')}</select></div>
+      <div class="fg full"><span class="fl">Trigger (When…)</span><textarea class="fi" id="ef-trigger">${esc(m.trigger_text||'')}</textarea></div>
+      <div class="fg full"><span class="fl">Body (Passive / No-Roll)</span><textarea class="fi" style="min-height:80px" id="ef-body">${esc(m.body||'')}</textarea></div>
+    </div>
+    <div style="margin:10px 0 6px"><span class="fl">Outcomes</span></div>
+    <div id="ef-outs">${outs.map((o,i)=>outcomeRow(i,o)).join('')}</div>
+    <button class="btn btn-ghost" style="margin-bottom:10px" onclick="addOutcomeRow()">+ Add Outcome</button>
+    <div style="margin-bottom:6px"><span class="fl">Note</span><input class="fi" id="ef-note" value="${esc(m.note||'')}"></div>
+    <div style="margin-bottom:6px">
+      <span class="fl" style="display:block;margin-bottom:4px">Prerequisites (from same playbook)</span>
+      <div class="prereq-sel" id="ef-prereqs">
+        ${peers.map(p=>`<label class="prereq-item"><input type="checkbox" value="${p.id}" ${(m.prereq_move_ids||[]).includes(p.id)?'checked':''}>${esc(p.name)}</label>`).join('')}
+        ${!peers.length?'<span style="color:var(--dim);font-size:12px;font-style:italic">No moves in this playbook yet</span>':''}
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="ef-anyorder" ${m.can_take_any_order?'checked':''} style="accent-color:var(--acc)"> Any order (prereqs not enforced)</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="ef-active" ${m.is_active!==false?'checked':''} style="accent-color:var(--ok)"> Active (visible to players)</label>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-acc" onclick="saveMove('${isNew?'new':m.id}')">Save Move</button>
+      <button class="btn btn-ghost" onclick="_editingMoveId=null;renderMoveList()">Cancel</button>
+    </div>
+  </div>`
+  slot.innerHTML=h
+}
+
+function outcomeRow(i,o){
+  return `<div class="out-row" id="out-row-${i}">
+    <span class="out-row-num">${i+1}</span>
+    <div style="display:flex;flex-direction:column;gap:4px;flex:1">
+      <div style="display:flex;gap:6px">
+        <select class="fi" id="out-tier-${i}" style="width:100px"><option value="success"${o.tier==='success'?' selected':''}>success</option><option value="partial"${o.tier==='partial'?' selected':''}>partial</option><option value="fail"${o.tier==='fail'?' selected':''}>fail</option></select>
+        <input class="fi" id="out-lbl-${i}" value="${esc(o.label||'')}" placeholder="Label (e.g. 10+)" style="flex:1">
+      </div>
+      <textarea class="fi" id="out-txt-${i}" style="min-height:44px">${esc(o.text||'')}</textarea>
+    </div>
+    <button class="out-remove" onclick="removeOutcomeRow(${i})">×</button>
+  </div>`
+}
+let _outcomeCount=0
+function addOutcomeRow(){
+  const container=document.getElementById('ef-outs'); if(!container) return
+  _outcomeCount=(container.children.length)
+  const div=document.createElement('div'); div.innerHTML=outcomeRow(_outcomeCount,{tier:'fail',label:'',text:''}); container.appendChild(div.firstChild)
+}
+function removeOutcomeRow(i){const el=document.getElementById('out-row-'+i);if(el)el.remove()}
+
+function collectOutcomes(){
+  const container=document.getElementById('ef-outs'); if(!container) return []
+  return Array.from(container.querySelectorAll('.out-row')).map((row,i)=>{
+    const idx=row.id.replace('out-row-','')
+    return {tier:document.getElementById('out-tier-'+idx)?.value||'fail',label:document.getElementById('out-lbl-'+idx)?.value||'',text:document.getElementById('out-txt-'+idx)?.value||''}
+  }).filter(o=>o.text)
+}
+
+async function saveMove(id){
+  const name=document.getElementById('ef-name')?.value?.trim(); if(!name){toast('Name required');return}
+  const prereqs=Array.from(document.querySelectorAll('#ef-prereqs input:checked')).map(c=>c.value)
+  const payload={
+    name, type:document.getElementById('ef-type')?.value||'hero',
+    branch:document.getElementById('ef-branch')?.value?.trim()||null,
+    tier:document.getElementById('ef-tier')?.value?.trim()||null,
+    order_index:parseInt(document.getElementById('ef-ord')?.value)||0,
+    roll_score:document.getElementById('ef-roll')?.value||null,
+    trigger_text:document.getElementById('ef-trigger')?.value?.trim()||null,
+    body:document.getElementById('ef-body')?.value?.trim()||null,
+    outcomes:collectOutcomes(),
+    note:document.getElementById('ef-note')?.value?.trim()||null,
+    prereq_move_ids:prereqs,
+    can_take_any_order:document.getElementById('ef-anyorder')?.checked??true,
+    is_active:document.getElementById('ef-active')?.checked??true,
+    updated_at:new Date().toISOString()
+  }
+  if(_selectedNode?.startsWith('pb:')&&!payload.playbook_id) payload.playbook_id=_selectedNode.slice(3)
+  if(id==='new'){const{data,error}=await db.from('moves').insert({...payload,playbook_id:_selectedNode?.startsWith('pb:')?_selectedNode.slice(3):null}).select().single();if(error){toast('Error: '+error.message);return};D.moves.push(data);addLog('Created move: '+name)}
+  else{const{error}=await db.from('moves').update(payload).eq('id',id);if(error){toast('Error: '+error.message);return};const idx=D.moves.findIndex(m=>m.id===id);if(idx>=0)D.moves[idx]={...D.moves[idx],...payload};addLog('Updated move: '+name)}
+  _editingMoveId=null; renderMovesTree(); renderMoveList(); toast('Saved!')
+}
+
+function confirmDeleteMove(id,name){
+  // Check which characters have this move
+  const holders=Object.entries(D.charMoves).filter(([,s])=>s.has(id)).map(([c])=>c)
+  const body=holders.length?`<b>${esc(holders.join(', '))}</b> ${holders.length===1?'has':'have'} this move unlocked. Deleting it will remove it from their sheet.`:`No characters have this move unlocked. Safe to delete.`
+  showWarn('Delete "'+esc(name)+'"?',body,[
+    {label:'Delete',cls:'btn-harm',action:()=>deleteMove(id,name)},
+    {label:'Cancel',cls:'btn-ghost',action:()=>closeWarn()}
+  ])
+}
+
+async function deleteMove(id,name){
+  closeWarn()
+  const{error}=await db.from('moves').delete().eq('id',id)
+  if(error){toast('Error: '+error.message);return}
+  D.moves=D.moves.filter(m=>m.id!==id)
+  Object.values(D.charMoves).forEach(s=>s.delete(id))
+  _editingMoveId=null; renderMovesTree(); renderMoveList(); addLog('Deleted move: '+name); toast('Deleted')
+}
+
+// ── TOOLS: PATRONAGE ──────────────────────────────────────────
+function renderPatronage(){
+  const sec=document.getElementById('patronage-section'); if(!sec) return
+  const divinePlaybooks=D.playbooks.filter(p=>p.type==='divine')
+  sec.innerHTML=['lewis','murphy','kara','finn'].map(id=>{
+    const c=D.chars[id]||{}; const birthGodId=c.god_id
+    const granted=(D.patronage[id]||[]).map(p=>p.playbook_id)
+    const available=divinePlaybooks.filter(pb=>{
+      const isOwn=D.gods.find(g=>g.id===birthGodId)?.id&&D.playbooks.find(p=>p.god_id===birthGodId&&p.id===pb.id)
+      return !isOwn&&!granted.includes(pb.id)
+    })
+    const currentPatrons=(D.patronage[id]||[]).map(p=>{const pb=divinePlaybooks.find(x=>x.id===p.playbook_id);return pb?esc(pb.emoji||'')+'&nbsp;'+esc(pb.name||''):''}).filter(Boolean)
+    return `<div style="background:var(--surf2);border:1px solid var(--bor);border-radius:var(--r);padding:10px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-family:Cinzel,serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase">${id.charAt(0).toUpperCase()+id.slice(1)}</span>${currentPatrons.map(n=>`<span class="tag info">${n}</span>`).join('')}</div>
+      ${available.length?`<div style="display:flex;gap:6px;flex-wrap:wrap">${available.map(pb=>`<button class="btn btn-acc" onclick="grantPatronage('${id}','${pb.id}')">${esc(pb.emoji||'')} ${esc(pb.name||'')}</button>`).join('')}</div>`:'<div style="font-size:12px;color:var(--muted);font-style:italic">All available playbooks granted</div>'}
+      ${(D.patronage[id]||[]).length?`<div style="margin-top:6px">${(D.patronage[id]||[]).map(p=>{const pb=divinePlaybooks.find(x=>x.id===p.playbook_id);return pb?`<button class="btn btn-harm" style="margin-right:4px;font-size:7px" onclick="revokePatronage('${id}','${p.playbook_id}')">Revoke ${esc(pb.name||'')}</button>`:''}).join('')}</div>`:''}`
+  }).join('')
+}
+
+async function grantPatronage(charId,pbId){
+  const pb=D.playbooks.find(p=>p.id===pbId), god=D.gods.find(g=>g.id===pb?.god_id)
+  const{error}=await db.from('character_patronage').insert({character_id:charId,god_id:god?.id,playbook_id:pbId})
+  if(error){toast('Error: '+error.message);return}
+  if(!D.patronage[charId])D.patronage[charId]=[]
+  D.patronage[charId].push({character_id:charId,god_id:god?.id,playbook_id:pbId})
+  renderPatronage(); addLog(`Granted ${pb?.name||pbId} patronage to ${charId}`); toast('Patronage granted')
+}
+
+async function revokePatronage(charId,pbId){
+  const pb=D.playbooks.find(p=>p.id===pbId)
+  showWarn('Revoke '+esc(pb?.name||pbId)+'?',`Remove ${pb?.name||pbId} from ${charId}'s sheet. Their unlocked moves from this playbook will remain but they can't unlock new ones.`,[
+    {label:'Revoke',cls:'btn-harm',action:async()=>{closeWarn();await db.from('character_patronage').delete().eq('character_id',charId).eq('playbook_id',pbId);D.patronage[charId]=(D.patronage[charId]||[]).filter(p=>p.playbook_id!==pbId);renderPatronage();toast('Revoked')}},
+    {label:'Cancel',cls:'btn-ghost',action:()=>closeWarn()}
+  ])
+}
+
+async function sendEquipment(){
+  const id=document.getElementById('eq-char-sel').value; if(!id){toast('Select target');return}
+  const name=document.getElementById('eq-name-in').value.trim(); if(!name){toast('Name required');return}
+  const c=D.chars[id]||{}; const inv=[...(c.inventory||[]),{name,harm:document.getElementById('eq-harm-in').value.trim(),tags:document.getElementById('eq-tags-in').value.trim(),notes:document.getElementById('eq-notes-in').value.trim()}]
+  await db.from('characters').update({inventory:inv,updated_at:new Date().toISOString()}).eq('id',id)
+  D.chars[id].inventory=inv; document.getElementById('eq-name-in').value=''; document.getElementById('eq-harm-in').value=''; document.getElementById('eq-tags-in').value=''; document.getElementById('eq-notes-in').value=''
+  addLog(`Sent "${name}" to ${id}`); toast('Equipment sent')
+}
+
+async function grantAdvTrack(id,type){await awardTrack(id,type)}
+
+// ── WARN MODAL ────────────────────────────────────────────────
+function showWarn(ttl,body,btns){
+  document.getElementById('warn-ttl').textContent=ttl
+  document.getElementById('warn-body').innerHTML=body
+  document.getElementById('warn-btns').innerHTML=btns.map((b,i)=>`<button class="btn ${b.cls}" onclick="_warnActions[${i}]()">${b.label}</button>`).join('')
+  window._warnActions=btns.map(b=>b.action)
+  document.getElementById('warn-modal-bg').classList.add('on')
+}
+function closeWarn(){document.getElementById('warn-modal-bg').classList.remove('on')}
+
+// ── LOG ───────────────────────────────────────────────────────
+function renderLog(){
+  const el=document.getElementById('log-list'); if(!el) return
+  el.innerHTML=_log.length?[..._log].reverse().map(e=>`<div class="log-item"><div class="log-time">${e.time}</div><div class="log-msg">${esc(e.msg)}</div></div>`).join(''):'<div class="empty">No activity yet</div>'
+}
+function addLog(msg){_log.push({time:new Date().toLocaleTimeString(),msg});if(_log.length>200)_log=_log.slice(-200);saveLocal();renderLog()}
+function clearLog(){_log=[];saveLocal();renderLog()}
+
+// ── UTILS ─────────────────────────────────────────────────────
+function sync(s){const el=document.getElementById('sync');if(el)el.className='sync'+(s!=='ok'?' '+s:'')}
+function esc(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function toast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),3000)}
+</script>
+</body>
+</html>
