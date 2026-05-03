@@ -608,8 +608,8 @@ select.input{cursor:pointer}
 <div class="toast" id="toast"></div>
 
 <script>
-const SUPABASE_URL = 'https://hcrfqtwpraerheiuirem.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_C3dTYXnpaYOg1QCBgXMcBQ_V9cE4Na1'
+const SUPABASE_URL = 'YOUR_SUPABASE_URL'
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY'
 
 let db
 const G = {
@@ -689,7 +689,7 @@ async function loadAndShowChar() {
 
 async function loadAll() {
   const {data, error} = await db.from('characters').select(`
-    *, playbooks!playbook_id(*), gods!god_id(*, playbooks!fk_god_playbook(*))
+    *, playbooks!playbook_id(*), gods!god_id(*)
   `).eq('id', G.charId).maybeSingle()
   if (error || !data) return false
   G.char = data
@@ -697,7 +697,7 @@ async function loadAll() {
   G.god = data.gods
   const cond_patronage = await Promise.all([
     db.from('character_moves').select('move_id').eq('character_id', G.charId),
-    db.from('character_patronage').select('*, gods(*, playbooks(*))').eq('character_id', G.charId),
+    db.from('character_patronage').select('*, gods(*)').eq('character_id', G.charId),
     db.from('moves').select('*').is('playbook_id', null).order('order_index'),
     db.from('playbooks').select('*').order('type').order('name'),
     db.from('gods').select('*'),
@@ -708,13 +708,20 @@ async function loadAll() {
   G.coreMoves = (cond_patronage[2].data||[]).filter(m=>m.type==='core')
   G.feats = (cond_patronage[2].data||[]).filter(m=>m.type==='feat')
   G.allPlaybooks = cond_patronage[3].data||[]
-  G.allGods = cond_patronage[4].data||[]
   G.allMoves = cond_patronage[5].data||[]
+  // Attach divine playbooks to gods client-side
+  const rawGods = cond_patronage[4].data||[]
+  G.allGods = rawGods.map(god => ({
+    ...god,
+    playbooks: (cond_patronage[3].data||[]).filter(p => p.god_id === god.id && p.type === 'divine')
+  }))
+  // Attach divine playbook to the character's birth god
+  if (G.god) G.god = G.allGods.find(g => g.id === G.god.id) || G.god
   if (G.heroPlaybook) {
     const {data:hm} = await db.from('moves').select('*').eq('playbook_id', G.heroPlaybook.id).order('order_index')
     G.heroMoves = hm||[]
   }
-  // Divine moves
+  // Build divine playbook ids from birth god + patronage
   const divPbIds = []
   if (G.god?.playbooks?.[0]) divPbIds.push(G.god.playbooks[0].id)
   G.patronage.forEach(p=>{ if(p.gods?.playbooks?.[0]) divPbIds.push(p.gods.playbooks[0].id) })
@@ -767,14 +774,18 @@ function applyTheme() {
 
 // ── WIZARD ────────────────────────────────────────────────────
 async function loadWizardData() {
-  const [pbRes, godRes] = await Promise.all([
+  const [pbRes, godRes, mvRes] = await Promise.all([
     db.from('playbooks').select('*').order('name'),
-    db.from('gods').select('*, playbooks!fk_god_playbook(*)').order('name')
+    db.from('gods').select('*').order('name'),
+    db.from('moves').select('*').order('order_index')
   ])
   G.allPlaybooks = pbRes.data||[]
-  G.allGods = godRes.data||[]
-  const {data:mv} = await db.from('moves').select('*').order('order_index')
-  G.allMoves = mv||[]
+  G.allMoves = mvRes.data||[]
+  // Attach divine playbook to each god client-side
+  G.allGods = (godRes.data||[]).map(god => ({
+    ...god,
+    playbooks: (pbRes.data||[]).filter(p => p.god_id === god.id && p.type === 'divine')
+  }))
 }
 
 function restoreWizardState() {
@@ -834,7 +845,7 @@ function renderHeroPbGrid() {
       <div class="pb-moves-preview" id="hpbprev-${pb.id}">
         ${moves.map(m=>`<div class="preview-move">
           <span class="preview-move-name">${esc(m.name)}</span>
-          <span style="font-size:13px;color:var(--muted)">${esc(m.body||m.trigger_text||'').substring(0,100)}${(m.body||m.trigger_text||'').length>100?'…':''}</span>
+          <span style="font-size:13px;color:var(--muted);line-height:1.5;display:block">${esc(m.body||m.trigger_text||'')}</span>
         </div>`).join('')}
       </div>
     </div>`
@@ -870,7 +881,7 @@ function renderDivinePbGrid() {
       <div class="pb-moves-preview" id="dpbprev-${pb.id}">
         ${moves.map(m=>`<div class="preview-move">
           <span class="preview-move-name">${esc(m.branch||'')} — ${esc(m.name)}</span>
-          <span style="font-size:13px;color:var(--muted)">${esc(m.body||m.trigger_text||'').substring(0,100)}${(m.body||m.trigger_text||'').length>100?'…':''}</span>
+          <span style="font-size:13px;color:var(--muted);line-height:1.5;display:block">${esc(m.body||m.trigger_text||'')}</span>
         </div>`).join('')}
       </div>
     </div>`
