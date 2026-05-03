@@ -287,8 +287,8 @@ select.fi{cursor:pointer}
 <div class="toast" id="toast"></div>
 
 <script>
-const SUPABASE_URL = 'https://hcrfqtwpraerheiuirem.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_C3dTYXnpaYOg1QCBgXMcBQ_V9cE4Na1'
+const SUPABASE_URL = 'YOUR_SUPABASE_URL'
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY'
 const PW = '112899'
 
 let db, _npcs=[], _notes='', _log=[], _juryState={active:false,session_id:null,items:[],votes:{},current_index:0}
@@ -620,11 +620,36 @@ function renderPlaybookForm(pbId, forceType){
     <div class="fg"><span class="fl">Harm Limit Bonus</span><input class="fi" id="pb-harm-bonus" type="number" value="${pb?.harm_limit_bonus||0}"></div>
     <div class="fg full"><span class="fl">Description</span><textarea class="fi" id="pb-desc">${esc(pb?.description||'')}</textarea></div>
   </div>
-  <div style="display:flex;gap:8px;margin-top:14px">
+  <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
     <button class="btn btn-acc" onclick="savePlaybook('${pbId||'new'}','${forceType||''}')">Save Playbook</button>
     ${pb?`<button class="btn btn-ghost" onclick="selectNode('pb:${pb.id}')">View Moves →</button>`:''}
+    ${pb?`<button class="btn btn-harm" onclick="confirmDeletePlaybook('${pb.id}','${esc(pb.name)}')">Delete Playbook</button>`:''}
     <button class="btn btn-ghost" onclick="renderEditorPanel()">Cancel</button>
   </div>`
+}
+
+function confirmDeletePlaybook(id, name){
+  const chars=Object.values(D.chars).filter(c=>c.playbook_id===id||c.divine_playbook_id===id).map(c=>c.display_name||c.id)
+  const moveCount=D.moves.filter(m=>m.playbook_id===id).length
+  const body=`This will permanently delete the playbook and all ${moveCount} of its moves.${chars.length?` <b>${esc(chars.join(', '))}</b> currently ${chars.length===1?'has':'have'} this playbook assigned — it will be removed from their sheet.`:' No characters are currently using it.'}`
+  showWarn('Delete "'+esc(name)+'"?',body,[
+    {label:'Delete Everything',cls:'btn-harm',action:()=>deletePlaybook(id,name)},
+    {label:'Cancel',cls:'btn-ghost',action:()=>closeWarn()}
+  ])
+}
+
+async function deletePlaybook(id, name){
+  closeWarn()
+  // Moves cascade via FK, but clear character references first
+  await db.from('characters').update({playbook_id:null}).eq('playbook_id',id)
+  await db.from('characters').update({divine_playbook_id:null}).eq('divine_playbook_id',id)
+  await db.from('character_patronage').delete().eq('playbook_id',id)
+  const{error}=await db.from('playbooks').delete().eq('id',id)
+  if(error){toast('Error: '+error.message);return}
+  D.playbooks=D.playbooks.filter(p=>p.id!==id)
+  D.moves=D.moves.filter(m=>m.playbook_id!==id)
+  _selectedNode=null; renderMovesTree(); document.getElementById('editor-panel').innerHTML='<div class="empty">Playbook deleted</div>'
+  addLog('Deleted playbook: '+name); toast('Deleted')
 }
 
 async function savePlaybook(id, forceType){
@@ -712,10 +737,35 @@ function renderGodForm(godId, pantheonId){
     <div class="fg full"><span class="fl">Instrument Demand (short)</span><input class="fi" id="god-inst-demand" value="${esc(god?.instrument_demand||'')}" placeholder="Follow where death leads…"></div>
     <div class="fg full"><span class="fl">Instrument Detail (full Comply/Refuse text)</span><textarea class="fi" style="min-height:100px" id="god-inst-detail">${esc(god?.instrument_detail||'')}</textarea></div>
   </div>
-  <div style="display:flex;gap:8px;margin-top:14px">
+  <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
     <button class="btn btn-acc" onclick="saveGod('${godId||'new'}','${panId}')">Save God</button>
+    ${god?`<button class="btn btn-harm" onclick="confirmDeleteGod('${god.id}','${esc(god.name)}')">Delete God</button>`:''}
     <button class="btn btn-ghost" onclick="renderEditorPanel()">Cancel</button>
   </div>`
+}
+
+function confirmDeleteGod(id, name){
+  const divPb=D.playbooks.find(p=>p.god_id===id&&p.type==='divine')
+  const moveCount=divPb?D.moves.filter(m=>m.playbook_id===divPb.id).length:0
+  const chars=Object.values(D.chars).filter(c=>c.god_id===id).map(c=>c.display_name||c.id)
+  const body=`Deletes the god${divPb?`, their divine playbook, and all ${moveCount} of its moves`:''}.${chars.length?` <b>${esc(chars.join(', '))}</b> currently ${chars.length===1?'has':'have'} this god assigned.`:' No characters are assigned to this god.'}`
+  showWarn('Delete "'+esc(name)+'"?',body,[
+    {label:'Delete',cls:'btn-harm',action:()=>deleteGod(id,name)},
+    {label:'Cancel',cls:'btn-ghost',action:()=>closeWarn()}
+  ])
+}
+
+async function deleteGod(id, name){
+  closeWarn()
+  const divPb=D.playbooks.find(p=>p.god_id===id&&p.type==='divine')
+  if(divPb) await deletePlaybook(divPb.id, divPb.name).catch(()=>{})
+  await db.from('characters').update({god_id:null}).eq('god_id',id)
+  await db.from('character_patronage').delete().eq('god_id',id)
+  const{error}=await db.from('gods').delete().eq('id',id)
+  if(error){toast('Error: '+error.message);return}
+  D.gods=D.gods.filter(g=>g.id!==id)
+  _selectedNode=null; renderMovesTree(); document.getElementById('editor-panel').innerHTML='<div class="empty">God deleted</div>'
+  addLog('Deleted god: '+name); toast('Deleted')
 }
 
 async function saveGod(id, pantheonId){
