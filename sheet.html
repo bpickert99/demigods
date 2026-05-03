@@ -604,8 +604,8 @@ select.input{cursor:pointer}
 <div class="toast" id="toast"></div>
 
 <script>
-const SUPABASE_URL = 'https://hcrfqtwpraerheiuirem.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_C3dTYXnpaYOg1QCBgXMcBQ_V9cE4Na1'
+const SUPABASE_URL = 'YOUR_SUPABASE_URL'
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY'
 
 let db
 const G = {
@@ -818,7 +818,7 @@ async function step1Next() {
     await loadWizardData()
     const slug = name.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,20) + '_' + Date.now().toString(36)
     const {error} = await db.from('characters').insert({
-      id:slug, display_name:name, creation_step:1, creation_complete:false,
+      id:slug, name:name, display_name:name, creation_step:1, creation_complete:false,
       harm_limit:10, wisdom:4, grit:4, bond:4, supply:4, pull:0,
       mortal_track:0, divine_track:0, refusals:0,
       conditions:[], inventory:[], traits_drives:[], scores_set:false
