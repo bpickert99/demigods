@@ -287,8 +287,8 @@ select.fi{cursor:pointer}
 <div class="toast" id="toast"></div>
 
 <script>
-const SUPABASE_URL = 'https://hcrfqtwpraerheiuirem.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_C3dTYXnpaYOg1QCBgXMcBQ_V9cE4Na1'
+const SUPABASE_URL = 'YOUR_SUPABASE_URL'
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY'
 const PW = '112899'
 
 let db, _npcs=[], _notes='', _log=[], _juryState={active:false,session_id:null,items:[],votes:{},current_index:0}
@@ -557,36 +557,202 @@ function renderMovesTree(){
   const panel=document.getElementById('tree-panel'); if(!panel) return
   const coreCount=D.moves.filter(m=>!m.playbook_id).length
   let h=`<div class="tree-node${_selectedNode==='core'?' on':''}" onclick="selectNode('core')"><span class="tree-caret">▶</span>Core Moves<span class="tree-count">${coreCount}</span></div>`
+
   // Hero Playbooks
   const heroes=D.playbooks.filter(p=>p.type==='hero')
-  h+=`<div class="tree-node section">Hero Playbooks</div>`
+  h+=`<div class="tree-node section" style="display:flex;align-items:center;justify-content:space-between;padding-right:8px">Hero Playbooks<button onclick="event.stopPropagation();selectNode('new-hero-pb')" style="background:none;border:1px solid var(--acc);border-radius:3px;color:var(--acc-l);font-size:9px;padding:1px 6px;cursor:pointer;font-family:Cinzel,serif;font-weight:700">+</button></div>`
   heroes.forEach(pb=>{
     const cnt=D.moves.filter(m=>m.playbook_id===pb.id).length
     const key='pb:'+pb.id
     h+=`<div class="tree-node child${_selectedNode===key?' on':''}" onclick="selectNode('${key}')"><span style="margin-right:3px">${esc(pb.emoji||'')}</span>${esc(pb.name)}<span class="tree-count">${cnt}</span></div>`
   })
+
   // Divine (by pantheon > god > playbook)
   D.pantheons.forEach(pan=>{
-    h+=`<div class="tree-node section">Pantheons › ${esc(pan.name)}</div>`
+    h+=`<div class="tree-node section" style="display:flex;align-items:center;justify-content:space-between;padding-right:8px">Pantheons › ${esc(pan.name)}<button onclick="event.stopPropagation();selectNode('new-god:${pan.id}')" style="background:none;border:1px solid var(--acc);border-radius:3px;color:var(--acc-l);font-size:9px;padding:1px 6px;cursor:pointer;font-family:Cinzel,serif;font-weight:700">+</button></div>`
     const gods=D.gods.filter(g=>g.pantheon_id===pan.id)
     gods.forEach(god=>{
       const divPb=D.playbooks.find(p=>p.god_id===god.id&&p.type==='divine')
-      if(!divPb) return
-      const branches=[...new Set(D.moves.filter(m=>m.playbook_id===divPb.id).map(m=>m.branch||'General'))]
-      const cnt=D.moves.filter(m=>m.playbook_id===divPb.id).length
-      const godKey='pb:'+divPb.id
-      h+=`<div class="tree-node child${_selectedNode===godKey?' on':''}" onclick="selectNode('${godKey}')"><span style="margin-right:3px">${esc(divPb.emoji||'')}</span>${esc(god.name)}<span class="tree-count">${cnt}</span></div>`
-      if(branches.length>1) branches.forEach(br=>{
-        const bKey='branch:'+divPb.id+':'+br, bCnt=D.moves.filter(m=>m.playbook_id===divPb.id&&(m.branch||'General')===br).length
-        h+=`<div class="tree-node grandchild${_selectedNode===bKey?' on':''}" onclick="selectNode('${bKey}')">↳ ${esc(br)}<span class="tree-count">${bCnt}</span></div>`
-      })
+      const godKey=divPb?'god:'+god.id+':'+divPb.id:'god:'+god.id+':'
+      const cnt=divPb?D.moves.filter(m=>m.playbook_id===divPb.id).length:0
+      h+=`<div class="tree-node child${_selectedNode===godKey?' on':''}" onclick="selectNode('${godKey}')"><span style="margin-right:3px">${esc(divPb?.emoji||'✦')}</span>${esc(god.name)}<span class="tree-count">${cnt}</span></div>`
+      if(divPb){
+        const branches=[...new Set(D.moves.filter(m=>m.playbook_id===divPb.id).map(m=>m.branch||'General'))]
+        if(branches.length>1) branches.forEach(br=>{
+          const bKey='branch:'+divPb.id+':'+br, bCnt=D.moves.filter(m=>m.playbook_id===divPb.id&&(m.branch||'General')===br).length
+          h+=`<div class="tree-node grandchild${_selectedNode===bKey?' on':''}" onclick="selectNode('${bKey}')">↳ ${esc(br)}<span class="tree-count">${bCnt}</span></div>`
+        })
+      }
     })
   })
+  h+=`<div class="tree-node section" style="display:flex;align-items:center;justify-content:space-between;padding-right:8px">New Pantheon<button onclick="event.stopPropagation();selectNode('new-pantheon')" style="background:none;border:1px solid var(--acc);border-radius:3px;color:var(--acc-l);font-size:9px;padding:1px 6px;cursor:pointer;font-family:Cinzel,serif;font-weight:700">+</button></div>`
   panel.innerHTML=h
 }
 
 function selectNode(key){
-  _selectedNode=key; _editingMoveId=null; renderMovesTree(); renderMoveList()
+  _selectedNode=key; _editingMoveId=null; renderMovesTree(); renderEditorPanel()
+}
+
+function renderEditorPanel(){
+  if(_selectedNode?.startsWith('god:')) renderGodPanel()
+  else if(_selectedNode==='new-hero-pb') renderPlaybookForm(null,'hero')
+  else if(_selectedNode?.startsWith('new-god:')) renderGodForm(null,_selectedNode.slice(9))
+  else if(_selectedNode==='new-pantheon') renderPantheonForm()
+  else renderMoveList()
+}
+
+// ── PLAYBOOK FORM ──────────────────────────────────────────────
+function renderPlaybookForm(pbId, forceType){
+  const panel=document.getElementById('editor-panel'); if(!panel) return
+  const pb=D.playbooks.find(p=>p.id===pbId)||null
+  const isNew=!pb
+  panel.innerHTML=`<div style="font-family:Cinzel Decorative,serif;font-size:16px;color:var(--acc-l);margin-bottom:16px">${isNew?'New Playbook':'Edit Playbook'}</div>
+  <div class="form-grid">
+    <div class="fg full"><span class="fl">Name</span><input class="fi" id="pb-name" value="${esc(pb?.name||'')}"></div>
+    <div class="fg"><span class="fl">Type</span><select class="fi" id="pb-type" ${forceType?'disabled':''}>
+      <option value="hero"${(pb?.type||forceType)==='hero'?' selected':''}>Hero</option>
+      <option value="divine"${(pb?.type||forceType)==='divine'?' selected':''}>Divine</option>
+    </select></div>
+    <div class="fg"><span class="fl">Emoji</span><input class="fi" id="pb-emoji" value="${esc(pb?.emoji||'')}" placeholder="⚡"></div>
+    <div class="fg"><span class="fl">Color (hex)</span><input class="fi" id="pb-color" value="${esc(pb?.color||'#7c3aed')}" placeholder="#7c3aed"></div>
+    <div class="fg"><span class="fl">Color Light (hex)</span><input class="fi" id="pb-color-l" value="${esc(pb?.color_light||'#a78bfa')}" placeholder="#a78bfa"></div>
+    <div class="fg"><span class="fl">Color RGB</span><input class="fi" id="pb-color-rgb" value="${esc(pb?.color_rgb||'124,58,237')}" placeholder="124,58,237"></div>
+    <div class="fg"><span class="fl">Harm Limit Bonus</span><input class="fi" id="pb-harm-bonus" type="number" value="${pb?.harm_limit_bonus||0}"></div>
+    <div class="fg full"><span class="fl">Description</span><textarea class="fi" id="pb-desc">${esc(pb?.description||'')}</textarea></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn btn-acc" onclick="savePlaybook('${pbId||'new'}','${forceType||''}')">Save Playbook</button>
+    ${pb?`<button class="btn btn-ghost" onclick="selectNode('pb:${pb.id}')">View Moves →</button>`:''}
+    <button class="btn btn-ghost" onclick="renderEditorPanel()">Cancel</button>
+  </div>`
+}
+
+async function savePlaybook(id, forceType){
+  const name=document.getElementById('pb-name')?.value?.trim(); if(!name){toast('Name required');return}
+  const payload={
+    name, type:forceType||document.getElementById('pb-type')?.value||'hero',
+    emoji:document.getElementById('pb-emoji')?.value?.trim()||null,
+    color:document.getElementById('pb-color')?.value?.trim()||null,
+    color_light:document.getElementById('pb-color-l')?.value?.trim()||null,
+    color_rgb:document.getElementById('pb-color-rgb')?.value?.trim()||null,
+    harm_limit_bonus:parseInt(document.getElementById('pb-harm-bonus')?.value)||0,
+    description:document.getElementById('pb-desc')?.value?.trim()||null,
+  }
+  if(id==='new'){
+    const{data,error}=await db.from('playbooks').insert(payload).select().single()
+    if(error){toast('Error: '+error.message);return}
+    D.playbooks.push(data); _selectedNode='pb:'+data.id; addLog('Created playbook: '+name)
+  } else {
+    const{error}=await db.from('playbooks').update(payload).eq('id',id)
+    if(error){toast('Error: '+error.message);return}
+    const idx=D.playbooks.findIndex(p=>p.id===id); if(idx>=0) D.playbooks[idx]={...D.playbooks[idx],...payload}
+    addLog('Updated playbook: '+name)
+  }
+  renderMovesTree(); renderMoveList(); toast('Playbook saved!')
+}
+
+// ── GOD PANEL (moves + edit) ──────────────────────────────────
+function renderGodPanel(){
+  const parts=_selectedNode.split(':'), godId=parts[1], divPbId=parts[2]
+  const panel=document.getElementById('editor-panel'); if(!panel) return
+  const god=D.gods.find(g=>g.id===godId)||null
+  const divPb=D.playbooks.find(p=>p.id===divPbId)||null
+  const moves=divPb?D.moves.filter(m=>m.playbook_id===divPb.id):[]
+
+  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-family:Cinzel Decorative,serif;font-size:16px;color:var(--acc-l)">${esc(god?.name||'God')}</div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-ghost" onclick="renderGodForm('${godId}','${god?.pantheon_id||''}')">Edit God</button>
+      ${divPb?`<button class="btn btn-ghost" onclick="renderPlaybookForm('${divPb.id}','divine')">Edit Playbook</button><button class="btn btn-acc" onclick="startNewMove('${divPb.id}','')">+ New Move</button>`:`<button class="btn btn-acc" onclick="createDivinePlaybook('${godId}')">Create Divine Playbook</button>`}
+    </div>
+  </div>`
+
+  if(god){
+    h+=`<div style="background:var(--surf2);border:1px solid var(--bor2);border-radius:var(--r);padding:12px;margin-bottom:14px;font-size:13px">
+      <div style="font-family:Cinzel,serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Instrument</div>
+      <div style="color:var(--acc-l);margin-bottom:4px">${esc(god.instrument_name||'—')}</div>
+      <div style="color:var(--muted);font-style:italic;line-height:1.5">${esc(god.instrument_demand||'—')}</div>
+    </div>`
+  }
+
+  if(divPb&&moves.length){
+    moves.forEach(m=>{
+      h+=`<div class="move-list-item${_editingMoveId===m.id?' editing':''}" onclick="editMove('${m.id}')">
+        <div style="flex:1"><div class="mli-name">${esc(m.name)}</div><div style="display:flex;gap:8px;margin-top:2px"><span class="mli-branch">${esc(m.branch||'')}</span><span class="mli-tier">${esc(m.tier||'')}</span></div></div>
+        <button class="btn btn-harm" style="padding:3px 8px;font-size:7px" onclick="event.stopPropagation();confirmDeleteMove('${m.id}','${esc(m.name)}')">Del</button>
+      </div>`
+    })
+  } else if(divPb) h+='<div class="empty">No moves yet — click + New Move</div>'
+  else h+='<div class="empty">No divine playbook yet</div>'
+
+  h+=`<div id="edit-form-slot"></div>`
+  panel.innerHTML=h
+  if(_editingMoveId&&_editingMoveId!=='new') renderEditForm(D.moves.find(m=>m.id===_editingMoveId))
+  else if(_editingMoveId==='new') renderEditForm(null)
+}
+
+async function createDivinePlaybook(godId){
+  const god=D.gods.find(g=>g.id===godId); if(!god) return
+  const{data,error}=await db.from('playbooks').insert({name:god.name,type:'divine',god_id:godId,emoji:'✦',color:'#7c3aed',color_light:'#a78bfa',color_rgb:'124,58,237',harm_limit_bonus:0}).select().single()
+  if(error){toast('Error: '+error.message);return}
+  D.playbooks.push(data); _selectedNode='god:'+godId+':'+data.id
+  renderMovesTree(); renderGodPanel(); toast('Divine playbook created!')
+}
+
+// ── GOD FORM ──────────────────────────────────────────────────
+function renderGodForm(godId, pantheonId){
+  const panel=document.getElementById('editor-panel'); if(!panel) return
+  const god=D.gods.find(g=>g.id===godId)||null
+  const isNew=!god
+  const panId=pantheonId||god?.pantheon_id||''
+  panel.innerHTML=`<div style="font-family:Cinzel Decorative,serif;font-size:16px;color:var(--acc-l);margin-bottom:16px">${isNew?'New God':'Edit: '+esc(god.name)}</div>
+  <div class="form-grid">
+    <div class="fg full"><span class="fl">Name</span><input class="fi" id="god-name" value="${esc(god?.name||'')}"></div>
+    <div class="fg full"><span class="fl">Instrument Name</span><input class="fi" id="god-inst-name" value="${esc(god?.instrument_name||'')}" placeholder="e.g. The Morrigan's Demand"></div>
+    <div class="fg full"><span class="fl">Instrument Demand (short)</span><input class="fi" id="god-inst-demand" value="${esc(god?.instrument_demand||'')}" placeholder="Follow where death leads…"></div>
+    <div class="fg full"><span class="fl">Instrument Detail (full Comply/Refuse text)</span><textarea class="fi" style="min-height:100px" id="god-inst-detail">${esc(god?.instrument_detail||'')}</textarea></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn btn-acc" onclick="saveGod('${godId||'new'}','${panId}')">Save God</button>
+    <button class="btn btn-ghost" onclick="renderEditorPanel()">Cancel</button>
+  </div>`
+}
+
+async function saveGod(id, pantheonId){
+  const name=document.getElementById('god-name')?.value?.trim(); if(!name){toast('Name required');return}
+  const payload={name,pantheon_id:pantheonId||null,instrument_name:document.getElementById('god-inst-name')?.value?.trim()||null,instrument_demand:document.getElementById('god-inst-demand')?.value?.trim()||null,instrument_detail:document.getElementById('god-inst-detail')?.value?.trim()||null}
+  if(id==='new'){
+    const{data,error}=await db.from('gods').insert(payload).select().single()
+    if(error){toast('Error: '+error.message);return}
+    D.gods.push(data); _selectedNode='god:'+data.id+':'; addLog('Created god: '+name)
+  } else {
+    const{error}=await db.from('gods').update(payload).eq('id',id)
+    if(error){toast('Error: '+error.message);return}
+    const idx=D.gods.findIndex(g=>g.id===id); if(idx>=0) D.gods[idx]={...D.gods[idx],...payload}
+    _selectedNode='god:'+id+':'+(D.playbooks.find(p=>p.god_id===id&&p.type==='divine')?.id||'')
+    addLog('Updated god: '+name)
+  }
+  renderMovesTree(); renderGodPanel(); toast('Saved!')
+}
+
+// ── PANTHEON FORM ─────────────────────────────────────────────
+function renderPantheonForm(){
+  const panel=document.getElementById('editor-panel'); if(!panel) return
+  panel.innerHTML=`<div style="font-family:Cinzel Decorative,serif;font-size:16px;color:var(--acc-l);margin-bottom:16px">New Pantheon</div>
+  <div class="form-grid">
+    <div class="fg full"><span class="fl">Name</span><input class="fi" id="pan-name" placeholder="e.g. Norse"></div>
+    <div class="fg full"><span class="fl">Description</span><textarea class="fi" id="pan-desc" placeholder="Brief description…"></textarea></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn btn-acc" onclick="savePantheon()">Create Pantheon</button>
+    <button class="btn btn-ghost" onclick="renderEditorPanel()">Cancel</button>
+  </div>`
+}
+async function savePantheon(){
+  const name=document.getElementById('pan-name')?.value?.trim(); if(!name){toast('Name required');return}
+  const{data,error}=await db.from('pantheons').insert({name,description:document.getElementById('pan-desc')?.value?.trim()||null}).select().single()
+  if(error){toast('Error: '+error.message);return}
+  D.pantheons.push(data); _selectedNode=null; renderMovesTree(); toast('Pantheon created!')
 }
 
 function renderMoveList(){
@@ -596,7 +762,8 @@ function renderMoveList(){
   else if(_selectedNode?.startsWith('pb:')){pbId=_selectedNode.slice(3);moves=D.moves.filter(m=>m.playbook_id===pbId);const pb=D.playbooks.find(p=>p.id===pbId);title=pb?.name||'Playbook'}
   else if(_selectedNode?.startsWith('branch:')){const parts=_selectedNode.split(':');pbId=parts[1];branchFilter=parts[2];moves=D.moves.filter(m=>m.playbook_id===pbId&&(m.branch||'General')===branchFilter);title=branchFilter}
   if(!_selectedNode){panel.innerHTML='<div class="empty">Select a playbook from the tree</div>';return}
-  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="font-family:Cinzel Decorative,serif;font-size:16px;color:var(--acc-l)">${esc(title)}</div><button class="btn btn-acc" onclick="startNewMove('${esc(pbId||'')}','${esc(branchFilter||'')}')">+ New Move</button></div>`
+  const editPbBtn=pbId&&!branchFilter?`<button class="btn btn-ghost" onclick="renderPlaybookForm('${pbId}','')">Edit Playbook</button>`:'';
+  let h=`<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:12px"><div style="font-family:Cinzel Decorative,serif;font-size:16px;color:var(--acc-l)">${esc(title)}</div><div style="display:flex;gap:6px">${editPbBtn}<button class="btn btn-acc" onclick="startNewMove('${esc(pbId||'')}','${esc(branchFilter||'')}')">+ New Move</button></div></div>`
   if(moves.length){
     moves.forEach(m=>{
       h+=`<div class="move-list-item${_editingMoveId===m.id?' editing':''}" onclick="editMove('${m.id}')">
@@ -612,7 +779,7 @@ function renderMoveList(){
 
 function startNewMove(pbId,branch){
   _editingMoveId='new'
-  const panel=document.getElementById('editor-panel'); if(!panel) return
+  if(_selectedNode?.startsWith('god:')) { renderGodPanel(); return }
   renderMoveList()
 }
 
@@ -621,7 +788,9 @@ function editMove(id){_editingMoveId=id;renderMoveList()}
 function renderEditForm(move){
   const slot=document.getElementById('edit-form-slot'); if(!slot) return
   const isNew=_editingMoveId==='new'
-  const m=isNew?{playbook_id:_selectedNode?.startsWith('pb:')?_selectedNode.slice(3):null,branch:_selectedNode?.startsWith('branch:')?_selectedNode.split(':')[2]:'',type:'hero',outcomes:[],prereq_move_ids:[],can_take_any_order:true,is_active:true}:move
+  let defaultPbId=_selectedNode?.startsWith('pb:')?_selectedNode.slice(3):null
+  if(!defaultPbId&&_selectedNode?.startsWith('god:')){const parts=_selectedNode.split(':');defaultPbId=parts[2]||null}
+  const m=isNew?{playbook_id:defaultPbId,branch:_selectedNode?.startsWith('branch:')?_selectedNode.split(':')[2]:'',type:defaultPbId&&D.playbooks.find(p=>p.id===defaultPbId)?.type==='divine'?'divine':'hero',outcomes:[],prereq_move_ids:[],can_take_any_order:true,is_active:true}:move
   // Playbook peers for prereq
   const peers=m.playbook_id?D.moves.filter(x=>x.playbook_id===m.playbook_id&&x.id!==m.id):[]
   const outs=(m.outcomes||[])
